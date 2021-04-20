@@ -1,24 +1,33 @@
 ![logo](./logo.png)
 
-Secure crypto portfolio management and exchange application
-
->#### Portex was on of the top 20 Projects for Celebrity Judging at the [ETHDenver hackathon](https://devfolio.co/submissions/portex-7c58) 2021 :trophy:
+Secure crypto secret exchange and inheritance protocol
 
 ## About
-Most of the existing management tools are managed by services that don't guarantee complete confidentiality. Even the portfolio tools that guarantee don't have a mechanism to exchange and share it with other users in a secure manner.
-We feel that it can be solved with the help of a user-controlled profile (Decentralized Identities) and an open yet secure way of exchanging messages.
-The solution we built using Portex provides a way for each user to maintain their portfolio confidentially. It also gives flexibility for the user to exchange their portfolio securely whenever there is a need to share such information with other users or institutions without exposing it to any intermediaries.
+Digital crypto assets are the talk of the town and gaining traction rapidly among all kinds of individuals and organizations. Due to the higher traction, these assets are highly valuable. So, one has to make sure that their assets are safe and sound.
+
+Owning and securing the digital crypto-asset unlike other digital assets can be challenging due to the self-sovereign nature of the ownership. It means that the owner is the only safe keeper of the assets. For many users, this might be an intimidating role as they don't want to completely responsible for preserving the assets against attacks and natural disasters. Every user always desires a trusted recovery method in case of tragedies. But there is no standardized way to easily and securely back up and recover the assets. 
+
+Safex promises to securely and conveniently store any critical information that is needed to access and recover the assets in case of any tragic events. Safex also provides a trustless yet safe way to transfer and inherit the assets by close ones whenever such an unfortunate scenario occurs.
+
+Safex uses decentralized storage, smart contracts, and cryptography techniques to build a protocol that helps to store, recover, inherit crypto assets and other confidential information. In essence, you can think of Safex as your trusted guardian even though it is completely trustless.
 
 
 ## Technologies used:
 * [Ceramic IDX](https://idx.xyz/)
 * [Textile ThreadDb](https://docs.textile.io/threads/)
 
-Checkout the detailed [blog post](https://blog.consensolabs.com/portex-textile-thread/) on how we used Ceramic and Textile ThreadDB.
 
 ## Getting Started
 
-First, run the development server:
+First, run the middleware server:
+
+```bash
+cd middleware
+npm install | yarn install
+npm start
+```
+
+Then, run the development server:
 
 ```bash
 npm install | yarn install
@@ -42,12 +51,5 @@ You are welcome to submit issues and enhancement requests and work on any of the
  5. **Push** your work back up to your forked repo
  6. Submit a **Pull request** from the forked repo to our repo so that we can review your changes
 
-## Grants and awards :
-> #### Portex has bagged 2 sponsor prizes during the [ETHDenver hackathon](https://devfolio.co/submissions/portex-7c58) 2021 :tada: :confetti_ball:.
-> * :large_orange_diamond: [Ceramic](https://www.ceramic.network):Best use of [IDX (Identity Index)](http://idx.xyz) Library
-> * :file_folder: app on IPFS and [Filecoin](https://filecoin.io/) with Textile Buckets and Hub APIs
-> #### Top 20 Projects for Celebrity Judging  :trophy:
-
 ## Resources:
-* [ETHDenver Submission](https://devfolio.co/submissions/portex-7c58)
-* [http://app.portex.xyz/](http://app.portex.xyz/)
+* [Roadmap](https://www.notion.so/Safex-features-milestones-and-roadmap-047a307b1ba04535bbad78a0e986edf7)
