@@ -93,7 +93,7 @@ const useStyles = makeStyles((ui) => ({
   },
 }));
 
-const PortfolioCard = ({ name, created, email, address, onClickCard }) => {
+const SafeCard = ({ name, created, email, address, onClickCard }) => {
   const classes = useStyles();
 
   return (
@@ -107,7 +107,7 @@ const PortfolioCard = ({ name, created, email, address, onClickCard }) => {
         }}
       >
         <div className={classes.title}>
-          <Text h3>{name}</Text>
+        <Icons.Key size={18} />
           <Button className={classes.visitButton} size='small' auto>
             View
           </Button>
@@ -118,7 +118,7 @@ const PortfolioCard = ({ name, created, email, address, onClickCard }) => {
           </Dot>
         </div>
         <Card.Footer className={classes.footer}>
-          <Icons.Mail size={14} />
+          <Icons.User size={14} />
           <Text className={classes.mail}>{email}</Text>
         </Card.Footer>
       </Card>
@@ -126,4 +126,4 @@ const PortfolioCard = ({ name, created, email, address, onClickCard }) => {
   );
 };
 
-export default PortfolioCard;
+export default SafeCard;

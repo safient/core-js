@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Input } from '@geist-ui/react';
 import makeStyles from '../makeStyles';
 import * as Icons from 'react-feather';
-import { updateName } from '../../lib/threadDb';
+import { updateName } from '../../lib/safexDb';
 import Loader from '../modals/Loader';
 
 const useStyles = makeStyles((ui) => ({

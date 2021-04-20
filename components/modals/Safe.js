@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Avatar,
+  Button,
   Card,
   Modal,
   Row,
@@ -12,7 +13,8 @@ import {
 import * as Icons from 'react-feather';
 import makeStyles from '../makeStyles';
 
-import { decryptData } from '../../lib/threadDb';
+import { decryptData } from '../../utils/aes';
+import { getSafeData } from '../../lib/safexDb';
 
 const useStyles = makeStyles((ui) => ({
   content: {
@@ -121,47 +123,49 @@ const useStyles = makeStyles((ui) => ({
   },
 }));
 
-function Portfolio({ state, idx, portfolio, user, setPortfolioModal }) {
-  const [portfolioData, setPortfolioData] = useState({});
+function Safe({ state, idx, safe, user, setSafeModal }) {
+  const [safeData, setSafeData] = useState({});
+  const [showSafe, setSafeShow] = useState(false);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadPortfolio() {
-      if (idx && portfolio.documentId) {
+    async function loadSafe() {
+      if (idx && safe.safeId) {
         console.log(idx);
+        const safeData = await getSafeData(safe.safeId)
+
         const aesKey = await idx.ceramic.did.decryptDagJWE(
-          portfolio.encryptedKey
+          safeData.encSafeKey
         );
-        const encData = await idx.ceramic.loadDocument(portfolio.documentId);
+        console.log(aesKey)
         const decryptedData = await decryptData(
-          Buffer.from(encData.content.portfolio, 'hex'),
+          Buffer.from(safeData.encSafeData, 'hex'),
           aesKey
         );
+        console.log(decryptedData)
         const res = JSON.parse(decryptedData.toString('utf8'));
-        setPortfolioData({
-          name: portfolio.senderName,
-          email: portfolio.senderEmail,
-          did: portfolio.senderDid,
-          portfolio: res,
-        });
+        console.log(res)
+        setSafeData(res)
         setLoading(false);
       }
       setModal(state);
     }
-    loadPortfolio();
-  }, [state, idx, portfolio]);
+    loadSafe();
+  }, [state, idx, safe]);
+
+
 
   const closeHandler = (event) => {
     setModal(false);
-    setPortfolioModal(false);
+    setSafeModal(false);
   };
   const classes = useStyles();
 
   return (
     <>
       <Modal width={'55%'} height={'auto'} open={modal} onClose={closeHandler}>
-        <Modal.Title>User portfolio </Modal.Title>
+        <Modal.Title>Safe details</Modal.Title>
 
         <Modal.Content>
           <div className={classes.modalContent}>
@@ -179,55 +183,61 @@ function Portfolio({ state, idx, portfolio, user, setPortfolioModal }) {
                   justify='center'
                   style={{ marginBottom: '15px' }}
                 >
-                  <Text>Loading portfolios</Text>
+                  <Text>Loading safe</Text>
                 </Row>
               </div>
             ) : (
               <>
-                <div className={classes.content}>
-                  <Avatar
-                    alt='Your Avatar'
-                    className={classes.avatar}
-                    src='/assets/avatar.png'
-                  />
+                {/* <div className={classes.content}>
                   <div className={classes.name}>
                     <div className={classes.title}>
                       <Text h2 className={classes.username}>
-                        {portfolioData.name}
+                        {safeData.creator}
                       </Text>
                     </div>
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <Icons.Mail size={16} aria-label='Email' />
                         <Text className={classes.integrationsUsername}>
-                          {portfolioData.email}
+                          {safeData.email}
                         </Text>
                       </div>
                     </div>
                   </div>
-                </div>
-                {portfolioData.portfolio.map((portfolio) => {
-                  return (
+                </div> */}
+              
                     <div className={classes.projects}>
                       <Card shadow className={classes.card}>
                         <div>
                           <div className={classes.dot}>
-                            <img
+                            {/* <img
                               className={classes.logo}
                               src={`/assets/${portfolio.chain}.svg`}
                               alt=''
                               srcset=''
-                            />
-                            <Snippet text={portfolio.address} />
-                            <Tag style={{ marginLeft: '8px' }}>
-                              {portfolio.chain}
-                            </Tag>
+                            /> */}
+                            { showSafe ?
+                            <>
+                            <Snippet text={safeData.data}  width="300px" /> 
+                            <Button auto type='success' size='mini' onClick={()=>{setSafeShow(false)}} >
+                            Hide
+                           </Button>
+                            </>
+                            :
+                            <>
+                            <Snippet text={"******"}  copy="prevent"  width="300px" /> 
+                            <Button auto type='success' size='mini' onClick={()=>{setSafeShow(true)}} >
+                            Show
+                            </Button>
+                            </>
+                             }
+                            
+                         
                           </div>
                         </div>
                       </Card>
                     </div>
-                  );
-                })}
+
               </>
             )}
           </div>
@@ -240,4 +250,4 @@ function Portfolio({ state, idx, portfolio, user, setPortfolioModal }) {
   );
 }
 
-export default Portfolio;
+export default Safe;

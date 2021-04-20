@@ -73,7 +73,7 @@ function Connect({ modal, setModal, connectUser, userConnected }) {
           Show Modal
         </Button> */}
         <Modal open={modal} onClose={closeHandler} disableBackdropClick={true}>
-          <Modal.Title>Login to Portex</Modal.Title>
+          <Modal.Title>Login to Safex</Modal.Title>
 
           <Modal.Content>
             <Row gap={0.8} justify='center' style={{ marginBottom: '15px' }}>
@@ -118,7 +118,7 @@ function Connect({ modal, setModal, connectUser, userConnected }) {
           <Modal.Action onClick={closeHandler} />
         </Modal>
         <Modal open={loading && !userConnected} disableBackdropClick>
-          <Modal.Title>Login to Portex</Modal.Title>
+          <Modal.Title>Login to Safex</Modal.Title>
 
           <Modal.Content>
             <Row style={{ padding: '10px 0' }}>

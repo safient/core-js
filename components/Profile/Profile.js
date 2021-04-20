@@ -7,7 +7,8 @@ import AddressModal from './AddressModal';
 import EditProfile from '../modals/EditProfile';
 import Loader from '../modals/Loader';
 import { definitions } from '../../utils/config.json';
-import { decryptData, encryptData, updateDocID } from '../../lib/threadDb';
+import { decryptData, encryptData } from '../../utils/aes';
+import { updateDocID } from '../../lib/safexDb';
 
 const useStyles = makeStyles((ui) => ({
   root: {
@@ -192,15 +193,6 @@ const Profile = ({ idx, userData }) => {
                   >
                     Edit Profile
                   </Button>
-                  <Button
-                    className={classes.createProjectButton}
-                    type='secondary'
-                    auto
-                    icon={<Icons.Plus />}
-                    onClick={() => setModal(true)}
-                  >
-                    Add New Address
-                  </Button>
                 </div>
               </div>
               <div>
@@ -226,45 +218,6 @@ const Profile = ({ idx, userData }) => {
             :<Text> No user data found</Text>
           </Row>
         )}
-
-        <div
-          className={classes.heading}
-          style={{
-            marginBottom: '0px',
-            height: '0px',
-            background: 'red',
-            marginTop: '18px',
-          }}
-        >
-          <Text h4 className={classes.username}>
-            My Portfolio Accounts
-          </Text>
-        </div>
-        <div className={classes.content}>
-          <div className={classes.projects}>
-            {addressArray.length > 0 ? (
-              addressArray.map((add, index) => {
-                console.log(add);
-                return (
-                  <ProfileCard
-                    address={add.address}
-                    name={add.chain}
-                    addAddress={addAddress}
-                    key={index}
-                  />
-                );
-              })
-            ) : (
-              <Row style={{ padding: '10px 0' }}>
-                <Image
-                  src='/assets/notFound.svg'
-                  alt='No Portfolios Found'
-                  width={350}
-                />
-              </Row>
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );

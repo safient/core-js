@@ -3,7 +3,8 @@ import {CssBaseline, GeistProvider} from '@geist-ui/react'
 import {generateSignature} from "../lib/signerConnect"
 import {generateIDX, generateIDXForMagic} from '../lib/identity'
 import {definitions} from '../utils/config.json'
-import {getLoginUser, loginUserWithChallenge} from '../lib/threadDb';
+import { loginUserWithChallenge } from '../utils/threadDb';
+import { getLoginUser, getSafeData } from '../lib/safexDb';
 import {PrivateKey} from "@textile/hub";
 
 

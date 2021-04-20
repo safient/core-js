@@ -4,11 +4,11 @@ import * as Icons from 'react-feather';
 import makeStyles from '../makeStyles';
 import { definitions } from '../../utils/config.json';
 import {
-  generateCipherKey,
-  loginUserWithChallenge,
   registerNewUser,
   checkEmailExists,
-} from '../../lib/threadDb';
+} from '../../lib/safexDb';
+import { loginUserWithChallenge } from '../../utils/threadDb';
+import { generateCipherKey } from '../../utils/aes';
 
 const useStyles = makeStyles((ui) => ({
   form: {
@@ -51,18 +51,13 @@ function SignUp({ user, idx, setUserData, identity, setUser }) {
       if (client != null) {
         const { status } = await checkEmailExists(email);
         if (status) {
-          const enc = await idx.ceramic.did.createDagJWE(aesKey, [idx.id]);
 
           const ceramicRes = await idx.set(definitions.profile, {
             name: name,
             email: email,
           });
 
-          const encCeramic = await idx.set(definitions.encryptionKey, {
-            key: enc,
-          });
-
-          const threadRes = await registerNewUser(idx.id, name, email, enc, 0);
+          const threadRes = await registerNewUser(idx.id, name, email, 0);
 
           setUserData(threadRes);
           if (ceramicRes && threadRes) {

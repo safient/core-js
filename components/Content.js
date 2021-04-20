@@ -9,23 +9,19 @@ import {
   Row,
   Input,
   Image,
-  useToasts,
   useModal,
 } from '@geist-ui/react';
 
 import makeStyles from './makeStyles';
 import EventListItem from './EventListItem.js';
-import SearchResultsModal from './modals/SearchResults';
-import PortfolioCard from './PortfolioCard';
-import Portfolio from './modals/Portfolio';
+import CreateSafeModal from './modals/CreateSafe';
+import PortfolioCard from './SafeCard';
+import Safe from './modals/Safe';
 import Loader from './modals/Loader';
 import {
   getLoginUser,
   getAllUsers,
-  requestPortfolio,
-  sharePortfolio,
-  checkEmailExists, rejectPortfolioRequest,
-} from '../lib/threadDb';
+} from '../lib/safexDb';
 import * as Icons from 'react-feather';
 
 const useStyles = makeStyles((ui) => ({
@@ -122,29 +118,21 @@ const Content = ({ idx, user, userData }) => {
   const [caller, setCaller] = useState(null);
   const [userArray, setUserArray] = useState([{}]);
 
+  console.log(userData)
+
   const [requested, setRequested] = useState([]);
-  const [requests, setRequests] = useState([]);
   const [sharedPortfolio, setSharedPortfolio] = useState([]);
   const [selectedPortfolio, setSelectedPortfolio] = useState({});
   const [portfolioModal, setPortfolioModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loaderData, setLoaderData] = useState({});
-  const [searchUser, setSearchUser] = useState('');
-  const [userEmail, setUserEmail] = useState('');
-  const [reciverDetails, setReciverDetails] = useState(null);
-
   const [searchResults, setSearchResults] = useState(false);
-  const [, setToast] = useToasts();
 
   useEffect(() => {
     async function load() {
       if (idx && user === 2) {
-        setRequested(userData.requested);
-        setRequests(userData.requests);
-        setSharedPortfolio(userData.sharedData);
-
         const { userArray, caller } = await getAllUsers(userData.did);
-        console.log('caller', caller);
+        setSharedPortfolio(userData.safes)
         setCaller(userData);
         setUserArray(userArray);
       }
@@ -152,41 +140,13 @@ const Content = ({ idx, user, userData }) => {
     load();
   }, [idx, user]);
 
-  const onClickCard = (portfolio) => {
-    console.log(portfolio);
-    setSelectedPortfolio(portfolio);
+  const onClickCard = (safe) => {
+    setSelectedPortfolio(safe);
     setPortfolioModal(true);
   };
 
   const handleClick = async () => {
-    setLoaderData({
-      heading: 'Searching User',
-      content: 'Searching user',
-    });
-    setLoading(true);
-
-    if (searchUser !== caller.email) {
-      const {status, user} = await checkEmailExists(searchUser);
-      if (!status) {
-        setLoading(false);
         setSearchResults(true);
-
-        setUserEmail(user.name);
-        setReciverDetails(user);
-      } else {
-        setLoading(false);
-        setToast({
-          text: 'User not found, please check the Email ID',
-          type: 'warning',
-        });
-      }
-    } else {
-      setLoading(false);
-      setToast({
-        text: 'Please enter valid email',
-        type: 'warning',
-      });
-    }
   };
 
   const fetchUserDetails = async () => {
@@ -196,33 +156,11 @@ const Content = ({ idx, user, userData }) => {
     });
     setLoading(true);
     const userData = await getLoginUser(idx.id);
-    setRequested(userData.requested);
-    setRequests(userData.requests);
-    setSharedPortfolio(userData.sharedData);
+    setSharedPortfolio(userData.safes);
     setLoading(false);
   };
 
-  const handleAccept = async (receiver) => {
-    setLoading(true);
-    setLoaderData({
-      heading: 'Accept Portfolio Request',
-      content: 'Accepting portfolio request',
-    });
 
-    const dec = await idx.ceramic.did.decryptDagJWE(userData.aesKey);
-    const encKey = await idx.ceramic.did.createDagJWE(dec, [
-      receiver.senderDid,
-    ]);
-    await sharePortfolio(caller, receiver, userData.docID, encKey, receiver.requestId);
-    setLoading(false);
-  };
-
-  const handleReject = async (receiver) => {
-    setLoading(true)
-    setLoaderData({heading: "Reject Portfolio Request", content: "Rejecting portfolio request"})
-    await rejectPortfolioRequest(caller, receiver.requestId)
-    setLoading(false)
-  };
 
   const classes = useStyles();
   return (
@@ -232,26 +170,25 @@ const Content = ({ idx, user, userData }) => {
         heading={loaderData.heading}
         content={loaderData.content}
       />
-      <SearchResultsModal
-        avatar='/assets/avatar.png'
+      <CreateSafeModal
+        idx={idx}
         searchResults={searchResults}
         setSearchResults={setSearchResults}
-        userEmail={userEmail}
-        reciverDetails={reciverDetails}
         caller={caller}
         requested={requested}
       />
       {/* <TestModal searchResults={searchResults} /> */}
-      <Portfolio
+      <Safe
         state={portfolioModal}
         idx={idx}
-        portfolio={selectedPortfolio}
-        setPortfolioModal={setPortfolioModal}
+        safe={selectedPortfolio}
+        user={user}
+        setSafeModal={setPortfolioModal}
       />
       <div className={classes.root}>
         <div className={classes.content}>
           <Row>
-            <Text h3>All portfolios</Text>
+            <Text h3>All safes</Text>
             <Button
               // aria-label='Toggle Dark mode'
               // className={classes.themeIcon}
@@ -268,9 +205,9 @@ const Content = ({ idx, user, userData }) => {
                 sharedPortfolio.map((value) => {
                   return (
                     <PortfolioCard
-                      name={value.senderName}
-                      address={value.senderDid}
-                      email={value.senderEmail}
+                      // name={value.senderName}
+                      address={value.safeId}
+                      email={value.type}
                       onClickCard={() => {
                         onClickCard(value);
                       }}
@@ -279,13 +216,15 @@ const Content = ({ idx, user, userData }) => {
                 })
               ) : (
                 // <Text>No shared portfolios</Text>
-                <div style={{ background: '#fff', padding: '24px' }}>
+                <div style={{ background: '#fff', padding: '24px', textAlign: 'center' }}>
                   <Image
-                    src='/assets/portfolioNotFound.svg'
-                    alt='No Shared Portfolios'
+                    src='/assets/safe.svg'
+                    alt='No safes found'
                     width={350}
                   />
+                   <Text> No Safe Found </Text>
                 </div>
+               
               )}
             </div>
 
@@ -293,24 +232,17 @@ const Content = ({ idx, user, userData }) => {
 
             <div className={classes.activity}>
               <Text h2 className={classes.inviteHeading}>
-                Request User Portfolio
+                Create a safe
               </Text>
               <div className={classes.invite}>
-                <Input
-                  type='email'
-                  placeholder='Search user by Email'
-                  value={searchUser}
-                  onChange={(e) => setSearchUser(e.target.value)}
-                  style={{ width: '230px' }}
-                />
                 <Button
                   size='small'
                   auto
-                  icon={<Icons.Search />}
+                  icon={<Icons.Key />}
                   type='secondary'
                   onClick={handleClick}
                 >
-                  Search
+                  Create Safe
                 </Button>
               </div>
 
@@ -336,46 +268,6 @@ const Content = ({ idx, user, userData }) => {
               <Text className={classes.viewAll}>
                 <Link color>View more</Link>
               </Text>
-
-              <Text h2 className={classes.activityTitle}>
-                All Requests
-              </Text>
-
-              {requests.length > 0 ? (
-                requests.map((value) => {
-                  return (
-                    <EventListItem
-                      username='ofekashery'
-                      avatar='/assets/avatar.png'
-                      created='3d'
-                    >
-                      <p>
-                        <b>{value.name}</b> requested portfolio access.
-                      </p>
-                      <div className={classes.btn}>
-                        <Button
-                          size='small'
-                          auto
-                          type='success'
-                          onClick={() => handleAccept(value)}
-                          className={classes.btnAccept}
-                        >
-                          Accept
-                        </Button>
-                        <Button
-                          size='small'
-                          auto
-                          onClick={() => handleReject(value)}
-                        >
-                          Reject
-                        </Button>
-                      </div>
-                    </EventListItem>
-                  );
-                })
-              ) : (
-                <Text className={classes.message}>No activity</Text>
-              )}
             </div>
           </div>
         </div>

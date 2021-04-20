@@ -37,7 +37,7 @@ const Footer = () => {
   return (
     <div className={classes.root}>
       <div className={classes.content}>
-        <Image className={classes.logo} src='/logo.png' title='Portex' />
+        <Image className={classes.logo} src='/logo.png' title='Safex' />
         <Text>
           &copy;{new Date().getFullYear()}
           <Link
