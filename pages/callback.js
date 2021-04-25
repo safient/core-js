@@ -5,7 +5,9 @@ import Router, { useRouter } from 'next/router';
 import Layout from '../components/Layout';
 import Loader from '../components/modals/Loader';
 import {ethers} from "ethers";
-import {checkEmailExists, generateCipherKey, loginUserWithChallenge, registerNewUser} from "../lib/threadDb";
+import {checkEmailExists, registerNewUser} from "../lib/safexDb";
+import { loginUserWithChallenge } from "../utils/threadDb";
+import { generateCipherKey } from "../utils/aes";
 import {definitions} from "../utils/config.json";
 
 const Callback = (props) => {
