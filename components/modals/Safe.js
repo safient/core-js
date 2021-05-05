@@ -15,7 +15,7 @@ import makeStyles from '../makeStyles';
 
 import { decryptData } from '../../utils/aes';
 import { getSafeData } from '../../lib/safexDb';
-
+import shamirs from "shamirs-secret-sharing"
 const useStyles = makeStyles((ui) => ({
   content: {
     display: 'flex',
@@ -129,21 +129,35 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
     async function loadSafe() {
       if (idx && safe.safeId) {
-        console.log(idx);
+        console.log(safe);
         const safeData = await getSafeData(safe.safeId)
+        const shards = safeData.encSafeKeySahrds
+        const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
 
-        const aesKey = await idx.ceramic.did.decryptDagJWE(
-          safeData.encSafeKey
-        );
+        let aesKey
+
+        if(safe.type === "creator"){
+          aesKey = await idx.ceramic.did.decryptDagJWE(
+            safeData.encSafeKey
+          )
+        }
+        else{
+          aesKey = await idx.ceramic.did.decryptDagJWE(
+            JSON.parse(reconstructedData.toString())
+          );
+        }
         console.log(aesKey)
         const decryptedData = await decryptData(
           Buffer.from(safeData.encSafeData, 'hex'),
           aesKey
         );
+
         console.log(decryptedData)
+      
         const res = JSON.parse(decryptedData.toString('utf8'));
         console.log(res)
         setSafeData(res)

@@ -13,8 +13,8 @@ import { createNewSafe, checkEmailExists } from '../../lib/safexDb';
 import { generateCipherKey, encryptData } from '../../utils/aes';
 import Loader from './Loader';
 import makeStyles from '../makeStyles';
-
 import * as Icons from 'react-feather';
+import { secretSplit } from '../../lib/secret-sharing';
 
 const useStyles = makeStyles((ui) => ({
 
@@ -59,10 +59,12 @@ const SearchResultsModal = ({
     );
 
     // Encrypt the AES key
-    const enc = await idx.ceramic.did.createDagJWE(aesKey, [userResult.did]);
+    const recipentEnc = await idx.ceramic.did.createDagJWE(aesKey, [userResult.did]);
+
+    const enc = await idx.ceramic.did.createDagJWE(aesKey, [idx.id]);
     console.log(enc)
 
-    await createNewSafe(caller.did, userResult.did, enc, encryptedData)
+    await createNewSafe(caller.did, userResult.did, enc, recipentEnc, encryptedData)
    
     setLoaderData({
       heading: 'Safe Created successfully',
