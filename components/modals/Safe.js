@@ -14,7 +14,7 @@ import * as Icons from 'react-feather';
 import makeStyles from '../makeStyles';
 
 import { decryptData } from '../../utils/aes';
-import { getSafeData } from '../../lib/safexDb';
+import { getSafeData, claimSafe } from '../../lib/safexDb';
 import shamirs from "shamirs-secret-sharing"
 const useStyles = makeStyles((ui) => ({
   content: {
@@ -129,38 +129,68 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const stage = {
+    0: "NOT_CLAIMED",
+    1: "CLAIMING",
+    2: "CLAIMED"
+  }
 
   useEffect(() => {
     async function loadSafe() {
       if (idx && safe.safeId) {
-        console.log(safe);
         const safeData = await getSafeData(safe.safeId)
-        const shards = safeData.encSafeKeySahrds
-        const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
-
+        console.log(safeData)
+        
+        //const shards = safeData.encSafeKeyShards
+        // 
         let aesKey
 
         if(safe.type === "creator"){
           aesKey = await idx.ceramic.did.decryptDagJWE(
             safeData.encSafeKey
           )
+            const decryptedData = await decryptData(
+              Buffer.from(safeData.encSafeData, 'hex'),
+              aesKey
+            );
+            console.log(decryptedData)
+            const res = JSON.parse(decryptedData.toString('utf8'));
+            console.log(res)
+            setSafeData(res)
+            setSafeShow(true)
         }
-        else{
-          aesKey = await idx.ceramic.did.decryptDagJWE(
-            JSON.parse(reconstructedData.toString())
-          );
-        }
-        console.log(aesKey)
-        const decryptedData = await decryptData(
-          Buffer.from(safeData.encSafeData, 'hex'),
-          aesKey
-        );
+        
+        if(safe.type === "recipient" ){
 
-        console.log(decryptedData)
-      
-        const res = JSON.parse(decryptedData.toString('utf8'));
-        console.log(res)
-        setSafeData(res)
+          if(safeData.stage === 2){
+
+            let shards = []
+            let res
+
+              safeData.encSafeKeyShards.map(share =>{
+              console.log(share)
+              share.status === 1 ? shards.push(share.decData) : null
+            })
+            if(shards.length !== []){
+              console.log(shards)
+                const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
+                aesKey = await idx.ceramic.did.decryptDagJWE(JSON.parse(reconstructedData.toString()))
+                const decryptedData = await decryptData(
+                  Buffer.from(safeData.encSafeData, 'hex'),
+                  aesKey
+                )
+                console.log(decryptedData)
+                res = JSON.parse(decryptedData.toString('utf8'))
+                console.log(res)
+                setSafeData(res)
+                setSafeShow(true)
+            }
+          }
+        else{
+          setSafeShow(false)
+        }
+      }
+
         setLoading(false);
       }
       setModal(state);
@@ -168,6 +198,12 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
     loadSafe();
   }, [state, idx, safe]);
 
+  const handleClaim = async () => {
+    if(safe.safeId){
+      const res = await claimSafe(safe.safeId)
+      console.log(res)
+    }
+  }
 
 
   const closeHandler = (event) => {
@@ -233,19 +269,15 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
                             { showSafe ?
                             <>
                             <Snippet text={safeData.data}  width="300px" /> 
-                            <Button auto type='success' size='mini' onClick={()=>{setSafeShow(false)}} >
-                            Hide
-                           </Button>
                             </>
                             :
                             <>
-                            <Snippet text={"******"}  copy="prevent"  width="300px" /> 
-                            <Button auto type='success' size='mini' onClick={()=>{setSafeShow(true)}} >
-                            Show
+                            <Button auto type='success' size='mini' onClick={handleClaim} >
+                              Recover
                             </Button>
                             </>
-                             }
-                            
+                            }
+              
                          
                           </div>
                         </div>

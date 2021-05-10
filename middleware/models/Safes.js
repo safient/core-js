@@ -10,7 +10,8 @@ const Safes = {
         encSafeKey: {type:'object'},
         encSafeData: {type: 'object'},
         stage: {type: 'integer'},
-        encSafeKeyShards: {type: 'array'} //=> [{status: 'recovered', encData : 'data', decData: 'data'}]
+        encSafeKeyShards: {type: 'array'}, //=> [{status: 'recovered', encData : 'data', decData: 'data'}]
+        dummy: {type: 'array'}
     },
 }
 

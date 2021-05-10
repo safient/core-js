@@ -64,7 +64,7 @@ const SearchResultsModal = ({
     const enc = await idx.ceramic.did.createDagJWE(aesKey, [idx.id]);
     console.log(enc)
 
-    await createNewSafe(caller.did, userResult.did, enc, recipentEnc, encryptedData)
+    await createNewSafe(caller.did, userResult.did, enc, recipentEnc, encryptedData, idx)
    
     setLoaderData({
       heading: 'Safe Created successfully',
