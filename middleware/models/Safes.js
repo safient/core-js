@@ -9,7 +9,9 @@ const Safes = {
         recipient: {type: 'string'},
         encSafeKey: {type:'object'},
         encSafeData: {type: 'object'},
-        // encSafeKeySahrds: {type: 'array'} => [{status: 'recovered', encData : 'data', decData: 'data'}]
+        stage: {type: 'integer'},
+        encSafeKeyShards: {type: 'array'}, //=> [{status: 'recovered', encData : 'data', decData: 'data'}]
+        dummy: {type: 'array'}
     },
 }
 
