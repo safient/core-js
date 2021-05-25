@@ -14,7 +14,7 @@ import * as Icons from 'react-feather';
 import makeStyles from '../makeStyles';
 
 import { decryptData } from '../../utils/aes';
-import { getSafeData, claimSafe } from '../../lib/safexDb';
+import { getSafeData, claimSafe, decryptShards } from '../../lib/safexDb';
 import shamirs from "shamirs-secret-sharing"
 const useStyles = makeStyles((ui) => ({
   content: {
@@ -128,19 +128,16 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
   const [showSafe, setSafeShow] = useState(false);
   const [modal, setModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [safeType, setSafeType] = useState(null)
+  const [shard, setShard] = useState(null)
 
-  const stage = {
-    0: "NOT_CLAIMED",
-    1: "CLAIMING",
-    2: "CLAIMED"
-  }
 
   useEffect(() => {
     async function loadSafe() {
       if (idx && safe.safeId) {
         const safeData = await getSafeData(safe.safeId)
         console.log(safeData)
-        
+        setSafeType(safe.type)
         //const shards = safeData.encSafeKeyShards
         // 
         let aesKey
@@ -160,7 +157,7 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
             setSafeShow(true)
         }
         
-        if(safe.type === "recipient" ){
+        if(safe.type === "inheritor" ){
 
           if(safeData.stage === 2){
 
@@ -190,6 +187,11 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
           setSafeShow(false)
         }
       }
+      if(safe.type === "guardian" ){
+        const guardians = safeData.guardians
+        const indexValue = guardians.indexOf(idx.id)
+        setShard(indexValue)
+    }
 
         setLoading(false);
       }
@@ -201,6 +203,13 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
   const handleClaim = async () => {
     if(safe.safeId){
       const res = await claimSafe(safe.safeId)
+      console.log(res)
+    }
+  }
+
+  const handleRecover = async () => {
+    if(safe.safeId){
+      const res = await decryptShards(idx, safe.safeId, shard)
       console.log(res)
     }
   }
@@ -272,9 +281,21 @@ function Safe({ state, idx, safe, user, setSafeModal }) {
                             </>
                             :
                             <>
-                            <Button auto type='success' size='mini' onClick={handleClaim} >
-                              Recover
-                            </Button>
+                            {
+                              safeType === "inheritor" ? 
+                              <>
+                              <Button auto type='success' size='mini' onClick={handleClaim} >
+                                Claim
+                              </Button>
+                              </>
+                              :
+                              <>
+                              <Button auto type='success' size='mini' onClick={handleRecover} >
+                                Recover
+                              </Button>
+                              </>
+                            }
+                           
                             </>
                             }
               
