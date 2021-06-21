@@ -1,90 +1,92 @@
-const Emittery = require('emittery')
-const {getAPISig, newClientDB, getThreadId} = require("./hub-helpers");
+const Emittery = require('emittery');
+const { getAPISig, newClientDB, getThreadId } = require('./hub-helpers');
 
 module.exports = (io) => {
-    io.on('connection', (socket) => {
-      console.log('New user connected');
+  io.on('connection', (socket) => {
+    console.log('New user connected');
 
-      socket.on('authInit', async (msg) => {
-        const emitter = new Emittery();
-        console.log('message: ' + msg);
-        try {
-          const data = JSON.parse(msg);
-          switch (data.type) {
+    socket.on('authInit', async (msg) => {
+      const emitter = new Emittery();
+      console.log('message: ' + msg);
+      try {
+        const data = JSON.parse(msg);
+        switch (data.type) {
+          case 'token': {
+            if (!data.pubKey) {
+              throw new Error('missing pubkey');
+            }
 
-            case 'token': {
-              if (!data.pubKey) {
-                throw new Error('missing pubkey')
-              }
+            const db = await newClientDB();
 
-              const db = await newClientDB()
-
-              const token = await db.getTokenChallenge(
-                data.pubKey,
-                (challenge) => {
-                  return new Promise((resolve, reject) => {
-
-                    //send challenge to client
-                    io.emit('authMsg', JSON.stringify({
-                      type: 'challenge',
-                      value: Buffer.from(challenge).toJSON(),
-                    }))
-
-                    //wait for challenge to get solved
-                    socket.on('challengeResp', (sig) => {
-                      resolve(Buffer.from(sig))
-                    });
-
+            const token = await db.getTokenChallenge(data.pubKey, (challenge) => {
+              return new Promise((resolve, reject) => {
+                //send challenge to client
+                io.emit(
+                  'authMsg',
+                  JSON.stringify({
+                    type: 'challenge',
+                    value: Buffer.from(challenge).toJSON(),
                   })
-                })
+                );
 
-              console.log("token:", token)
+                //wait for challenge to get solved
+                socket.on('challengeResp', (sig) => {
+                  resolve(Buffer.from(sig));
+                });
+              });
+            });
 
-              /** Get API authorization for the user */
-              const auth = await getAPISig(3600)
+            console.log('token:', token);
 
-              /** Include the token in the auth payload */
-              const payload = {
-                ...auth,
-                token: token,
-                key: process.env.USER_API_KEY,
-              };
+            /** Get API authorization for the user */
+            const auth = await getAPISig(3600);
 
-              // send token to client
-              const threadDbId = await getThreadId()
-              io.emit('authMsg', JSON.stringify({
+            /** Include the token in the auth payload */
+            const payload = {
+              ...auth,
+              token: token,
+              key: process.env.USER_API_KEY,
+            };
+
+            // send token to client
+            const threadDbId = await getThreadId();
+            io.emit(
+              'authMsg',
+              JSON.stringify({
                 type: 'token',
                 value: {
                   payload: payload,
-                  threadDbId: threadDbId
+                  threadDbId: threadDbId,
                 },
-
-              }))
-              console.log("DONE!!!")
-              break;
-            }
-
-            case 'challenge': {
-              if (!data.sig) {
-                throw new Error('missing signature (sig)')
-              }
-              await emitter.emit('challengeResp', data.sig);
-              break;
-            }
+              })
+            );
+            console.log('DONE!!!');
+            break;
           }
-        } catch (error) {
-          console.error("Error:", error)
-          /** Notify our client of any errors */
-          io.emit('authMsg',JSON.stringify({
+
+          case 'challenge': {
+            if (!data.sig) {
+              throw new Error('missing signature (sig)');
+            }
+            await emitter.emit('challengeResp', data.sig);
+            break;
+          }
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        /** Notify our client of any errors */
+        io.emit(
+          'authMsg',
+          JSON.stringify({
             type: 'error',
             value: error.message,
-          }))
-        }
-      });
-
+          })
+        );
+      }
     });
+  });
 
-    io.on('disconnect', socket =>{
-      console.log('Socket disconnected!!!')
-    })
-}
+  io.on('disconnect', (socket) => {
+    console.log('Socket disconnected!!!');
+  });
+};
