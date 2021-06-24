@@ -27,21 +27,19 @@ export const generateIDX = async (seed) => {
 
 // export const generateIDXForMagic = async (provider) => {
 //   // avoid sending the raw secret by hashing it first
-//   try{
-//     if(provider){
-//       const ceramic = new Ceramic(CERAMIC_URL)
-//       await ceramic.setDIDProvider(new Ed25519Provider(seed))
+//   try {
+//     if (provider) {
+//       const ceramic = new Ceramic(CERAMIC_URL);
+//       await ceramic.setDIDProvider(new Ed25519Provider(seed));
 //       // Create the IDX instance with the definitions aliases from the config
-//       const idx = new IDX({ ceramic, aliases: definitions })
+//       const idx = new IDX({ ceramic, aliases: definitions });
 //       console.log(idx);
-//       return {idx, ceramic, seed}
-//     }else{
-//       return {idx: null, ceramic: null, seed: null}
+//       return { idx, ceramic, seed };
+//     } else {
+//       return { idx: null, ceramic: null, seed: null };
 //     }
-
-//   }catch(error){
-//       console.log(error)
-//       return {idx: null, ceramic: null, seed: null}
+//   } catch (error) {
+//     console.log(error);
+//     return { idx: null, ceramic: null, seed: null };
 //   }
-
-// }
+// };

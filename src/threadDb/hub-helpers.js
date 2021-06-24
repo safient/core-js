@@ -1,8 +1,8 @@
 const { createAPISig, Client, createUserAuth, PrivateKey } = require('@textile/hub');
 const fs = require('fs');
-const UserRegistration = require('../../models/UserRegistration');
-const Safes = require('../../models/Safes');
-const Users = require('../../models/Users');
+const UserRegistration = require('../models/UserRegistration');
+const Safes = require('../models/Safes');
+const Users = require('../models/Users');
 
 const getAPISig = async (seconds = 300) => {
   const expiration = new Date(Date.now() + 1000 * seconds);

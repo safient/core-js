@@ -13,6 +13,6 @@
     "declaration": true,
     "strictPropertyInitialization": false
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "*.d.ts"],
   "exclude": ["node_modules", "**/*.spec.ts", "*.json"]
 }
