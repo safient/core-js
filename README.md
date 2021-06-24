@@ -14,12 +14,19 @@ JavaScript SDK to manage and interact with the safes on Safient protocol.
 
 Terminal 1
 
+* Need ts compiled dist folder to run the app
+```bash
+  npx tsc -w
+```
+
+Terminal 2
+
 ```bash
   npm run start
 ```
 * Go to http://localhost:3001/initializeDb
 
-Terminal 2
+Terminal 3
 
 ```bash
   npm run test
