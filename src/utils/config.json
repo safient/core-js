@@ -1,0 +1,13 @@
+{
+  "definitions": {
+    "profile": "kjzl6cwe1jw14bgunl19ddy2ua48n32ooocniowyklonvt7idel7e3cg1ru2o6c",
+    "portfolio": "kjzl6cwe1jw14b14oride58z312n12cpdihxjplyuu9g46dvk4wu3u5bbnu10q1",
+    "encryptionKey": "kjzl6cwe1jw147n5cv81wdtq28uqsycaluht66lygpxfm744nmwseboyyx3je1x"
+  },
+  "schemas": {
+    "profile": "ceramic://k3y52l7qbv1frxwe8xnk6to0mvqix77y1pk5fjbiagurfml30f1hu6konrn0cgq9s",
+    "portfolio": "ceramic://k3y52l7qbv1fry5yii8cxhw74qh2czuv6h0xdvwuehuht1jy7cc2zzudqt67vel1c",
+    "encryptionKey": "ceramic://k3y52l7qbv1fry7mnovvettoh13t9b2w3uhhrbtdtxemonf1az6sy8s6eaq582dj4"
+  },
+  "threadId":[1,85,236,206,93,192,7,87,238,248,63,25,83,17,59,193,71,26,108,37,129,88,184,202,66,50,115,39,22,43,155,156,180,157]
+}

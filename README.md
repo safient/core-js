@@ -1,8 +1,14 @@
+# Safient Core SDK
+JavaScript SDK to manage and interact with the safes on Safient protocol.
+
+
 ![logo](./logo.png)
 
-Secure crypto secret exchange and inheritance protocol
+Trustless crypto asset safe and inheritance protocol
 
-## About
+
+
+## About Safient
 Digital crypto assets are the talk of the town and gaining traction rapidly among all kinds of individuals and organizations. Due to the higher traction, these assets are highly valuable. So, one has to make sure that their assets are safe and sound.
 
 Owning and securing the digital crypto-asset unlike other digital assets can be challenging due to the self-sovereign nature of the ownership. It means that the owner is the only safe keeper of the assets. For many users, this might be an intimidating role as they don't want to completely responsible for preserving the assets against attacks and natural disasters. Every user always desires a trusted recovery method in case of tragedies. But there is no standardized way to easily and securely back up and recover the assets. 
@@ -17,28 +23,31 @@ Safex uses decentralized storage, smart contracts, and cryptography techniques t
 * [Textile ThreadDb](https://docs.textile.io/threads/)
 
 
+
 ## Getting Started
 
-First, run the middleware server:
-
 ```bash
-cd middleware
-npm install | yarn install
-npm start
+  git clone https://github.com/safient/safient-core.git
+  cd safient-core
+  npm install
 ```
 
-Then, run the development server:
+## Running Tests
 
+Create an `.env` file in the `middleware` and `root` folder with `USER_API_KEY`, `USER_API_SECRET` and `DB_FILE_NAME='./thread.config'`
+##### Terminal 1
+
+* Need ts compiled dist folder to run tests
 ```bash
-npm install | yarn install
-npm run dev
-# or
-yarn dev
+  npx tsc -w
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+##### Terminal 2
 
-You can start editing the page by modifying `pages/index.js`. The page auto-updates as you edit the file.
+```bash
+  cd ..
+  npm run test
+```
 
 ## Contributing
 
@@ -51,5 +60,10 @@ You are welcome to submit issues and enhancement requests and work on any of the
  5. **Push** your work back up to your forked repo
  6. Submit a **Pull request** from the forked repo to our repo so that we can review your changes
 
-## Resources:
-* [Roadmap](https://www.notion.so/Safex-features-milestones-and-roadmap-047a307b1ba04535bbad78a0e986edf7)
+
+ ## Resources:
+
+* [Website](https://safient.co)
+* [Web App](https://app.safient.co)
+* [Twitter](https://twitter.con/safientio)
+* [Discord](https://discord.safient.io)
