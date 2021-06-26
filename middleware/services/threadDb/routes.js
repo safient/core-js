@@ -7,7 +7,7 @@ module.exports = (app) => {
     const threadID = Array.from(thread);
     console.log('Writing to file...');
     fs.writeFile(
-      process.env.DB_FILE_NAME,
+      "../../thread.config",
       JSON.stringify({
         threadId: threadID,
       }),

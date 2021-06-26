@@ -1,8 +1,9 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
-import { getThreadId } from './threadDb/hub-helpers';
+import { getThreadId } from '../middleware/services/threadDb/hub-helpers';
+// @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
-import { Connection, User, UserBasic, Users, Safe, SafeData, Shard } from './types/types';
+import { Connection, User, UserBasic, Users, SafeData, Shard } from './types/types';
 
 require('dotenv').config();
 export class SafientCore {

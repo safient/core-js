@@ -12,22 +12,25 @@ JavaScript SDK to manage and interact with the safes on Safient protocol.
 
 ## Running Tests
 
-Terminal 1
+Create an `.env` file in the `middleware` and `root` folder with `USER_API_KEY`, `USER_API_SECRET` and `DB_FILE_NAME='./thread.config'`
+##### Terminal 1
 
-* Need ts compiled dist folder to run the app
+* Need ts compiled dist folder to run tests
 ```bash
   npx tsc -w
 ```
 
-Terminal 2
+##### Terminal 2
 
 ```bash
+  cd middleware
   npm run start
 ```
 * Go to http://localhost:3001/initializeDb
 
-Terminal 3
+##### Terminal 3
 
 ```bash
+  cd ..
   npm run test
 ```

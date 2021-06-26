@@ -1,10 +1,36 @@
-const { SafientSDK } = require('../dist/index');
+const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
+const { getThreadId } = require('../middleware/services/threadDb/hub-helpers');
+
 const chai = require('chai');
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
-describe('SafientSDK', async () => {
+// Import package
+const { SafientSDK } = require('../dist/index');
+
+describe('Safient Core SDK', async () => {
+  // Clean up (delete users)
+  after(async () => {
+    const seed = new Uint8Array(randomBytes(32));
+    const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
+    const client = await Client.withKeyInfo({
+      key: `${process.env.USER_API_KEY}`,
+      secret: `${process.env.USER_API_SECRET}`,
+    });
+    await client.getToken(identity);
+    const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
+
+    // DELETE : delete user A
+    const query = new Where('did').eq('DID:A');
+    const result = await client.find(threadId, 'Users', query);
+
+    if (result.length < 1) return;
+
+    const ids = await result.map((instance) => instance._id);
+    await client.delete(threadId, 'Users', ids);
+  });
+
   it('Should register a new user', async () => {
     try {
       const seed = new Uint8Array(randomBytes(32));
@@ -39,6 +65,6 @@ describe('SafientSDK', async () => {
     expect(loginUserA.did).to.equal('DID:A');
 
     // FAILURE : DID:B is not registered
-    await expect(sc.safientCore.getLoginUser(conn, 'DID:D')).to.be.rejectedWith(Error);
+    await expect(sc.safientCore.getLoginUser(conn, 'DID:B')).to.be.rejectedWith(Error);
   });
 });
