@@ -42,7 +42,7 @@ const initializeNewThreadDb = async () => {
 };
 
 const getThreadId = async () => {
-  const fileData = await fs.readFileSync('../../thread.config');
+  const fileData = await fs.readFileSync(process.env.DB_FILE_NAME);
   const thread = JSON.parse(fileData);
   return thread.threadId;
 };

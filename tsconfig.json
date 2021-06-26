@@ -14,5 +14,5 @@
     "strictPropertyInitialization": false
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "lib", "middleware", "test", "utils", "*.json"]
+  "exclude": ["node_modules", "lib", "middleware", "test", "src/utils", "*.json"]
 }

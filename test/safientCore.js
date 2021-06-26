@@ -1,6 +1,6 @@
 const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
-const { getThreadId } = require('../middleware/services/threadDb/hub-helpers');
+const { getThreadId } = require('../dist/utils/threadDb');
 
 const chai = require('chai');
 const expect = chai.expect;
@@ -11,7 +11,7 @@ const { SafientSDK } = require('../dist/index');
 
 describe('Safient Core SDK', async () => {
   // Clean up (delete users)
-  after(async () => {
+  afterEach(async () => {
     const seed = new Uint8Array(randomBytes(32));
     const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
     const client = await Client.withKeyInfo({
@@ -57,6 +57,9 @@ describe('Safient Core SDK', async () => {
     const seed = new Uint8Array(randomBytes(32));
     const sc = new SafientSDK(seed);
     const conn = await sc.safientCore.connectUser();
+
+    // SUCCESS : create user A
+    await sc.safientCore.registerNewUser(conn, 'DID:A', 'A', 'A@test.com', 0);
 
     // SUCCESS : DID:A is registered
     const loginUserA = await sc.safientCore.getLoginUser(conn, 'DID:A');

@@ -1,6 +1,6 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
-import { getThreadId } from '../middleware/services/threadDb/hub-helpers';
+import { getThreadId } from './utils/threadDb';
 // @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
 import { Connection, User, UserBasic, Users, SafeData, Shard } from './types/types';

@@ -1,6 +1,8 @@
 const { Client, Where, ThreadID } = require('@textile/hub');
 const io = require('socket.io-client');
 
+import { threadId } from './config.json';
+
 export const solveChallenge = (identity) => {
   return new Promise((resolve, reject) => {
     const socket = io(process.env.NEXT_PUBLIC_MIDDLEWARE_URL);
@@ -63,4 +65,9 @@ export const getCredentials = async function () {
   const client = Client.withUserAuth(credentials.payload);
   const threadDb = Uint8Array.from(threadDB);
   return { client, threadDb };
+};
+
+
+export const getThreadId = async () => {
+  return threadId;
 };
