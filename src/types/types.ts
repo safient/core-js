@@ -1,9 +1,11 @@
+import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JWE } from 'did-jwt';
 
 export type Connection = {
   client: Client;
   threadId: ThreadID;
+  idx: IDX | null;
 };
 
 export type User = {
@@ -33,17 +35,25 @@ export type Safe = {
 };
 
 export type SafeData = {
-  creator: string;
+  creator: string | undefined;
   guardians: string[];
-  recipient: string;
-  encSafeKey: Object;
-  encSafeData: Object;
+  recipient: string | undefined;
+  encSafeKey: JWE;
+  encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
+  claims: Claims[];
 };
+
+
+export type Claims = {
+  createdBy: string | undefined;
+  claimStatus: number;
+  disputeId: number
+}
 
 export type Shard = {
   status: number;
   encShard: JWE;
-  decData: null | Record<string, any>;
+  decData: any;
 };
