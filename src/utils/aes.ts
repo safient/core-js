@@ -1,3 +1,5 @@
+import { JWE } from "did-jwt";
+
 const crypto = require('crypto');
 
 export const generateCipherKey = () => {
@@ -21,7 +23,8 @@ export const encryptData = function (data: Object, cipherKey: Object): Promise<O
   });
 };
 
-export const decryptData = async function (encryptedData: Uint8Array, cipherKey: Object): Promise<Object> {
+export const decryptData = async function (data: any, cipherKey: any): Promise<Object> {
+  let encryptedData = Buffer.from(data, 'hex')
   const iv = encryptedData.slice(0, 16);
   encryptedData = encryptedData.slice(16);
   return new Promise((resolve) => {

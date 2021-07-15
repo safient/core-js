@@ -1,7 +1,7 @@
 const { Client, Where, ThreadID } = require('@textile/hub');
 const io = require('socket.io-client');
 
-import { threadId } from './config.json';
+import { threadId } from './threadConfig.json';
 
 export const solveChallenge = (identity) => {
   return new Promise((resolve, reject) => {
