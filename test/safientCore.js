@@ -8,6 +8,7 @@ chai.use(require('chai-as-promised'));
 
 // Import package
 const { SafientSDK } = require('../dist/index');
+const { JsonRpcProvider } = require('@ethersproject/providers');
 
 describe('Safient Core SDK', async () => {
   // Clean up (delete users)
@@ -64,22 +65,41 @@ describe('Safient Core SDK', async () => {
   let guardianOne;
   let guardianTwo;
   let guardianThree;
-  let safeId
+  let safeId;
+  let provider, chainId;
+  let creatorSigner, inheritorSigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
 
+
+  before(async() => {
+    provider = new JsonRpcProvider('http://localhost:8545');
+    const network = await provider.getNetwork();
+    chainId = network.chainId;
+
+    creatorSigner = await provider.getSigner(1);
+    
+    inheritorSigner = await provider.getSigner(2);
+    guardianOneSigner = await provider.getSigner(3);
+    guardianTwoSigner = await provider.getSigner(4);
+    guardianThreeSigner = await provider.getSigner(5);
+    pseudoAccount = await provider.getSigner(6)
+  })
   //Step 1: Register all users
   it('Should register a Creator', async () => {
     try {
       // const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(creatorSeed);
+      const sc = new SafientSDK(creatorSigner, chainId);
       creator = await sc.safientCore.connectUser();
+      console.log(creator.idx.id)
       // SUCCESS : create user A
-      await sc.safientCore.registerNewUser(creator, 'Creator', 'creator@test.com', 0);
+      
+      const userAddress = await creatorSigner.getAddress()
+      await sc.safientCore.registerNewUser(creator, 'Creator', 'creator@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(creator, 'Creator', 'creator@test.com', 0)).to.be.ok
+      await expect(sc.safientCore.registerNewUser(creator, 'Creator', 'creator@test.com', 0, userAddress)).to.be.ok
 
       // SUCCESS : get all users (check if the user A was created)
-      const loginUser = await sc.safientCore.getLoginUser(creator);
+      const loginUser = await sc.safientCore.getLoginUser(creator, creator.idx.id);
       expect(loginUser.name).to.equal('Creator');
       expect(loginUser.email).to.equal('creator@test.com');
     } catch (e) {
@@ -90,16 +110,18 @@ describe('Safient Core SDK', async () => {
   it('Should register a Inheritor', async () => {
     try {
 
-      const sc = new SafientSDK(inheritorSeed);
+      const sc = new SafientSDK(inheritorSigner, chainId);
       inheritor = await sc.safientCore.connectUser();
       // SUCCESS : create user A
-      await sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0);
+
+      const userAddress = await inheritorSigner.getAddress()
+      await sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0)).to.be.rejectedWith(Error);
+      await expect(sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0, userAddress)).to.be.rejectedWith(Error);
 
       // SUCCESS : get all users (check if the user A was created)
-      const loginUser = await sc.safientCore.getLoginUser(inheritor);
+      const loginUser = await sc.safientCore.getLoginUser(inheritor, inheritor.idx.id);
       expect(loginUser.name).to.equal('Inheritor');
       expect(loginUser.email).to.equal('inheritor@test.com');
     } catch (e) {
@@ -111,16 +133,17 @@ describe('Safient Core SDK', async () => {
   it('Should register a Guardian 1', async () => {
     try {
 
-      const sc = new SafientSDK(guardianOneSeed);
+      const sc = new SafientSDK(guardianOneSigner, chainId);
       guardianOne = await sc.safientCore.connectUser();
       // SUCCESS : create user A
-      await sc.safientCore.registerNewUser(guardianOne, 'Guardian 1', 'guardianOne@test.com', 0);
+      const userAddress = await guardianOneSigner.getAddress()
+      await sc.safientCore.registerNewUser(guardianOne, 'Guardian 1', 'guardianOne@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(guardianOne, 'Guardian 1', 'guardianOne@test.com', 0)).to.be.rejectedWith(Error);
+      await expect(sc.safientCore.registerNewUser(guardianOne, 'Guardian 1', 'guardianOne@test.com', 0, userAddress)).to.be.rejectedWith(Error);
 
       // SUCCESS : get all users (check if the user A was created)
-      const loginUser = await sc.safientCore.getLoginUser(guardianOne);
+      const loginUser = await sc.safientCore.getLoginUser(guardianOne, guardianOne.idx.id);
       expect(loginUser.name).to.equal('Guardian 1');
       expect(loginUser.email).to.equal('guardianOne@test.com');
     } catch (e) {
@@ -130,13 +153,14 @@ describe('Safient Core SDK', async () => {
 
   it('Should register a Guardian 2', async () => {
     try {
-      const sc = new SafientSDK(guardianTwoSeed);
+      const sc = new SafientSDK(guardianTwoSigner, chainId);
       guardianTwo = await sc.safientCore.connectUser();
       // SUCCESS : create user A
-      await sc.safientCore.registerNewUser(guardianTwo, 'Guardian 2', 'guardianTwo@test.com', 0);
+      const userAddress = await guardianTwoSigner.getAddress()
+      await sc.safientCore.registerNewUser(guardianTwo, 'Guardian 2', 'guardianTwo@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(guardianTwo, 'Guardian 2', 'guardianTwo@test.com', 0)).to.be.rejectedWith(Error);
+      await expect(sc.safientCore.registerNewUser(guardianTwo, 'Guardian 2', 'guardianTwo@test.com', 0, userAddress)).to.be.rejectedWith(Error);
 
       // SUCCESS : get all users (check if the user A was created)
       const loginUser = await sc.safientCore.getLoginUser(guardianTwo, guardianTwo.idx.id);
@@ -149,13 +173,14 @@ describe('Safient Core SDK', async () => {
 
   it('Should register a Guardian 3', async () => {
     try {
-      const sc = new SafientSDK(guardianThreeSeed);
+      const sc = new SafientSDK(guardianThreeSigner, chainId);
       guardianThree = await sc.safientCore.connectUser();
 
-      await sc.safientCore.registerNewUser(guardianThree, 'Guardian 3', 'guardianThree@test.com', 0);
+      const userAddress = await guardianThreeSigner.getAddress()
+      await sc.safientCore.registerNewUser(guardianThree, 'Guardian 3', 'guardianThree@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(guardianThree, 'Guardian 3', 'guardianThree@test.com', 0)).to.be.rejectedWith(Error);
+      await expect(sc.safientCore.registerNewUser(guardianThree, 'Guardian 3', 'guardianThree@test.com', 0, userAddress)).to.be.rejectedWith(Error);
 
       // SUCCESS : get all users (check if the user A was created)
       const loginUser = await sc.safientCore.getLoginUser(guardianThree, guardianThree.idx.id);
@@ -170,8 +195,8 @@ describe('Safient Core SDK', async () => {
 
   it('Should get random guardians', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const randomGuardians = await sc.safientCore.randomGuardians(creator, creator.idx.id, inheritor.idx.id)
       const result = randomGuardians.includes(guardianOne.idx.id)
       expect(result).to.equal(true);
@@ -182,9 +207,8 @@ describe('Safient Core SDK', async () => {
   //Step 2: Create a safe
   it('Should create safe with "Testing Safe data" as data', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
-      safeId = await sc.safientCore.createNewSafe(creator, inheritor, creator.idx.id, inheritor.idx.id, "Testing safe Data")
+      const sc = new SafientSDK(pseudoAccount, chainId);
+      safeId = await sc.safientCore.createNewSafe(creator, inheritor, creator.idx.id, inheritor.idx.id, "Testing safe Data", true)
       const safeData = await sc.safientCore.getSafeData(creator, safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
     } catch (e) {
@@ -195,8 +219,7 @@ describe('Safient Core SDK', async () => {
   //Step 3: Create a claim
   it('Should create a claim', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const result = await sc.safientCore.claimSafe(inheritor, safeId, 1)
       expect(result).to.equal(true);
     } catch (e) {
@@ -209,8 +232,7 @@ describe('Safient Core SDK', async () => {
 
   it('Should initiate recovery by guardian 1', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const data = await sc.safientCore.decryptShards(guardianOne, safeId, guardianOne.idx.id)
     } catch (e) {
       console.log(e);
@@ -219,8 +241,7 @@ describe('Safient Core SDK', async () => {
 
   it('Should initiate recovery by guardian 2', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const data = await sc.safientCore.decryptShards(guardianTwo, safeId, guardianTwo.idx.id)
     } catch (e) {
       console.log(e);
@@ -230,8 +251,7 @@ describe('Safient Core SDK', async () => {
 
   it('Should recover data for the inheritor', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const data = await sc.safientCore.recoverData(inheritor, safeId, inheritor.idx.id)
       console.log(data)
     } catch (e) {
@@ -242,8 +262,7 @@ describe('Safient Core SDK', async () => {
 
   it('Should recover safe data for creator', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const data = await sc.safientCore.decryptSafeData(creator, safeId)
       expect(data.data).to.equal("Testing safe Data");
     } catch (e) {
@@ -254,10 +273,19 @@ describe('Safient Core SDK', async () => {
 
   it('Should get safe data', async () => {
     try {
-      const seed = new Uint8Array(randomBytes(32));
-      const sc = new SafientSDK(seed);
+      const sc = new SafientSDK(pseudoAccount, chainId);
       const safeData = await sc.safientCore.getSafeData(guardianOne, safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
+  it('Should get all users', async () => {
+    try {
+      const sc = new SafientSDK(pseudoAccount, chainId);
+      const safeData = await sc.safientCore.getAllUsers(creator)
+      console.log(safeData)
     } catch (e) {
       console.log(e);
     }

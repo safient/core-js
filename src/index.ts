@@ -1,8 +1,9 @@
+import { JsonRpcSigner } from '@ethersproject/providers';
 import { SafientCore } from './SafientCore';
 export class SafientSDK {
   safientCore: SafientCore;
 
-  constructor(seed: Uint8Array) {
-    this.safientCore = new SafientCore(seed);
+  constructor(signer: JsonRpcSigner, chainId: number) {
+    this.safientCore = new SafientCore(signer, chainId);
   }
 }

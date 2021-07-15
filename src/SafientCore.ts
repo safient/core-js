@@ -2,6 +2,7 @@ import { IDX } from '@ceramicstudio/idx';
 import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
 import { getThreadId } from './utils/threadDb';
 import {generateIDX} from './lib/identity'
+import {generateSignature} from './lib/signer'
 // @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
 import { Connection, User, UserBasic, Users, SafeData, Shard } from './types/types';
@@ -9,6 +10,9 @@ import {definitions} from "./utils/config.json"
 import {utils} from "./lib/helpers"
 import { JWE } from 'did-jwt';
 import { decryptData } from './utils/aes';
+import { JsonRpcProvider, JsonRpcSigner, TransactionResponse } from '@ethersproject/providers';
+import {SafientClaims} from "@safient/claims"
+import {ethers} from "ethers"
 require('dotenv').config();
 
 const safeStages = {
@@ -26,13 +30,17 @@ const claimStages = {
     "REJECTED": 3
 }
 export class SafientCore {
-  private seed: Uint8Array;
-  private utils: utils
+  private signer: JsonRpcSigner;
+  private utils: utils;
+  private provider: JsonRpcProvider;
+  private claims: SafientClaims
 
 
-  constructor(seed: Uint8Array) {
-    this.seed = seed;
+  constructor(signer: JsonRpcSigner, chainId: number) {
+    this.signer = signer;
     this.utils = new utils();
+    this.provider = this.provider
+    this.claims = new SafientClaims(signer, chainId)
   }
 
   /**
@@ -40,8 +48,10 @@ export class SafientCore {
    *
    */
   connectUser = async (): Promise<Connection> => {
-    const {idx, ceramic} = await generateIDX(Uint8Array.from(this.seed))
-    const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(this.seed));
+    const seed = await generateSignature(this.signer) 
+    console.log(seed)
+    const {idx, ceramic} = await generateIDX(Uint8Array.from(seed))
+    const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
     const client = await Client.withKeyInfo({
       key: `${process.env.USER_API_KEY}`,
       secret: `${process.env.USER_API_SECRET}`,
@@ -60,7 +70,8 @@ export class SafientCore {
     conn: Connection,
     name: string,
     email: string,
-    signUpMode: number
+    signUpMode: number,
+    userAddress: string
   ): Promise<string> => {
     try {
       let idx: IDX | null = conn.idx
@@ -71,6 +82,7 @@ export class SafientCore {
         email,
         safes: [],
         signUpMode,
+        userAddress
       };
 
       //get the threadDB user
@@ -180,10 +192,12 @@ export class SafientCore {
     inheritor: Connection,
     creatorDID: string,
     inheritorDID:string,
-    safeData: any
+    safeData: any,
+    onChain?: boolean
   ): Promise<Object> => {
     try {
-       let guardians: User[] | undefined;
+        let guardians: User[] = [];
+        let txReceipt
       //get randomGuardians
 
         const creatorQuery = new Where('did').eq(creatorDID)
@@ -193,87 +207,127 @@ export class SafientCore {
 
 
 
-      const guardiansDid: string[] = await this.randomGuardians(creator, creator.idx?.id, inheritor.idx?.id);
+           // Step 1: Create safe on ThreadDB
+          const guardiansDid: string[] = await this.randomGuardians(creator, creator.idx?.id, inheritor.idx?.id);
 
-      guardiansDid.map(async(did) => {
-        const guardianData: User = await this.getLoginUser(creator, did);
-        guardians?.push(guardianData);
-      })
+          const guardianOne: User = await this.getLoginUser(creator, guardiansDid[0]);
+          const guardianTwo: User = await this.getLoginUser(creator, guardiansDid[1]);
+          const guardianThree: User = await this.getLoginUser(creator, guardiansDid[2]);
 
-      //GenerateRecoveryProof
-      // const recoveryProofData = generateRecoveryMessage([guardianOne.address, guardianTwo.address, guardianThree.address]);
-      //   console.log(recoveryProofData)
-      //   const signature = await signer.signMessage(utils.arrayify(recoveryProofData.hash));
-
-      
-      //Get the encryptedData
-      const encryptedSafeData = await this.utils.generateSafeData(safeData, inheritor.idx?.id, creator.idx?.id, creator, guardiansDid)
-      //
-
-      const Sharedata: Object = {
-        inheritorEncKey: encryptedSafeData.inheritorEncKey
-        // message : JSON.parse(recoveryProofData.recoveryMessage),
-        //     signature: signature
-    }
-
-      const data: SafeData = {
-        creator: creator.idx?.id,
-        guardians: guardiansDid,
-        recipient: inheritor.idx?.id,
-        encSafeKey: encryptedSafeData.creatorEncKey,
-        encSafeData: encryptedSafeData.encryptedData,
-        stage: safeStages.ACTIVE,
-        encSafeKeyShards: encryptedSafeData.shardData,
-        claims: []
-      };
-
-      const safe = await creator.client.create(creator.threadId, 'Safes', [data])
-
-      if (creatorUser[0].safes.length===0) {
-        creatorUser[0].safes = [{
-            safeId: safe[0],
-            type: 'creator'
-        }]
-    }else {
-        creatorUser[0].safes.push({
-            safeId: safe[0],
-            type: 'creator'
-        })
-    }
-
-    if (recipientUser[0].safes.length===0) {
-        recipientUser[0].safes = [{
-            safeId: safe[0],
-            type: 'inheritor'
-        }]
-    }else {
-        recipientUser[0].safes.push({
-            safeId: safe[0],
-            type: 'inheritor'
-        })
-    }
-
-    guardians?.map(guardian => {
-      if(guardian.safes.length===0){
-        guardian.safes = [{
-          safeId: safe[0],
-          type: 'guardian'
-        }]
-      }else{
-        guardian.safes.push({
-          safeId: safe[0],
-          type: 'guardian'
-      })
-      }
-    })
-
-    await creator.client.save(creator.threadId,'Users',[creatorUser[0]])
-    await creator.client.save(creator.threadId,'Users',[recipientUser[0]])
-
-    guardiansDid.forEach((async(guardians, index) => {
-      await creator.client.save(creator.threadId,'Users',[guardians[index]])
-    }));
+          guardians = [guardianOne, guardianTwo, guardianThree]
     
+          //GenerateRecoveryProof
+          const recoveryProofData = this.utils.generateRecoveryMessage(guardians);
+          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(recoveryProofData.hash));
+          
+
+        //   const Sharedata: Object = {
+        //     inheritorEncKey: encryptedSafeData.inheritorEncKey
+        //     message : JSON.parse(recoveryProofData.recoveryMessage),
+        //     signature: signature
+        // }
+          
+          //Get the encryptedData
+          const encryptedSafeData = await this.utils.generateSafeData(
+            safeData, 
+            inheritor.idx?.id, 
+            creator.idx?.id, 
+            creator, 
+            guardiansDid, 
+            signature, 
+            recoveryProofData.recoveryMessage,
+            recoveryProofData.secrets
+            )
+          //
+    
+    
+          const data: SafeData = {
+            creator: creator.idx?.id,
+            guardians: guardiansDid,
+            recipient: inheritor.idx?.id,
+            encSafeKey: encryptedSafeData.creatorEncKey,
+            encSafeData: encryptedSafeData.encryptedData,
+            stage: safeStages.ACTIVE,
+            encSafeKeyShards: encryptedSafeData.shardData,
+            claims: []
+          };
+    
+          const safe = await creator.client.create(creator.threadId, 'Safes', [data])
+
+
+    
+          
+      if(onChain === true){
+
+        //create metadata
+        const metaDataEvidenceUri:string = await this.utils.createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
+
+        //get arbitration fee and guardianfee
+        const arbitrationFee: number = await this.claims.arbitrator.getArbitrationFee()
+        console.log(arbitrationFee)
+        //Default 0.1, need to be able to get it from developer
+        const guardianFee: number = 0.1;
+
+
+        const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
+        //onChain transaction 
+
+        const tx: TransactionResponse = await this.claims.safientMain.createSafe(recipientUser[0].userAddress, safe[0], metaDataEvidenceUri, totalFee)
+        txReceipt = await tx.wait();
+        console.log(txReceipt)
+      }
+
+      if(txReceipt?.status === 1 || onChain === false){
+              if (creatorUser[0].safes.length===0) {
+                creatorUser[0].safes = [{
+                    safeId: safe[0],
+                    type: 'creator'
+                }]
+            }else {
+                creatorUser[0].safes.push({
+                    safeId: safe[0],
+                    type: 'creator'
+                })
+            }
+        
+            if (recipientUser[0].safes.length===0) {
+                recipientUser[0].safes = [{
+                    safeId: safe[0],
+                    type: 'inheritor'
+                }]
+            }else {
+                recipientUser[0].safes.push({
+                    safeId: safe[0],
+                    type: 'inheritor'
+                })
+            }
+        
+            guardians?.map(guardian => {
+              if(guardian.safes.length===0){
+                guardian.safes = [{
+                  safeId: safe[0],
+                  type: 'guardian'
+                }]
+              }else{
+                guardian.safes.push({
+                  safeId: safe[0],
+                  type: 'guardian'
+              })
+              }
+            })
+        
+            await creator.client.save(creator.threadId,'Users',[creatorUser[0]])
+            await creator.client.save(creator.threadId,'Users',[recipientUser[0]])
+        
+            guardiansDid.forEach((async(guardians, index) => {
+              await creator.client.save(creator.threadId,'Users',[guardians[index]])
+            })); 
+      }
+
+      //Issue 01: Have a onChain flag on the user profile and if the onChain is successful, update the flag or if unsuccessful update the flag
+      else{
+        await creator.client.delete(creator.threadId, 'Users', [safe[0]] );
+      }
 
     return safe[0];
 
@@ -340,7 +394,7 @@ export class SafientCore {
       result[0].encSafeKeyShards[indexValue].status = 1
       result[0].encSafeKeyShards[indexValue].decData = decShard
 
-        await conn.client.save(conn.threadId,'Safes',[result[0]])
+      await conn.client.save(conn.threadId,'Safes',[result[0]])
       
       return true;
       } catch (err) {

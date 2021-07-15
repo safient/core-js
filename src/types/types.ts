@@ -16,6 +16,7 @@ export type User = {
   name: string;
   safes: Safe[];
   signUpMode: number;
+  userAddress: string;
 };
 
 export type UserBasic = {
@@ -57,3 +58,15 @@ export type Shard = {
   encShard: JWE;
   decData: any;
 };
+
+export type GuardianSecrets = {
+  secret: string;
+  address: string;
+}
+
+export type RecoveryMessage = {
+  guardians: GuardianSecrets[];
+  hash: string;
+  recoveryMessage: string;
+  secrets: string[]
+}
