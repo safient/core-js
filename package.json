@@ -1,11 +1,32 @@
 {
-  "name": "safient-core-sdk",
-  "description": "",
-  "author": "Consenso Labs",
+  "name": "@safient/core",
   "version": "0.1.0",
-  "private": true,
+  "description": "JavaScript SDK to manage safes and interact with Safient protocol.",
+  "keywords": [
+    "Web3",
+    "Ethereum",
+    "Safient",
+    "IPFS",
+    "Crypto"
+  ],
   "scripts": {
-    "test": "mocha --timeout 60000"
+    "prettier": "prettier --write 'contracts/**/*.sol'",
+    "test": "mocha --timeout 60000",
+    "build": "tsc -p tsconfig.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/safient/safient-core-js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "prepublish": "tsc",
+  "author": "Safient <hello@safient.io>",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@ceramicnetwork/http-client": "^1.0.3",

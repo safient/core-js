@@ -37,29 +37,17 @@ export class utils {
             }
 
             const secretShares: Buffer[] = shamirs.split(JSON.stringify(Sharedata), {shares: 3, threshold: 2})
-            const shardOne = await creator.idx?.ceramic.did?.createDagJWE(secretShares[0], [guardians[0]]);
-            const shardTwo = await creator.idx?.ceramic.did?.createDagJWE(secretShares[1], [guardians[1]]);
-            const shardThree = await creator.idx?.ceramic.did?.createDagJWE(secretShares[2], [guardians[2]])
 
-            const shardData = [
-                {
-                    status: 0, 
-                    encShard : shardOne, 
+            let shardData: any[] = []
+            for(let index = 0; index < secretShares.length; index++) {
+                shardData.push({
+                    status: 0,
+                    encShard: await creator.idx?.ceramic.did?.createDagJWE(secretShares[index], [guardians[index]]),
                     decData: null
-                },
-                {
-                    status: 0, 
-                    encShard : shardTwo, 
-                    decData: null
-                },
-                {
-                    status: 0, 
-                    encShard : shardThree, 
-                    decData: null
-                }
-            ]
-           
-            
+                })
+                
+            };
+               
             let data: Object = {
                 creatorEncKey: creatorEncKey,
                 inheritorEncKey: inheritorEncKey,
