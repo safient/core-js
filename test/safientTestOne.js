@@ -1,16 +1,18 @@
 const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
-
 const chai = require('chai');
+const { writeFile } = require('fs').promises
+
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
 // Import package
 const { SafientSDK } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
+const { SignatureKind } = require('typescript');
 
-describe('Safient Core SDK', async () => {
+describe('Safient SDK Test Part 1', async () => {
   // Clean up (delete users)
   // afterEach(async () => {
   //   const seed = new Uint8Array(randomBytes(32));
@@ -115,6 +117,7 @@ describe('Safient Core SDK', async () => {
       // SUCCESS : create user A
 
       const userAddress = await inheritorSigner.getAddress()
+      console.log(userAddress)
       await sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
@@ -193,24 +196,25 @@ describe('Safient Core SDK', async () => {
   });
 
 
-  it('Should get random guardians', async () => {
+  it('Should create safe with "Testing Safe data" as data', async () => {
     try {
-      
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const randomGuardians = await sc.safientCore.randomGuardians(creator, creator.idx.id, inheritor.idx.id)
-      const result = randomGuardians.includes(guardianOne.idx.id)
-      expect(result).to.equal(true);
+      const sc = new SafientSDK(creatorSigner, chainId);
+      safeId = await sc.safientCore.createNewSafe(creator, inheritor, creator.idx.id, inheritor.idx.id, "Testing safe Data", true)
+      const config = {
+        safeId: safeId
+      }
+      await writeFile('./safe.json', JSON.stringify(config))
+      const safeData = await sc.safientCore.getSafeData(creator, safeId);
+      expect(safeData.creator).to.equal(creator.idx.id);
     } catch (e) {
       console.log(e);
     }
   });
-  //Step 2: Create a safe
-  it('Should create safe with "Testing Safe data" as data', async () => {
+
+  it('Should get safe data', async () => {
     try {
       const sc = new SafientSDK(pseudoAccount, chainId);
-      safeId = await sc.safientCore.createNewSafe(creator, inheritor, creator.idx.id, inheritor.idx.id, "Testing safe Data", true)
-      const safeData = await sc.safientCore.getSafeData(creator, safeId);
-      expect(safeData.creator).to.equal(creator.idx.id);
+      await sc.safientCore.getOnChainData(safeId);
     } catch (e) {
       console.log(e);
     }
@@ -219,110 +223,14 @@ describe('Safient Core SDK', async () => {
   //Step 3: Create a claim
   it('Should create a claim', async () => {
     try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const result = await sc.safientCore.claimSafe(inheritor, safeId, 1)
+      const sc = new SafientSDK(inheritorSigner, chainId);
+      const file = {
+        name: "signature.jpg"
+      }
+      const result = await sc.safientCore.claimSafe(inheritor, safeId, file, "Testing Evidence", "Lorsem Text")
       expect(result).to.equal(true);
     } catch (e) {
       console.log(e);
     }
   });
-
-  //Step 4: Recover Safes
-
-
-  it('Should initiate recovery by guardian 1', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const data = await sc.safientCore.decryptShards(guardianOne, safeId, guardianOne.idx.id)
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-  it('Should initiate recovery by guardian 2', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const data = await sc.safientCore.decryptShards(guardianTwo, safeId, guardianTwo.idx.id)
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-
-  it('Should recover data for the inheritor', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const data = await sc.safientCore.recoverData(inheritor, safeId, inheritor.idx.id)
-      console.log(data)
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-
-  it('Should recover safe data for creator', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const data = await sc.safientCore.decryptSafeData(creator, safeId)
-      expect(data.data).to.equal("Testing safe Data");
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-
-  it('Should get safe data', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const safeData = await sc.safientCore.getSafeData(guardianOne, safeId);
-      expect(safeData.creator).to.equal(creator.idx.id);
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-  it('Should get all users', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      const safeData = await sc.safientCore.getAllUsers(creator)
-      console.log(safeData)
-    } catch (e) {
-      console.log(e);
-    }
-  });
-
-
-
-  //Incentivise safes
-
-  // it('Should delete all users', async () => {
-  //   const seed = new Uint8Array(randomBytes(32));
-  //     const sc = new SafientSDK(seed);
-  //     connection = await sc.safientCore.connectUser();
-  //     let client = connection.client;
-  //     const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
-     
-  //     const userEmails = ['creator@test.com', 'inheritor@test.com', 'guardianOne@test.com', 'guardianTwo@test.com', 'guardianThree@test.com']
-     
-  //     const creatorQuery = new Where('email').eq(userEmails[0]);;
-  //     const creatorResult = await client.find(threadId, 'Users', creatorQuery);
-     
-  //     const inhertorQuery = new Where('email').eq(userEmails[1]);;
-  //     const inhertorResult = await client.find(threadId, 'Users', inhertorQuery);
-
-  //     const guardianOneQuery = new Where('email').eq(userEmails[2]);;
-  //     const guardianOneResult = await client.find(threadId, 'Users', guardianOneQuery);
-
-  //     const guardianTwoQuery = new Where('email').eq(userEmails[3]);;
-  //     const guardianTwoResult = await client.find(threadId, 'Users', guardianTwoQuery);
-
-  //     const guardianThreeQuery = new Where('email').eq(userEmails[4]);;
-  //     const guardianThreeResult = await client.find(threadId, 'Users', guardianThreeQuery);
-
-  //     await client.delete(threadId, 'Users', [creatorResult[0]._id, inhertorResult[0]._id], guardianOneResult[0]._id, guardianTwoResult[0]._id, guardianThreeResult[0]._id);
-
-  //     const allUsers = await sc.safientCore.getAllUsers(connection);
-  //     console.log(allUsers);
-      
-  // })
 });

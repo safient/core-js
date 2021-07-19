@@ -5,12 +5,12 @@ import {generateIDX} from './lib/identity'
 import {generateSignature} from './lib/signer'
 // @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
-import { Connection, User, UserBasic, Users, SafeData, Shard } from './types/types';
+import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation } from './types/types';
 import {definitions} from "./utils/config.json"
 import {utils} from "./lib/helpers"
 import { JWE } from 'did-jwt';
 import { decryptData } from './utils/aes';
-import { JsonRpcProvider, JsonRpcSigner, TransactionResponse } from '@ethersproject/providers';
+import { JsonRpcProvider, JsonRpcSigner, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import {SafientClaims} from "@safient/claims"
 import {ethers} from "ethers"
 require('dotenv').config();
@@ -49,7 +49,6 @@ export class SafientCore {
    */
   connectUser = async (): Promise<Connection> => {
     const seed = await generateSignature(this.signer) 
-    console.log(seed)
     const {idx, ceramic} = await generateIDX(Uint8Array.from(seed))
     const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
     const client = await Client.withKeyInfo({
@@ -197,7 +196,7 @@ export class SafientCore {
   ): Promise<Object> => {
     try {
         let guardians: User[] = [];
-        let txReceipt
+        let txReceipt: TransactionReceipt | undefined
       //get randomGuardians
 
         const creatorQuery = new Where('did').eq(creatorDID)
@@ -210,6 +209,7 @@ export class SafientCore {
            // Step 1: Create safe on ThreadDB
           const guardiansDid: string[] = await this.randomGuardians(creator, creator.idx?.id, inheritor.idx?.id);
 
+          //loop here
           const guardianOne: User = await this.getLoginUser(creator, guardiansDid[0]);
           const guardianTwo: User = await this.getLoginUser(creator, guardiansDid[1]);
           const guardianThree: User = await this.getLoginUser(creator, guardiansDid[2]);
@@ -241,7 +241,7 @@ export class SafientCore {
           //
     
     
-          const data: SafeData = {
+          const data: SafeCreation = {
             creator: creator.idx?.id,
             guardians: guardiansDid,
             recipient: inheritor.idx?.id,
@@ -252,7 +252,7 @@ export class SafientCore {
             claims: []
           };
     
-          const safe = await creator.client.create(creator.threadId, 'Safes', [data])
+          const safe: string[] = await creator.client.create(creator.threadId, 'Safes', [data])
 
 
     
@@ -264,7 +264,6 @@ export class SafientCore {
 
         //get arbitration fee and guardianfee
         const arbitrationFee: number = await this.claims.arbitrator.getArbitrationFee()
-        console.log(arbitrationFee)
         //Default 0.1, need to be able to get it from developer
         const guardianFee: number = 0.1;
 
@@ -274,7 +273,6 @@ export class SafientCore {
 
         const tx: TransactionResponse = await this.claims.safientMain.createSafe(recipientUser[0].userAddress, safe[0], metaDataEvidenceUri, totalFee)
         txReceipt = await tx.wait();
-        console.log(txReceipt)
       }
 
       if(txReceipt?.status === 1 || onChain === false){
@@ -346,12 +344,29 @@ export class SafientCore {
     }
   };
 
-  claimSafe = async (conn: Connection, safeId: string, disputeId: number): Promise<boolean> => {
+  claimSafe = async (
+    conn: Connection, 
+    safeId: string, 
+    file: any,
+    evidenceName: string,
+    description: string
+    ): Promise<boolean> => {
     try {
       const query = new Where('_id').eq(safeId);
       const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
 
-      if(result[0].stage === safeStages.ACTIVE){
+      let disputeId:number = 0
+      //1st do onchain transaction to create a claim 
+
+      const evidenceUri: string = await this.utils.createClaimEvidenceUri(file, evidenceName, description)
+
+      const tx: TransactionResponse = await this.claims.safientMain.createClaim(result[0]._id, evidenceUri)
+      const txReceipt: any = await tx.wait()
+      // 2nd check for claims : Check if the stage is active 
+      if(txReceipt.status === 1 && result[0].stage === safeStages.ACTIVE){
+        let dispute: any = txReceipt.events[2].args[2];
+        disputeId = parseInt(dispute._hex);
+  
         result[0].stage = safeStages.CLAIMING
         if( result[0].claims.length === 0 || result[0].claims === undefined){
             result[0].claims = [{
@@ -377,22 +392,34 @@ export class SafientCore {
     }
   };
 
-  decryptShards = async (conn: Connection, safeId: string, did: string): Promise<boolean> => {
+  guardianRecovery = async (conn: Connection, safeId: string, did: string): Promise<boolean> => {
     try {
       const query = new Where('_id').eq(safeId);
       const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
       
       const indexValue = result[0].guardians.indexOf(did)
-      
-      if(result[0].stage === safeStages.ACTIVE) {
-        result[0].stage = safeStages.RECOVERING
-      }
+      let recoveryCount: number = 0;
 
-      const decShard = await conn.idx?.ceramic.did?.decryptDagJWE(
+
+      if(result[0].stage === safeStages.RECOVERING) {
+        const decShard = await conn.idx?.ceramic.did?.decryptDagJWE(
           result[0].encSafeKeyShards[indexValue].encShard
         )
-      result[0].encSafeKeyShards[indexValue].status = 1
-      result[0].encSafeKeyShards[indexValue].decData = decShard
+        result[0].encSafeKeyShards[indexValue].status = 1
+        result[0].encSafeKeyShards[indexValue].decData = decShard
+
+        result[0].encSafeKeyShards.map((safeShard) => {
+          if(safeShard.status === 1){
+            recoveryCount = recoveryCount + 1;
+          }
+        })
+
+        if(recoveryCount >= 2){
+          result[0].stage = safeStages.RECOVERED
+        }else{
+          result[0].stage = safeStages.RECOVERING
+        }
+      }
 
       await conn.client.save(conn.threadId,'Safes',[result[0]])
       
@@ -413,25 +440,112 @@ export class SafientCore {
 
 
 
+      private updateStage = async(conn: Connection, safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
+
+        const query = new Where('_id').eq(safeId);
+        const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
+        result[0].stage = safeStage;
+        result[0].claims[0].claimStatus = claimStage;
+
+        await conn.client.save(conn.threadId, 'Safes', [result[0]]);
+        return true;
+      }
+
       recoverData = async (conn: Connection, safeId: string, did: string): Promise<boolean> => {
         try {
           const query = new Where('_id').eq(safeId);
           const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
           let shards: Object[] = [];
+          let data: any;
+          if(result[0].stage === safeStages.RECOVERED || result[0].stage === safeStages.CLAIMED){
 
-          if(result[0].stage === safeStages.RECOVERING || result[0].stage === safeStages.RECOVERED){
+            result[0].encSafeKeyShards.map(share => {
+              share.status === 1 ? shards.push(share.decData.share) : null
+            })
+            
+            data = await this.utils.reconstructShards(conn, shards,result[0].encSafeData);
+            if(data && result[0].stage === safeStages.RECOVERED){
+              await this.updateStage(conn, safeId, claimStages.PASSED, safeStages.CLAIMED);
+            }
+
             result[0].stage = safeStages.CLAIMED
           }
 
-          result[0].encSafeKeyShards.map(share => {
-            share.status === 1 ? shards.push(share.decData) : null
-          })
-
-          const data = await this.utils.reconstructShards(conn, shards,result[0].encSafeData);
          
           return data;
           } catch (err) {
           throw new Error(err);
         }
       };
+
+      getOnChainData = async (safeId: string) => {
+        const data = await this.claims.safientMain.getSafeBySafeId(safeId)
+        console.log(data)
+      }
+
+      syncStage = async(conn: Connection, safeId: string): Promise<boolean> => {
+        try{
+          const query = new Where('_id').eq(safeId);
+          const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
+  
+          const claimStage = await this.claims.safientMain.getClaimStatus(result[0].claims[0].disputeId);
+          if(claimStage === "Passed"){
+            result[0].stage = safeStages.RECOVERING;
+            result[0].claims[0].claimStatus = claimStages.PASSED;
+          }
+  
+          await conn.client.save(conn.threadId, 'Safes', [result[0]]);
+          return true;
+        }catch(e){
+          console.log(e);
+          return false
+        }
+
+      }
+
+
+      incentiviseGuardians = async(conn: Connection, safeId: string): Promise<boolean> =>{
+        try{
+
+        const query = new Where('_id').eq(safeId);
+        const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
+        let shards: any = []
+        let guardianArray: any = [];
+        let guardianSecret: string[] = [];
+        let tx: boolean = false
+          if(result[0].stage === safeStages.CLAIMED){
+              result[0].encSafeKeyShards.map((share) => {
+                if(share.status === 1){
+                  shards.push(share.decData.share)
+                  guardianSecret.push(share.decData.secret);
+                }
+              })
+
+              if(shards.length !== 0){
+                const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
+                const data = JSON.parse(reconstructedData.toString());
+
+                const message = data.message;
+                message.data.guardians.map((guardian: any) => {
+                  const guardianTuple = [guardian.secret, guardian.address]
+                  guardianArray.push(guardianTuple);
+                })
+
+                tx = await this.claims.safientMain.gaurdianProof(
+                  JSON.stringify(message),
+                  data.signature,
+                  guardianArray,
+                  guardianSecret,
+                  safeId
+                  )
+              }
+          }
+          return tx
+        }catch(e){
+          console.log(e)
+          return false
+        }
+      }
+
+      
 }

@@ -36,6 +36,18 @@ export type Safe = {
 };
 
 export type SafeData = {
+  _id: string;
+  creator: string | undefined;
+  guardians: string[];
+  recipient: string | undefined;
+  encSafeKey: JWE;
+  encSafeData: Buffer;
+  stage: number;
+  encSafeKeyShards: Shard[];
+  claims: Claims[];
+};
+
+export type SafeCreation = {
   creator: string | undefined;
   guardians: string[];
   recipient: string | undefined;

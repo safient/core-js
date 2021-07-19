@@ -3,6 +3,7 @@ import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
 import { JWE } from 'did-jwt';
 import { randomBytes } from 'crypto' 
 import {ethers} from "ethers"
+
 // @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
 import { Connection, User, UserBasic, Users, SafeData, Shard, RecoveryMessage, GuardianSecrets } from '../types/types';
@@ -10,6 +11,7 @@ import {generateCipherKey, encryptData, decryptData} from "../utils/aes"
 import { TextEncoder } from 'util';
 import {ipfsPublish} from "../utils/ipfs"
 require('dotenv').config();
+var environment = require("browser-or-node");
 
 export class utils {
  
@@ -54,29 +56,20 @@ export class utils {
             }
 
             const secretShares: Buffer[] = shamirs.split(JSON.stringify(Sharedata), {shares: 3, threshold: 2})
-            const shardOne = await creator.idx?.ceramic.did?.createDagJWE({share:secretShares[0], secret:secrets[0]}, [guardians[0]]);
-            const shardTwo = await creator.idx?.ceramic.did?.createDagJWE({share:secretShares[1], secret:secrets[1]}, [guardians[1]]);
-            const shardThree = await creator.idx?.ceramic.did?.createDagJWE({share:secretShares[2], secret:secrets[2]}, [guardians[2]])
 
-            const shardData = [
-                {
-                    status: 0, 
-                    encShard : shardOne, 
+            let shardData: any[] = []
+            for(let index = 0; index < secretShares.length; index++) {
+                shardData.push({
+                    status: 0,
+                    encShard: await creator.idx?.ceramic.did?.createDagJWE({
+                        share: secretShares[index],
+                        secret: secrets[index]
+                    }, [guardians[index]]),
                     decData: null
-                },
-                {
-                    status: 0, 
-                    encShard : shardTwo, 
-                    decData: null
-                },
-                {
-                    status: 0, 
-                    encShard : shardThree, 
-                    decData: null
-                }
-            ]
-           
-            
+                })
+                
+            };
+               
             let data: Object = {
                 creatorEncKey: creatorEncKey,
                 inheritorEncKey: inheritorEncKey,
@@ -102,10 +95,9 @@ export class utils {
         const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
 
         const encryptedData = JSON.parse(reconstructedData.toString());
-
         const aesKey = await inheritor.idx?.ceramic.did?.decryptDagJWE(encryptedData.inheritorEncKey);
 
-        const decryptedData = await decryptData(encryptedSafeData, aesKey)
+        const decryptedData = await decryptData(Buffer.from(encryptedSafeData), aesKey)
 
         return JSON.parse(decryptedData.toString())
     }
@@ -175,4 +167,55 @@ export class utils {
         return metaevidenceURI
       }
 
+
+      createClaimEvidenceUri = async(file: any, evidenceName: string, description: string ): Promise<any> => {
+        try{
+            let evidenceURI: string = ''
+            let buffer: Buffer | undefined
+
+            if(file && file.name.split('.')[1] ){
+            const fileName: string = file.name;
+            const fileExtension: string = file.name.split('.')[1]
+            if(environment.isBrowser){
+                const reader: any = new FileReader();
+                reader.readAsArrayBuffer(file);
+                reader.onloadend = () => {
+                    buffer = Buffer.from(reader.result);
+                };
+                const fileCid = await ipfsPublish(fileName, buffer);
+                const fileURI = `/ipfs/${fileCid[1].hash}${fileCid[0].path}`;
+                const evidenceObj = {
+                  fileURI,
+                  fileHash: fileCid[1].hash,
+                  fileTypeExtension: fileExtension,
+                  name: evidenceName,
+                  description: description,
+                };
+                const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
+                evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+            }
+            if(environment.isNode){
+                const evidenceObj = {
+                    fileURI: `https://ipfs.kleros.io/ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`,
+                    fileHash:'QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF',
+                    fileTypeExtension: fileExtension,
+                    name: evidenceName,
+                    description: description,
+                  };
+                const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
+                evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+            }
+
+            }
+            else{
+                evidenceURI = "NULL"
+            }
+
+            return evidenceURI 
+
+        }catch(e){
+            console.log(e)
+        }
+
+      }
 }
