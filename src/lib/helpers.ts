@@ -6,7 +6,7 @@ import {ethers} from "ethers"
 
 // @ts-ignore
 import shamirs from 'shamirs-secret-sharing';
-import { Connection, User, UserBasic, Users, SafeData, Shard, RecoveryMessage, GuardianSecrets } from '../types/types';
+import { Connection, User, UserBasic, Users, SafeData, Shard, RecoveryMessage, GuardianSecrets, Evidence } from '../types/types';
 import {generateCipherKey, encryptData, decryptData} from "../utils/aes"
 import { TextEncoder } from 'util';
 import {ipfsPublish} from "../utils/ipfs"
@@ -24,7 +24,7 @@ export class utils {
     
     generateSafeData = async (
         safeData: any, 
-        inheritorDid: any, 
+        beneficiaryDid: any, 
         creatorDid: any, 
         creator: Connection, 
         guardians: string [],
@@ -46,11 +46,11 @@ export class utils {
             //Encrypt AES for creator
             const creatorEncKey = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [creatorDid]);
 
-            //Encrypt AES for inheritor
-            const inheritorEncKey = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [inheritorDid]);
+            //Encrypt AES for beneficiary
+            const beneficiaryEncKey = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [beneficiaryDid]);
             
             const Sharedata: Object = {
-                inheritorEncKey: inheritorEncKey,
+                beneficiaryEncKey: beneficiaryEncKey,
                 message : JSON.parse(recoveryMessage),
                 signature: signature
             }
@@ -72,7 +72,7 @@ export class utils {
                
             let data: Object = {
                 creatorEncKey: creatorEncKey,
-                inheritorEncKey: inheritorEncKey,
+                beneficiaryEncKey: beneficiaryEncKey,
                 encryptedData: encryptedData,
                 shardData: shardData,
             }
@@ -88,14 +88,14 @@ export class utils {
 
 
     reconstructShards = async(
-        inheritor: Connection,
+        beneficiary: Connection,
         shards: any,
         encryptedSafeData: Buffer
     ): Promise<any> => {
         const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
 
         const encryptedData = JSON.parse(reconstructedData.toString());
-        const aesKey = await inheritor.idx?.ceramic.did?.decryptDagJWE(encryptedData.inheritorEncKey);
+        const aesKey = await beneficiary.idx?.ceramic.did?.decryptDagJWE(encryptedData.beneficiaryEncKey);
 
         const decryptedData = await decryptData(Buffer.from(encryptedSafeData), aesKey)
 
@@ -103,7 +103,6 @@ export class utils {
     }
 
     generateRecoveryMessage = (guardians: User[]): RecoveryMessage => {
-        console.log(guardians)
         let gurdiansArray: GuardianSecrets[] = []
         let hash: string
         let secrets: string[] = []
@@ -116,8 +115,6 @@ export class utils {
                 address: guardian.userAddress.toLowerCase()
             })
         })
-
-        console.log(gurdiansArray);
 
         const recoveryMessage: string = JSON.stringify({
             data: {
@@ -162,7 +159,6 @@ export class utils {
           },
         };
         const cid: any = await ipfsPublish('metaEvidence.json', this.encoder.encode(JSON.stringify(metaevidenceObj)));
-        console.log(cid);
         const metaevidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
         return metaevidenceURI
       }
@@ -172,6 +168,7 @@ export class utils {
         try{
             let evidenceURI: string = ''
             let buffer: Buffer | undefined
+            let evidenceObj: Evidence
 
             if(file && file.name.split('.')[1] ){
             const fileName: string = file.name;
@@ -184,27 +181,25 @@ export class utils {
                 };
                 const fileCid = await ipfsPublish(fileName, buffer);
                 const fileURI = `/ipfs/${fileCid[1].hash}${fileCid[0].path}`;
-                const evidenceObj = {
+                evidenceObj = {
                   fileURI,
                   fileHash: fileCid[1].hash,
                   fileTypeExtension: fileExtension,
                   name: evidenceName,
                   description: description,
                 };
-                const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
-                evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
             }
             if(environment.isNode){
-                const evidenceObj = {
+                evidenceObj = {
                     fileURI: `https://ipfs.kleros.io/ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`,
                     fileHash:'QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF',
                     fileTypeExtension: fileExtension,
                     name: evidenceName,
                     description: description,
                   };
-                const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
-                evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
             }
+            const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj!)));
+            evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
 
             }
             else{

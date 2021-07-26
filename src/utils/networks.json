@@ -13,7 +13,7 @@
         "arbitrator": ""
       }
     },
-    "rosten": {
+    "ropsten": {
       "chainId": 3,
       "addresses": {
         "safientMain": "",

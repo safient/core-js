@@ -1,6 +1,6 @@
 const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
-const { getThreadId } = require('../dist/utils/threadDb');
+const { getThreadId } = require('../../dist/utils/threadDb');
 const chai = require('chai');
 const { writeFile } = require('fs').promises
 
@@ -8,9 +8,8 @@ const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
 // Import package
-const { SafientSDK } = require('../dist/index');
+const { SafientSDK } = require('../../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
-const { SignatureKind } = require('typescript');
 
 describe('Safient SDK Test Part 1', async () => {
   // Clean up (delete users)
@@ -91,7 +90,6 @@ describe('Safient SDK Test Part 1', async () => {
       // const seed = new Uint8Array(randomBytes(32));
       const sc = new SafientSDK(creatorSigner, chainId);
       creator = await sc.safientCore.connectUser();
-      console.log(creator.idx.id)
       // SUCCESS : create user A
       
       const userAddress = await creatorSigner.getAddress()
@@ -117,7 +115,6 @@ describe('Safient SDK Test Part 1', async () => {
       // SUCCESS : create user A
 
       const userAddress = await beneficiarySigner.getAddress()
-      console.log(userAddress)
       await sc.safientCore.registerNewUser(beneficiary, 'beneficiary', 'beneficiary@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
@@ -195,15 +192,15 @@ describe('Safient SDK Test Part 1', async () => {
     }
   });
 
-
-  it('Should create safe with "Testing Safe data" as data', async () => {
+  //should create a safe onChain and offChain
+  it('Should create safe with "Testing Safe data" as data offchain', async () => {
     try {
       const sc = new SafientSDK(creatorSigner, chainId);
-      safeId = await sc.safientCore.createNewSafe(creator, beneficiary, creator.idx.id, beneficiary.idx.id, "Testing safe Data", true)
+      safeId = await sc.safientCore.createNewSafe(creator, beneficiary, creator.idx.id, beneficiary.idx.id, "Testing safe Data", false)
       const config = {
         safeId: safeId
       }
-      await writeFile('./safe.json', JSON.stringify(config))
+      await writeFile('./test/negativeTests/safe.json', JSON.stringify(config))
       const safeData = await sc.safientCore.getSafeData(creator, safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
     } catch (e) {
@@ -211,14 +208,7 @@ describe('Safient SDK Test Part 1', async () => {
     }
   });
 
-  it('Should get safe data', async () => {
-    try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
-      await sc.safientCore.getOnChainData(safeId);
-    } catch (e) {
-      console.log(e);
-    }
-  });
+
 
   //Step 3: Create a claim
   it('Should create a claim', async () => {
@@ -233,4 +223,33 @@ describe('Safient SDK Test Part 1', async () => {
       console.log(e);
     }
   });
+
+  //   it('Should get OnChain safe data', async () => {
+  //   try {
+  //     const sc = new SafientSDK(pseudoAccount, chainId);
+  //     await sc.safientCore.getOnChainData(safeId);
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // });
+
+  // it('Should get offChain safe data', async () => {
+  //   try {
+  //     const sc = new SafientSDK(beneficiarySigner, chainId);
+  //     const data = await sc.safientCore.getSafeData(beneficiary,safeId);
+  //     console.log(data)
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
+  // });
+
+  // it('should get claim data', async() => {
+  //     try{
+  //         const sc = new SafientSDK(pseudoAccount, chainId);
+  //         await sc.safientCore.getOnChainClaimData(1);
+  //         // console.log(beneficiarySigner.getBalance())
+  //     }catch(e){
+  //         console.log(e)
+  //     }
+  // })
 });

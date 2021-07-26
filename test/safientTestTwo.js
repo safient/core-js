@@ -37,7 +37,7 @@ describe('Safient SDK Test Part 2', async () => {
    153, 255,  30, 159,  88, 239, 251, 229,
     77, 132, 237, 146,  34,  42, 251,  77
  ];
-  let inheritorSeed = [
+  let beneficiarySeed = [
     99, 222, 247, 252, 228, 180, 160, 225,
    112,   9,  41, 254,  56,  37,  28,  56,
     56,  44,  55, 187, 139,  16, 244,  70,
@@ -62,13 +62,13 @@ describe('Safient SDK Test Part 2', async () => {
      27, 194,  58,  66,  97,  86, 177,   6
   ];
   let creator;
-  let inheritor;
+  let beneficiary;
   let guardianOne;
   let guardianTwo;
   let guardianThree;
   let safeId = "01fazbj4kk9p5y8tgkz704ysz6";
   let provider, chainId;
-  let creatorSigner, inheritorSigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
 
 
   before(async() => {
@@ -78,7 +78,7 @@ describe('Safient SDK Test Part 2', async () => {
 
     creatorSigner = await provider.getSigner(1);
     
-    inheritorSigner = await provider.getSigner(2);
+    beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
@@ -108,24 +108,24 @@ describe('Safient SDK Test Part 2', async () => {
     }
   });
 
-  it('Should register a Inheritor', async () => {
+  it('Should register a beneficiary', async () => {
     try {
 
-      const sc = new SafientSDK(inheritorSigner, chainId);
-      inheritor = await sc.safientCore.connectUser();
+      const sc = new SafientSDK(beneficiarySigner, chainId);
+      beneficiary = await sc.safientCore.connectUser();
       // SUCCESS : create user A
 
-      const userAddress = await inheritorSigner.getAddress()
+      const userAddress = await beneficiarySigner.getAddress()
       console.log(userAddress)
-      await sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0, userAddress);
+      await sc.safientCore.registerNewUser(beneficiary, 'beneficiary', 'beneficiary@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
-      await expect(sc.safientCore.registerNewUser(inheritor, 'Inheritor', 'inheritor@test.com', 0, userAddress)).to.be.rejectedWith(Error);
+      await expect(sc.safientCore.registerNewUser(beneficiary, 'beneficiary', 'beneficiary@test.com', 0, userAddress)).to.be.rejectedWith(Error);
 
       // SUCCESS : get all users (check if the user A was created)
-      const loginUser = await sc.safientCore.getLoginUser(inheritor, inheritor.idx.id);
-      expect(loginUser.name).to.equal('Inheritor');
-      expect(loginUser.email).to.equal('inheritor@test.com');
+      const loginUser = await sc.safientCore.getLoginUser(beneficiary, beneficiary.idx.id);
+      expect(loginUser.name).to.equal('beneficiary');
+      expect(loginUser.email).to.equal('beneficiary@test.com');
     } catch (e) {
       console.log(e);
     }
@@ -198,9 +198,9 @@ describe('Safient SDK Test Part 2', async () => {
   //Step 3: Create a claim
   it('Should update the stage on threadDB', async () => {
     try {
-      const sc = new SafientSDK(inheritorSigner, chainId);
+      const sc = new SafientSDK(beneficiarySigner, chainId);
      
-      const result = await sc.safientCore.syncStage(inheritor, safeId)
+      const result = await sc.safientCore.syncStage(beneficiary, safeId)
       expect(result).to.equal(true);
     } catch (e) {
       console.log(e);
@@ -229,10 +229,10 @@ describe('Safient SDK Test Part 2', async () => {
   });
 
 
-  it('Should recover data for the inheritor', async () => {
+  it('Should recover data for the beneficiary', async () => {
     try {
       const sc = new SafientSDK(pseudoAccount, chainId);
-      const data = await sc.safientCore.recoverData(inheritor, safeId, inheritor.idx.id)
+      const data = await sc.safientCore.recoverData(beneficiary, safeId, beneficiary.idx.id)
     } catch (e) {
       console.log(e);
     }
@@ -263,7 +263,7 @@ describe('Safient SDK Test Part 2', async () => {
   //     let client = connection.client;
   //     const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
      
-  //     const userEmails = ['creator@test.com', 'inheritor@test.com', 'guardianOne@test.com', 'guardianTwo@test.com', 'guardianThree@test.com']
+  //     const userEmails = ['creator@test.com', 'beneficiary@test.com', 'guardianOne@test.com', 'guardianTwo@test.com', 'guardianThree@test.com']
      
   //     const creatorQuery = new Where('email').eq(userEmails[0]);;
   //     const creatorResult = await client.find(threadId, 'Users', creatorQuery);

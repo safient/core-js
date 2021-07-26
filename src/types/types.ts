@@ -37,25 +37,27 @@ export type Safe = {
 
 export type SafeData = {
   _id: string;
-  creator: string | undefined;
+  creator: string;
   guardians: string[];
-  recipient: string | undefined;
+  beneficiary: string;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
   claims: Claims[];
+  onChain: boolean
 };
 
 export type SafeCreation = {
   creator: string | undefined;
   guardians: string[];
-  recipient: string | undefined;
+  beneficiary: string | undefined;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
   claims: Claims[];
+  onChain: boolean;
 };
 
 
@@ -81,4 +83,12 @@ export type RecoveryMessage = {
   hash: string;
   recoveryMessage: string;
   secrets: string[]
+}
+
+export type Evidence = {
+  fileURI: string;
+  fileHash: string;
+  fileTypeExtension: string;
+  name: string;
+  description: string;
 }
