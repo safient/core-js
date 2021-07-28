@@ -1,33 +1,38 @@
 const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
-const { getThreadId } = require('../../dist/utils/threadDb');
+const { getThreadId } = require('../dist/utils/threadDb');
 const chai = require('chai');
 const { writeFile } = require('fs').promises
-const {safeId} = require('./safe.json')
+
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
 // Import package
-const { SafientSDK } = require('../../dist/index');
+const { SafientSDK } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
+const { SignatureKind } = require('typescript');
 
-describe('Safient SDK Test Part 2', async () => {
+describe('Unit test', async () => {
  
+  let admin;
   let creator;
   let beneficiary;
   let guardianOne;
   let guardianTwo;
   let guardianThree;
+  let safeId;
   let provider, chainId;
   let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
-
+  let disputeId
 
   before(async() => {
     provider = new JsonRpcProvider('http://localhost:8545');
     const network = await provider.getNetwork();
     chainId = network.chainId;
 
+    admin = await provider.getSigner(0)
     creatorSigner = await provider.getSigner(1);
+    
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
@@ -35,7 +40,7 @@ describe('Safient SDK Test Part 2', async () => {
     pseudoAccount = await provider.getSigner(6)
   })
   //Step 1: Register all users
-  it('Should register creator stage ', async () => {
+  it('Should register a Creator', async () => {
     try {
       // const seed = new Uint8Array(randomBytes(32));
       const sc = new SafientSDK(creatorSigner, chainId);
@@ -142,8 +147,52 @@ describe('Safient SDK Test Part 2', async () => {
     }
   });
 
- 
+
+  it('Should create safe with "Testing Safe data" as data', async () => {
+    try {
+      const sc = new SafientSDK(creatorSigner, chainId);
+      safeId = await sc.safientCore.createNewSafe(creator, beneficiary, creator.idx.id, beneficiary.idx.id, "Testing safe Data", true)
+      const safeData = await sc.safientCore.getSafeData(creator, safeId);
+      expect(safeData.creator).to.equal(creator.idx.id);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
+  it('Should get safe data', async () => {
+    try {
+      const sc = new SafientSDK(pseudoAccount, chainId);
+      await sc.safientCore.getOnChainData(safeId);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
   //Step 3: Create a claim
+  it('Should create a claim', async () => {
+    try {
+      const sc = new SafientSDK(beneficiarySigner, chainId);
+      const file = {
+        name: "signature.jpg"
+      }
+      disputeId = await sc.safientCore.claimSafe(beneficiary, safeId, file, "Testing Evidence", "Lorsem Text")
+      
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
+  it('Should give Ruling for the dispute', async () => {
+    try {
+      const sc = new SafientSDK(admin, chainId);
+
+      const result = await sc.safientCore.giveRuling(disputeId, 1) //Passing a claim
+      expect(result).to.equal(true);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
   it('Should update the stage on threadDB', async () => {
     try {
       const sc = new SafientSDK(beneficiarySigner, chainId);
@@ -160,7 +209,7 @@ describe('Safient SDK Test Part 2', async () => {
 
   it('Should initiate recovery by guardian 1', async () => {
     try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
+      const sc = new SafientSDK(guardianOneSigner, chainId);
       const data = await sc.safientCore.guardianRecovery(guardianOne, safeId, guardianOne.idx.id)
     } catch (e) {
       console.log(e);
@@ -169,7 +218,7 @@ describe('Safient SDK Test Part 2', async () => {
 
   it('Should initiate recovery by guardian 2', async () => {
     try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
+      const sc = new SafientSDK(guardianTwoSigner, chainId);
       const data = await sc.safientCore.guardianRecovery(guardianTwo, safeId, guardianTwo.idx.id)
     } catch (e) {
       console.log(e);
@@ -179,7 +228,7 @@ describe('Safient SDK Test Part 2', async () => {
 
   it('Should recover data for the beneficiary', async () => {
     try {
-      const sc = new SafientSDK(pseudoAccount, chainId);
+      const sc = new SafientSDK(beneficiarySigner, chainId);
       const data = await sc.safientCore.recoverData(beneficiary, safeId, beneficiary.idx.id)
     } catch (e) {
       console.log(e);
@@ -192,12 +241,11 @@ describe('Safient SDK Test Part 2', async () => {
     try {
 
       const sc = new SafientSDK(guardianOneSigner, chainId);
-      const prevBalance = await guardianOneSigner.getBalance();
       const safeData = await sc.safientCore.incentiviseGuardians(guardianOne, safeId);
-      const newBalance = await guardianOneSigner.getBalance();
-      expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
+      const balance = await guardianOneSigner.getBalance();
     } catch (e) {
       console.log(e);
     }
   });
+
 });

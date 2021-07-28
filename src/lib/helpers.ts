@@ -80,8 +80,7 @@ export class utils {
             return data
         }
        catch(e){
-           console.log("Error in safe data creation")
-           return(e);
+        throw new Error(`Error while generating safe data`)
        }
 
     }
@@ -92,75 +91,88 @@ export class utils {
         shards: any,
         encryptedSafeData: Buffer
     ): Promise<any> => {
-        const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
+        try{
+            const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
 
-        const encryptedData = JSON.parse(reconstructedData.toString());
-        const aesKey = await beneficiary.idx?.ceramic.did?.decryptDagJWE(encryptedData.beneficiaryEncKey);
-
-        const decryptedData = await decryptData(Buffer.from(encryptedSafeData), aesKey)
-
-        return JSON.parse(decryptedData.toString())
+            const encryptedData = JSON.parse(reconstructedData.toString());
+            const aesKey = await beneficiary.idx?.ceramic.did?.decryptDagJWE(encryptedData.beneficiaryEncKey);
+    
+            const decryptedData = await decryptData(Buffer.from(encryptedSafeData), aesKey)
+    
+            return JSON.parse(decryptedData.toString())
+        }catch(err){
+            throw new Error(`Error while recontructing data`)
+        }
     }
 
     generateRecoveryMessage = (guardians: User[]): RecoveryMessage => {
-        let gurdiansArray: GuardianSecrets[] = []
-        let hash: string
-        let secrets: string[] = []
 
-        guardians.map((guardian: User) => {
-            const guardianSecret = randomBytes(4)
-            secrets.push(guardianSecret.toString('hex'))
-            gurdiansArray.push({
-                secret: ethers.utils.solidityKeccak256(['string'],[guardianSecret.toString('hex')]),
-                address: guardian.userAddress.toLowerCase()
+        try{
+            let gurdiansArray: GuardianSecrets[] = []
+            let hash: string
+            let secrets: string[] = []
+    
+            guardians.map((guardian: User) => {
+                const guardianSecret = randomBytes(4)
+                secrets.push(guardianSecret.toString('hex'))
+                gurdiansArray.push({
+                    secret: ethers.utils.solidityKeccak256(['string'],[guardianSecret.toString('hex')]),
+                    address: guardian.userAddress.toLowerCase()
+                })
             })
-        })
-
-        const recoveryMessage: string = JSON.stringify({
-            data: {
-                guardians: gurdiansArray
+    
+            const recoveryMessage: string = JSON.stringify({
+                data: {
+                    guardians: gurdiansArray
+                }
+            })
+    
+            hash = ethers.utils.solidityKeccak256(["string"], [recoveryMessage])
+    
+            const data: RecoveryMessage = {
+                guardians: gurdiansArray,
+                hash: hash,
+                recoveryMessage:recoveryMessage,
+                secrets: secrets
             }
-        })
-
-        hash = ethers.utils.solidityKeccak256(["string"], [recoveryMessage])
-
-        const data: RecoveryMessage = {
-            guardians: gurdiansArray,
-            hash: hash,
-            recoveryMessage:recoveryMessage,
-            secrets: secrets
+    
+            return data
+        }catch(err){
+            throw new Error(`Error while creating recovery messages, ${err}`)
         }
-
-        return data
     }
 
 
      createMetaData = async (safexMainContractAddress: string, address: string) => {
 
         //const encoder = new TextEncoder();
-
-        const metaevidenceObj = {
-          fileURI: this.safientAgreementURI,
-          fileHash: 'QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u6yoJu13',
-          fileTypeExtension: 'png',
-          category: 'Safex Claims',
-          title: 'Provide a convenient and safe way to propose and claim the inheritance and safekeeping mechanism',
-          description:
-            'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-          aliases: {
-            [safexMainContractAddress]: 'SafexMain',
-            [address]: [address],
-          },
-          question: 'Does the claimer qualify for inheritence?',
-          rulingOptions: {
-            type: 'single-select',
-            titles: ['Yes', 'No'],
-            descriptions: ['The claimer is qualified for inheritence', 'The claimer is not qualified for inheritence'],
-          },
-        };
-        const cid: any = await ipfsPublish('metaEvidence.json', this.encoder.encode(JSON.stringify(metaevidenceObj)));
-        const metaevidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
-        return metaevidenceURI
+        try{
+            const metaevidenceObj = {
+                fileURI: this.safientAgreementURI,
+                fileHash: 'QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u6yoJu13',
+                fileTypeExtension: 'png',
+                category: 'Safex Claims',
+                title: 'Provide a convenient and safe way to propose and claim the inheritance and safekeeping mechanism',
+                description:
+                  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+                aliases: {
+                  [safexMainContractAddress]: 'SafexMain',
+                  [address]: [address],
+                },
+                question: 'Does the claimer qualify for inheritence?',
+                rulingOptions: {
+                  type: 'single-select',
+                  titles: ['Yes', 'No'],
+                  descriptions: ['The claimer is qualified for inheritence', 'The claimer is not qualified for inheritence'],
+                },
+              };
+              const cid: any = await ipfsPublish('metaEvidence.json', this.encoder.encode(JSON.stringify(metaevidenceObj)));
+              const metaevidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+              return metaevidenceURI
+        }catch(err){
+            throw new Error(`Error while creating metadata, ${err}`)
+        }
+        
       }
 
 
@@ -169,6 +181,7 @@ export class utils {
             let evidenceURI: string = ''
             let buffer: Buffer | undefined
             let evidenceObj: Evidence
+            let cid: any
 
             if(file && file.name.split('.')[1] ){
             const fileName: string = file.name;
@@ -188,6 +201,9 @@ export class utils {
                   name: evidenceName,
                   description: description,
                 };
+             cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
+             evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+
             }
             if(environment.isNode){
                 evidenceObj = {
@@ -197,10 +213,10 @@ export class utils {
                     name: evidenceName,
                     description: description,
                   };
+                  //evidenceURI = `ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`
+                  cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj)));
+                  evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
             }
-            const cid = await ipfsPublish('evidence.json', this.encoder.encode(JSON.stringify(evidenceObj!)));
-            evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
-
             }
             else{
                 evidenceURI = "NULL"
@@ -209,7 +225,7 @@ export class utils {
             return evidenceURI 
 
         }catch(e){
-            console.log(e)
+            throw new Error(`Error while creating evidence, ${e}`)
         }
 
       }

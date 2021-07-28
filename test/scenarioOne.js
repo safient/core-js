@@ -1,26 +1,28 @@
 const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
 const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
-const fs = require('fs')
 const chai = require('chai');
+const { writeFile } = require('fs').promises
+
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
 // Import package
 const { SafientSDK } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
-const { SignatureKind } = require('typescript');
 
-describe('Safient SDK Test Part 2', async () => {
+describe('Scenario 1 - Creating safe offChain', async () => {
   
   let creator;
   let beneficiary;
   let guardianOne;
   let guardianTwo;
   let guardianThree;
-  let safeId = "01fazbj4kk9p5y8tgkz704ysz6";
+  let safeId;
   let provider, chainId;
   let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let disputeId
+  let admin
 
 
   before(async() => {
@@ -28,8 +30,8 @@ describe('Safient SDK Test Part 2', async () => {
     const network = await provider.getNetwork();
     chainId = network.chainId;
 
+    admin = await provider.getSigner(0);
     creatorSigner = await provider.getSigner(1);
-    
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
@@ -37,12 +39,11 @@ describe('Safient SDK Test Part 2', async () => {
     pseudoAccount = await provider.getSigner(6)
   })
   //Step 1: Register all users
-  it('Should get the updated stage ', async () => {
+  it('Should register a Creator', async () => {
     try {
       // const seed = new Uint8Array(randomBytes(32));
       const sc = new SafientSDK(creatorSigner, chainId);
       creator = await sc.safientCore.connectUser();
-      console.log(creator.idx.id)
       // SUCCESS : create user A
       
       const userAddress = await creatorSigner.getAddress()
@@ -68,7 +69,6 @@ describe('Safient SDK Test Part 2', async () => {
       // SUCCESS : create user A
 
       const userAddress = await beneficiarySigner.getAddress()
-      console.log(userAddress)
       await sc.safientCore.registerNewUser(beneficiary, 'beneficiary', 'beneficiary@test.com', 0, userAddress);
 
       // FAILURE : try creating user A again
@@ -146,8 +146,48 @@ describe('Safient SDK Test Part 2', async () => {
     }
   });
 
- 
+  //should create a safe onChain and offChain
+  it('Should create safe with "Testing Safe data" as data offchain', async () => {
+    try {
+      const sc = new SafientSDK(creatorSigner, chainId);
+      safeId = await sc.safientCore.createNewSafe(creator, beneficiary, creator.idx.id, beneficiary.idx.id, "Testing safe Data", false)
+      const config = {
+        safeId: safeId
+      }
+      const safeData = await sc.safientCore.getSafeData(creator, safeId);
+      expect(safeData.creator).to.equal(creator.idx.id);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
+
   //Step 3: Create a claim
+  it('Should create a claim', async () => {
+    try {
+      const sc = new SafientSDK(beneficiarySigner, chainId);
+      const file = {
+        name: "signature.jpg"
+      }
+      disputeId = await sc.safientCore.claimSafe(beneficiary, safeId, file, "Testing Evidence", "Lorsem Text")
+      console.log(disputeId);
+      expect(disputeId).to.be.a('number');
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
+  it('Should PASS the dispute', async () => {
+    try {
+      const sc = new SafientSDK(admin, chainId);
+
+      const result = await sc.safientCore.giveRuling(disputeId, 1) //Passing a claim
+      expect(result).to.equal(true);
+    } catch (e) {
+      console.log(e);
+    }
+  });
+
   it('Should update the stage on threadDB', async () => {
     try {
       const sc = new SafientSDK(beneficiarySigner, chainId);
@@ -196,46 +236,12 @@ describe('Safient SDK Test Part 2', async () => {
     try {
 
       const sc = new SafientSDK(guardianOneSigner, chainId);
+      const prevBalance = await guardianOneSigner.getBalance();
       const safeData = await sc.safientCore.incentiviseGuardians(guardianOne, safeId);
-      const balance = await guardianOneSigner.getBalance();
-      console.log(parseInt(balance._hex));
+      const newBalance = await guardianOneSigner.getBalance();
+      expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
     } catch (e) {
       console.log(e);
     }
   });
-
-  
-
-  //Incentivise safes
-
-  // it('Should delete all users', async () => {
-  //   const seed = new Uint8Array(randomBytes(32));
-  //     const sc = new SafientSDK(seed);
-  //     connection = await sc.safientCore.connectUser();
-  //     let client = connection.client;
-  //     const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
-     
-  //     const userEmails = ['creator@test.com', 'beneficiary@test.com', 'guardianOne@test.com', 'guardianTwo@test.com', 'guardianThree@test.com']
-     
-  //     const creatorQuery = new Where('email').eq(userEmails[0]);;
-  //     const creatorResult = await client.find(threadId, 'Users', creatorQuery);
-     
-  //     const inhertorQuery = new Where('email').eq(userEmails[1]);;
-  //     const inhertorResult = await client.find(threadId, 'Users', inhertorQuery);
-
-  //     const guardianOneQuery = new Where('email').eq(userEmails[2]);;
-  //     const guardianOneResult = await client.find(threadId, 'Users', guardianOneQuery);
-
-  //     const guardianTwoQuery = new Where('email').eq(userEmails[3]);;
-  //     const guardianTwoResult = await client.find(threadId, 'Users', guardianTwoQuery);
-
-  //     const guardianThreeQuery = new Where('email').eq(userEmails[4]);;
-  //     const guardianThreeResult = await client.find(threadId, 'Users', guardianThreeQuery);
-
-  //     await client.delete(threadId, 'Users', [creatorResult[0]._id, inhertorResult[0]._id], guardianOneResult[0]._id, guardianTwoResult[0]._id, guardianThreeResult[0]._id);
-
-  //     const allUsers = await sc.safientCore.getAllUsers(connection);
-  //     console.log(allUsers);
-      
-  // })
 });
