@@ -11,7 +11,7 @@
   ],
   "scripts": {
     "prettier": "prettier --write 'contracts/**/*.sol'",
-    "test": "mocha --timeout 1200000",
+    "test": "mocha --timeout 30000000",
     "build": "tsc -p tsconfig.json"
   },
   "repository": {
