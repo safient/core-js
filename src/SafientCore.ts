@@ -100,7 +100,7 @@ export class SafientCore {
         const newUser = await conn.client.create(conn.threadId, 'Users', [data]);
         return newUser[0];
       } else {
-        throw new Error(`${email} already exists!`);
+        return `${email} already registered.`
       }
     } catch (err) {
       throw new Error(`Error while registering user, ${err}`);
@@ -403,7 +403,7 @@ export class SafientCore {
     }
       return disputeId;
     } catch (err) {
-      throw new Error(`Error while creating a claim ${err}`);
+      throw new Error(`Error while creating a claim`);
     }
   };
 
@@ -413,7 +413,6 @@ export class SafientCore {
       const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
       const indexValue = result[0].guardians.indexOf(did)
       let recoveryCount: number = 0;
-
 
       if(result[0].stage === safeStages.RECOVERING) {
         const decShard = await conn.idx?.ceramic.did?.decryptDagJWE(
@@ -491,7 +490,6 @@ export class SafientCore {
 
             result[0].stage = safeStages.CLAIMED
           }
-          console.log(data)
           return data;
           } catch (err) {
           throw new Error(`Error while recovering data for Beneficiary, ${err}`);
