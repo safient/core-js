@@ -8,6 +8,7 @@ const Users = {
     name: { type: 'string' },
     email: { type: 'string' },
     safes: { type: 'array' },
+    userAddress: {type: 'string'}
   },
 };
 

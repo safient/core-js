@@ -16,6 +16,7 @@ export type User = {
   name: string;
   safes: Safe[];
   signUpMode: number;
+  userAddress: string;
 };
 
 export type UserBasic = {
@@ -35,14 +36,28 @@ export type Safe = {
 };
 
 export type SafeData = {
-  creator: string | undefined;
+  _id: string;
+  creator: string;
   guardians: string[];
-  recipient: string | undefined;
+  beneficiary: string;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
   claims: Claims[];
+  onChain: boolean
+};
+
+export type SafeCreation = {
+  creator: string | undefined;
+  guardians: string[];
+  beneficiary: string | undefined;
+  encSafeKey: JWE;
+  encSafeData: Buffer;
+  stage: number;
+  encSafeKeyShards: Shard[];
+  claims: Claims[];
+  onChain: boolean;
 };
 
 
@@ -57,3 +72,23 @@ export type Shard = {
   encShard: JWE;
   decData: any;
 };
+
+export type GuardianSecrets = {
+  secret: string;
+  address: string;
+}
+
+export type RecoveryMessage = {
+  guardians: GuardianSecrets[];
+  hash: string;
+  recoveryMessage: string;
+  secrets: string[]
+}
+
+export type Evidence = {
+  fileURI: string;
+  fileHash: string;
+  fileTypeExtension: string;
+  name: string;
+  description: string;
+}
