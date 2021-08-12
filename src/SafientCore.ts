@@ -47,14 +47,14 @@ export class SafientCore {
    * API 1:connectUser
    *
    */
-  connectUser = async (): Promise<Connection> => {
+  connectUser = async (apiKey:any, secret:any): Promise<Connection> => {
     try{
       const seed = await generateSignature(this.signer)
       const {idx, ceramic} = await generateIDX(Uint8Array.from(seed))
       const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
       const client = await Client.withKeyInfo({
-        key: `${process.env.USER_API_KEY}`,
-        secret: `${process.env.USER_API_SECRET}`,
+        key: apiKey,
+        secret: secret,
       });
       await client.getToken(identity);
       const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
@@ -111,18 +111,18 @@ export class SafientCore {
    * API 3:getLoginUser
    *
    */
-  getLoginUser = async (conn: Connection, did:string): Promise<User> => {
+  getLoginUser = async (conn: Connection, did:string): Promise<User | any> => {
     try {
       const query = new Where('did').eq(did);
       const result: User[] = await conn.client.find(conn.threadId, 'Users', query);
 
       if (result.length < 1) {
-        throw new Error(`${did} is not registered!`);
+        return null
       } else {
         return result[0];
       }
     } catch (err) {
-      throw new Error(err);
+      throw new Error(`${did} not registered`);
     }
   };
 
@@ -194,9 +194,27 @@ export class SafientCore {
     }
   };
 
+  queryUser = async (conn: Connection, email:string): Promise<UserBasic | Boolean> => {
+    try {
+      const query = new Where('email').eq(email);
+      const result: User[] = await conn.client.find(conn.threadId, 'Users', query);
+      if (result.length < 1) {
+        return false
+      } else {
+        const data: UserBasic = {
+            name: result[0].name,
+            email: result[0].email,
+            did: result[0].did,
+        }
+        return data;
+      }
+    } catch (err) {
+      throw new Error(err);
+    }
+  };
+
   createNewSafe = async (
     creator: Connection,
-    beneficiary: Connection,
     creatorDID: string,
     beneficiaryDID:string,
     safeData: any,
@@ -213,7 +231,7 @@ export class SafientCore {
 
 
 
-          const guardiansDid: string[] = await this.randomGuardians(creator, creator.idx?.id, beneficiary.idx?.id);
+          const guardiansDid: string[] = await this.randomGuardians(creator, creatorDID, beneficiaryDID);
 
 
           for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
@@ -228,7 +246,7 @@ export class SafientCore {
 
           const encryptedSafeData = await this.utils.generateSafeData(
             safeData,
-            beneficiary.idx?.id,
+            beneficiaryDID,
             creator.idx?.id,
             creator,
             guardiansDid,
@@ -242,7 +260,7 @@ export class SafientCore {
           const data: SafeCreation = {
             creator: creator.idx?.id,
             guardians: guardiansDid,
-            beneficiary: beneficiary.idx?.id,
+            beneficiary: beneficiaryDID,
             encSafeKey: encryptedSafeData.creatorEncKey,
             encSafeData: encryptedSafeData.encryptedData,
             stage: safeStages.ACTIVE,
@@ -252,9 +270,7 @@ export class SafientCore {
           };
 
           const safe: string[] = await creator.client.create(creator.threadId, 'Safes', [data])
-
       if(onChain === true){
-
         const metaDataEvidenceUri:string = await this.utils.createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
 
         const arbitrationFee: number = await this.claims.arbitrator.getArbitrationFee()
@@ -293,26 +309,29 @@ export class SafientCore {
                 })
             }
 
-            guardians?.map(guardian => {
-              if(guardian.safes.length===0){
-                guardian.safes = [{
+            for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
+              if(guardians[guardianIndex].safes.length === 0){
+                guardians[guardianIndex].safes = [{
                   safeId: safe[0],
                   type: 'guardian'
                 }]
               }else{
-                guardian.safes.push({
+                guardians[guardianIndex].safes.push({
                   safeId: safe[0],
                   type: 'guardian'
               })
               }
-            })
+          }
+
+            
 
             await creator.client.save(creator.threadId,'Users',[creatorUser[0]])
             await creator.client.save(creator.threadId,'Users',[beneficiaryUser[0]])
 
-            guardiansDid.forEach((async(guardians, index) => {
-              await creator.client.save(creator.threadId,'Users',[guardians[index]])
-            }));
+
+          for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
+              await creator.client.save(creator.threadId,'Users',[guardians[guardianIndex]])
+          }
       }
 
       if(txReceipt?.status === 0){
@@ -347,7 +366,6 @@ export class SafientCore {
     try {
         const query = new Where('_id').eq(safeId);
         const result: SafeData[] = await conn.client.find(conn.threadId, 'Safes', query);
-
         let evidenceUri: string = ''
         let tx: TransactionResponse
         let disputeId:number = 0

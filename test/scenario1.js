@@ -23,6 +23,8 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
   let disputeId
   let admin
+  const apiKey = process.env.USER_API_KEY
+  const secret = process.env.USER_API_SECRET
 
 
   before(async() => {
@@ -42,7 +44,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   it('Should register a Creator', async () => {
   
       const sc = new SafientSDK(creatorSigner, chainId);
-      creator = await sc.safientCore.connectUser();
+      creator = await sc.safientCore.connectUser(apiKey, secret);
       
       const userAddress = await creatorSigner.getAddress()
       await sc.safientCore.registerNewUser(creator, 'Creator', 'creator@test.com', 0, userAddress);
@@ -60,7 +62,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   it('Should register a beneficiary', async () => {
     
       const sc = new SafientSDK(beneficiarySigner, chainId);
-      beneficiary = await sc.safientCore.connectUser();
+      beneficiary = await sc.safientCore.connectUser(apiKey, secret);
       // SUCCESS : create user A
 
       const userAddress = await beneficiarySigner.getAddress()
@@ -78,7 +80,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
 
   it('Should register a Guardian 1', async () => {
       const sc = new SafientSDK(guardianOneSigner, chainId);
-      guardianOne = await sc.safientCore.connectUser();
+      guardianOne = await sc.safientCore.connectUser(apiKey, secret);
       // SUCCESS : create user A
       const userAddress = await guardianOneSigner.getAddress()
       await sc.safientCore.registerNewUser(guardianOne, 'Guardian 1', 'guardianOne@test.com', 0, userAddress);
@@ -94,7 +96,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
 
   it('Should register a Guardian 2', async () => {
       const sc = new SafientSDK(guardianTwoSigner, chainId);
-      guardianTwo = await sc.safientCore.connectUser();
+      guardianTwo = await sc.safientCore.connectUser(apiKey, secret);
       // SUCCESS : create user A
       const userAddress = await guardianTwoSigner.getAddress()
       await sc.safientCore.registerNewUser(guardianTwo, 'Guardian 2', 'guardianTwo@test.com', 0, userAddress);
@@ -110,8 +112,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
 
   it('Should register a Guardian 3', async () => {
       const sc = new SafientSDK(guardianThreeSigner, chainId);
-      guardianThree = await sc.safientCore.connectUser();
-
+      guardianThree = await sc.safientCore.connectUser(apiKey, secret);
       const userAddress = await guardianThreeSigner.getAddress()
       await sc.safientCore.registerNewUser(guardianThree, 'Guardian 3', 'guardianThree@test.com', 0, userAddress);
 
@@ -128,7 +129,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   it('Should create safe with "Testing Safe data" as data offchain', async () => {
    
       const sc = new SafientSDK(creatorSigner, chainId);
-      safeId = await sc.safientCore.createNewSafe(creator, beneficiary, creator.idx.id, beneficiary.idx.id, "Testing safe Data", false)
+      safeId = await sc.safientCore.createNewSafe(creator, creator.idx.id, beneficiary.idx.id, "Testing safe Data", false)
       const safeData = await sc.safientCore.getSafeData(creator, safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
   });
