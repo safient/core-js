@@ -144,7 +144,9 @@ it('Should register a Guardian 3', async () => {
         name: "signature.jpg"
       }
       disputeId = await beneficiarySc.safientCore.claimSafe(safeId, file, "Testing Evidence", "Lorsem Text")
+      expect(disputeId).to.be.a('number');
   });
+
 
   it('Should give Ruling for the dispute', async () => {
    
@@ -154,6 +156,7 @@ it('Should register a Guardian 3', async () => {
       expect(result).to.equal(true);
     
   });
+
 
   it('Should update the stage on threadDB', async () => {
       
@@ -182,13 +185,10 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
 
-     
       const data = await beneficiarySc.safientCore.recoverData(safeId, beneficiary.idx.id)
       expect(data.data).to.equal('Testing safe Data');
 
   });
-
-
 
   it('Should incentivise the guardians', async () => {
    

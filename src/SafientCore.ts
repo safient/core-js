@@ -404,7 +404,7 @@ export class SafientCore {
         disputeId = parseInt(dispute._hex);
         result[0].stage = safeStages.CLAIMING
 
-        if( result[0].claims.length === 0 || result[0].claims === undefined){
+        if( result[0].claims.length === 0){
             result[0].claims = [{
                 "createdBy": this.connection.idx?.id,
                 "claimStatus": claimStages.ACTIVE,
@@ -526,9 +526,19 @@ export class SafientCore {
       getOnChainClaimData = async(claimId: number) => {
         try{
           const data = await this.claims.safientMain.getClaimByClaimId(claimId)
-          return parseInt(data.disputeId._hex);
+          return data;
         }catch(err){
-          throw new Error("Error while getting onChain claim data")
+          throw new Error(`Error while getting onChain claim data ${err}`)
+        }
+
+      }
+
+      getStatus = async(claimId: number) => {
+        try{
+          const claimStage = await this.claims.safientMain.getClaimStatus(claimId);
+          return claimStage;
+        }catch(err){
+          throw new Error(`Error while getting onChain claim data ${err}`)
         }
 
       }
@@ -540,7 +550,6 @@ export class SafientCore {
           let disputeId: number = 0
           let claimIndex : number = 0
           const claims = result[0].claims
-
           claims.map((claim,index) => {
             if(claim.claimStatus === claimStages.ACTIVE){
               disputeId = claim.disputeId;
@@ -618,7 +627,7 @@ export class SafientCore {
             }
             return tx
         }catch(e){
-          throw new Error("Error while incentiving the guardians")
+          throw new Error(`Error while incentiving the guardians ${e}`)
         }
       }
 

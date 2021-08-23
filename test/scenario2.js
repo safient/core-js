@@ -152,7 +152,7 @@ it('Should register a Guardian 3', async () => {
     const file = {
       name: "signature.jpg"
     }
-     const data = await beneficiarySc.safientCore.claimSafe(safeId, file, "Testing Evidence", "Lorsem Text")
+     await expect(beneficiarySc.safientCore.claimSafe(safeId, file, "Testing Evidence", "Lorsem Text")).to.eventually.be.eql('Error while creating a claim');
   
    }catch(e){
       expect(e.message).to.be.eql('Error while creating a claim')
