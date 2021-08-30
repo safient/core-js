@@ -15,6 +15,12 @@ import {SafientClaims} from "@safient/claims"
 import {ethers} from "ethers"
 require('dotenv').config();
 
+
+const ClaimType = {
+  "SIGNAL": 0,
+  "ARBITRATION": 1
+}
+
 const safeStages = {
   "ACTIVE" : 0,
   "CLAIMING": 1,
@@ -196,6 +202,12 @@ export class SafientCore {
     }
   };
 
+
+  /**
+   * API 6: Query Users
+   *  
+   */
+
   queryUser = async (email:string): Promise<UserBasic | Boolean> => {
     try {
       const query = new Where('email').eq(email);
@@ -215,11 +227,20 @@ export class SafientCore {
     }
   };
 
+
+
+  /**
+   * 
+   * CORE API 1: createNewSafe
+   */
+
   createNewSafe = async (
     creatorDID: string,
     beneficiaryDID:string,
     safeData: any,
-    onChain: boolean
+    onChain: boolean,
+    claimType: number,
+    signalingPeriod: number
   ): Promise<string> => {
     try {
         let guardians: User[] = [];
@@ -267,7 +288,9 @@ export class SafientCore {
             stage: safeStages.ACTIVE,
             encSafeKeyShards: encryptedSafeData.shardData,
             claims: [],
-            onChain: onChain
+            onChain: onChain,
+            claimType: claimType,
+            signalingPeriod: signalingPeriod
           };
 
           const safe: string[] = await this.connection.client.create(this.connection.threadId, 'Safes', [data])
@@ -279,9 +302,14 @@ export class SafientCore {
 
 
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
-
-        const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], metaDataEvidenceUri, totalFee)
-        txReceipt = await tx.wait();
+        if(claimType === ClaimType.ARBITRATION){
+          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
+          txReceipt = await tx.wait();
+        }else{
+          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', '') //NOTE: Change the time from 1 to required period here
+          txReceipt = await tx.wait();
+        }
+        
       }
 
       if(txReceipt?.status === 1 || onChain === false){
@@ -370,6 +398,8 @@ export class SafientCore {
         let tx: TransactionResponse
         let disputeId:number = 0
         let txReceipt: any
+        let createSafetx: TransactionResponse
+        let createSafetxReceipt: TransactionReceipt
 
         const creatorQuery = new Where('did').eq(result[0].creator)
         const beneficiaryQuery = new Where('did').eq(result[0].beneficiary)
@@ -379,8 +409,14 @@ export class SafientCore {
       if(result[0].onChain === true && result[0].stage === safeStages.ACTIVE){
 
         evidenceUri = await this.utils.createClaimEvidenceUri(file, evidenceName, description)
-        tx = await this.claims.safientMain.createClaim(result[0]._id, evidenceUri)
-        txReceipt = await tx.wait()
+        if(result[0].claimType === ClaimType.ARBITRATION){
+          tx = await this.claims.safientMain.createClaim(result[0]._id, evidenceUri)
+          txReceipt = await tx.wait()
+        }else{
+          tx = await this.claims.safientMain.createClaim(result[0]._id, '')
+          txReceipt = await tx.wait()
+        }
+        
       }
       if(result[0].onChain === false && result[0].stage === safeStages.ACTIVE){
 
@@ -390,8 +426,14 @@ export class SafientCore {
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
 
         //safeSync
-        const createSafetx: TransactionResponse = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, metaDataEvidenceUri, totalFee)
-        const createSafetxReceipt: TransactionReceipt = await createSafetx.wait();
+        if(result[0].claimType === ClaimType.ARBITRATION){
+         createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, result[0].claimType, result[0].signalingPeriod, metaDataEvidenceUri, totalFee,)
+         createSafetxReceipt = await createSafetx.wait();
+        }
+        else{
+           createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, result[0].claimType, result[0].signalingPeriod, '', '') //Note update time here
+           createSafetxReceipt = await createSafetx.wait();
+        }
         if(createSafetxReceipt.status === 1){
           evidenceUri = await this.utils.createClaimEvidenceUri(file, evidenceName, description)
           tx = await this.claims.safientMain.createClaim(result[0]._id, evidenceUri)
@@ -533,9 +575,9 @@ export class SafientCore {
 
       }
 
-      getStatus = async(claimId: number) => {
+      getStatus = async(safeId: string, claimId: number) => {
         try{
-          const claimStage = await this.claims.safientMain.getClaimStatus(claimId);
+          const claimStage = await this.claims.safientMain.getClaimStatus(safeId, claimId);
           return claimStage;
         }catch(err){
           throw new Error(`Error while getting onChain claim data ${err}`)
@@ -556,7 +598,7 @@ export class SafientCore {
               claimIndex = index
             }
           })
-          const claimStage = await this.claims.safientMain.getClaimStatus(disputeId);
+          const claimStage = await this.claims.safientMain.getClaimStatus(safeId, disputeId);
           if(claimStage === claimStages.PASSED){
             result[0].stage = safeStages.RECOVERING;
             result[0].claims[claimIndex].claimStatus = claimStages.PASSED;
@@ -589,6 +631,19 @@ export class SafientCore {
         }
 
       }
+
+      sendSignal = async(safeId: string): Promise<TransactionResponse> => {
+        try{
+           const tx: TransactionResponse = await this.claims.safientMain.sendSignal(safeId)
+          return tx;
+        }catch(err){
+          throw new Error('Error while giving a ruling for dispute')
+        }
+
+      }
+
+
+
 
       incentiviseGuardians = async(safeId: string): Promise<boolean> =>{
         try{

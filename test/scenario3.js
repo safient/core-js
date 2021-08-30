@@ -137,16 +137,18 @@ it('Should register a Guardian 3', async () => {
             creator.idx.id,
             beneficiary.idx.id,
             'This is a test data',
-            true
+            true,
+            1,
+            0
           );
 
           // check safe - threadDB
           const safeDataThreadDB = await creatorSc.safientCore.getSafeData(safeId);
           expect(safeDataThreadDB.creator).to.equal(creator.idx.id);
 
-          // check safe - onchain (since this is an onChain=true safe creation)
-          const safeDataOnchain = await creatorSc.safientCore.getOnChainData(safeId);
-          expect(safeDataOnchain.safeCreatedBy).to.equal(userAddress);
+          // // check safe - onchain (since this is an onChain=true safe creation)
+          // const safeData = await creatorSc.safientCore.getSafeData(safeId);
+          //  expect(safeData.creator).to.equal(creator.idx.id);
         
       });
 

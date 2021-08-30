@@ -45,7 +45,9 @@ export type SafeData = {
   stage: number;
   encSafeKeyShards: Shard[];
   claims: Claims[];
-  onChain: boolean
+  onChain: boolean;
+  claimType: number;
+  signalingPeriod: number
 };
 
 export type SafeCreation = {
@@ -58,6 +60,8 @@ export type SafeCreation = {
   encSafeKeyShards: Shard[];
   claims: Claims[];
   onChain: boolean;
+  claimType: number;
+  signalingPeriod: number
 };
 
 

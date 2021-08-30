@@ -130,7 +130,7 @@ it('Should register a Guardian 3', async () => {
   //should create a safe onChain and offChain
   it('Should create safe with "Testing Safe data" as data onChain', async () => {
    
-      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true)
+      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, 1, 0)
       const safeData = await creatorSc.safientCore.getSafeData(safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
     
