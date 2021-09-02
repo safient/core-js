@@ -1,45 +1,45 @@
-const { ThreadID } = require('@textile/hub');
-const { SafientClaims } = require('@safient/claims');
-const { utils } = require('ethers');
+const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
+const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
-const fs = require('fs');
 const chai = require('chai');
+const { writeFile } = require('fs').promises
 
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
+// Import package
 const { SafientSDK } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
 
-describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () => {
-    let admin;
-    let creator;
-    let beneficiary;
-    let guardianOne;
-    let guardianTwo;
-    let guardianThree;
-    let safeId;
-    let provider, chainId;
-    let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
-    let disputeId
-    let creatorSc, beneficiarySc, guardianOneSc, guardianTwoSc, guardianThreeSc;
+describe('Scenario 5 - Creating signal based Safe', async () => {
+  
+  let creator;
+  let beneficiary;
+  let guardianOne;
+  let guardianTwo;
+  let guardianThree;
+  let safeId;
+  let provider, chainId;
+  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let disputeId
+  let admin
+  let creatorSc, beneficiarySc, guardianOneSc, guardianTwoSc, guardianThreeSc;
 
-    const apiKey = process.env.USER_API_KEY
-    const secret = process.env.USER_API_SECRET
+  const apiKey = process.env.USER_API_KEY
+  const secret = process.env.USER_API_SECRET
 
-    const ClaimType = {
-      SignalBased: 0,
-      ArbitrationBased: 1
-    }
+  const ClaimType = {
+    SignalBased: 0,
+    ArbitrationBased: 1
+  }
 
-  before(async () => {
+  before(async() => {
     provider = new JsonRpcProvider('http://localhost:8545');
     const network = await provider.getNetwork();
     chainId = network.chainId;
 
-    admin = await provider.getSigner(0)
+    admin = await provider.getSigner(0);
     creatorSigner = await provider.getSigner(1);
-    
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
@@ -132,129 +132,55 @@ it('Should register a Guardian 3', async () => {
     expect(loginUser.email).to.equal('guardianThree@test.com');
 });
 
-  describe('Safe creation and claim creation', async () => {
-    describe('Onchain', async () => {
-      it('Should Create Safe', async () => {
-      
-          const userAddress = await creatorSigner.getAddress()
-
-          safeId = await creatorSc.safientCore.createNewSafe(
-            creator.idx.id,
-            beneficiary.idx.id,
-            'This is a test data',
-            true,
-            ClaimType.ArbitrationBased,
-            0
-          );
-
-          // check safe - threadDB
-          const safeDataThreadDB = await creatorSc.safientCore.getSafeData(safeId);
-          expect(safeDataThreadDB.creator).to.equal(creator.idx.id);
-
-          // // check safe - onchain (since this is an onChain=true safe creation)
-          // const safeData = await creatorSc.safientCore.getSafeData(safeId);
-          //  expect(safeData.creator).to.equal(creator.idx.id);
-        
-      });
-
-      it('Should claim safe', async () => {
-      
-
-          const file = {
-            name: 'signature.jpg',
-          };
-
-          disputeId = await beneficiarySc.safientCore.claimSafe(
-            safeId,
-            file,
-            'Test evidence',
-            'This is an evidence description'
-          );
-
-          // check claim on the safe - threadDB
-          const safeDataThreadDB = await beneficiarySc.safientCore.getSafeData(safeId);
-          expect(safeDataThreadDB.claims[0].createdBy).to.equal(beneficiary.idx.id);
-          expect(safeDataThreadDB.claims[0].disputeId).to.equal(disputeId);
-          expect(safeDataThreadDB.claims[0].claimStatus).to.equal(0); // claimStages.ACTIVE
-          expect(safeDataThreadDB.stage).to.equal(1); // safeStages.CLAIMING
-          expect(safeDataThreadDB.beneficiary).to.equal(beneficiary.idx.id);
-       
-      });
-    });
-  });
-
-  describe('Ruling...', async () => {
-    it('Should PASS ruling on the dispute', async () => {
+  //should create a safe onChain and offChain
+  it('Should create safe with "Testing Safe data" with Signal Based Claim', async () => {
      
-        const sc = new SafientSDK(admin, chainId);
-
-        const result = await sc.safientCore.giveRuling(disputeId, 1) //Passing a claim
-        expect(result).to.equal(true);
-     
-    });
+      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.SignalBased, 10)
+      const safeData = await creatorSc.safientCore.getSafeData(safeId);
+      expect(safeData.creator).to.equal(creator.idx.id);
   });
 
 
-  describe('Sync safe stage', async () => {
-    it('Updates the safe stage on threadDB according to the ruling', async () => {
- 
-     
-        const result = await beneficiarySc.safientCore.syncStage(safeId)
-        expect(result).to.equal(true);
-
-        // check safe - threadDB
-        const safeDataThreadDB = await beneficiarySc.safientCore.getSafeData(safeId);
-        expect(safeDataThreadDB.stage).to.equal(2); // safeStages.RECOVERING
-        expect(safeDataThreadDB.claims[0].claimStatus).to.equal(1); // claimStages.PASSED      
-      
-    });
+  //Step 3: Create a claim
+  it('Should create a claim', async () => {
+    const file = {
+        name: "signature.jpg"
+    }
+    disputeId = await beneficiarySc.safientCore.claimSafe(safeId, file, "Testing Evidence", "Lorsem Text")
+    expect(disputeId).to.be.a('number');
   });
 
-  describe('Guardian recovery', async () => {
-    it('Recovery done by guardian 1', async () => {
-   
+  it('Should send signal after claim', async () => {
 
-        const result = await guardianOneSc.safientCore.guardianRecovery(safeId, guardianOne.idx.id);
-        expect(result).to.equal(true);
-
-        // check safe - threadDB (safe stage should still be in RECOVERING stage)
-        const safeDataThreadDB = await guardianOneSc.safientCore.getSafeData(safeId);
-        expect(safeDataThreadDB.stage).to.equal(2); // safeStages.RECOVERING
-     
-    });
-
-    it('Recovery done by guardian 2', async () => {
-     
-
-        const result = await guardianTwoSc.safientCore.guardianRecovery(safeId, guardianTwo.idx.id);
-        expect(result).to.equal(true);
-
-        // check safe - threadDB (safe stage should be in RECOVERED stage)
-        const safeDataThreadDB = await guardianTwoSc.safientCore.getSafeData(safeId);
-        expect(safeDataThreadDB.stage).to.equal(3); // safeStages.RECOVERED
-      
-    });
+      const result = await creatorSc.safientCore.sendSignal(safeId) //Passing a claim
+      expect(result.status).to.equal(1);
   });
 
-  describe('Beneficiary data recovery', async () => {
-    it('Data is recovered by the beneficiary', async () => {
-     
 
-        const result = await beneficiarySc.safientCore.recoverData(safeId, beneficiary.idx.id);
-
-        expect(result.data).to.equal('This is a test data');
-      
-    });
+  it('Should update the stage on threadDB', async () => {
+      const result = await beneficiarySc.safientCore.syncStage(safeId)
+      expect(result).to.equal(true);
   });
 
-  describe('Guardian incentivisation', async () => {
-    it('Guardian 1 and guardian 2 are incentivised', async () => {
-      
-        const prevBalance = await guardianOneSigner.getBalance();
-        const result = await guardianOneSc.safientCore.incentiviseGuardians(safeId);
-        const newBalance = await guardianOneSigner.getBalance();
-        expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-      
-    });
+
+  it('Should try recovery by guardian 1', async () => {
+      const data = await guardianOneSc.safientCore.guardianRecovery(safeId, guardianOne.idx.id)
+      expect(data).to.equal(false);
+
+  });
+
+  it('Should try recovery by guardian 2', async () => {
+
+      const data = await guardianTwoSc.safientCore.guardianRecovery(safeId, guardianTwo.idx.id)
+      expect(data).to.equal(false);
+
+  });
+
+
+  it('Should try data for the beneficiary', async () => {
+      const data = await beneficiarySc.safientCore.recoverData(safeId, beneficiary.idx.id)
+      expect(data).to.equal(undefined);
+
+
   });
 });

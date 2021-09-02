@@ -11,7 +11,9 @@ const Safes = {
     encSafeData: { type: 'object' },
     stage: { type: 'integer' },
     encSafeKeyShards: { type: 'array' }, //=> [{status: 'recovered', encData : 'data', decData: 'data'}]
-    onChain: {type: 'boolean'}
+    onChain: {type: 'boolean'},
+    claimType : {type: 'integer'},
+    sigalingPeriod: {type: 'integer'}
   },
 };
 

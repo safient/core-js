@@ -1,7 +1,7 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JWE } from 'did-jwt';
-
+import {ClaimType} from '@safient/claims/dist/types/Types'
 export type Connection = {
   client: Client;
   threadId: ThreadID;
@@ -45,7 +45,9 @@ export type SafeData = {
   stage: number;
   encSafeKeyShards: Shard[];
   claims: Claims[];
-  onChain: boolean
+  onChain: boolean;
+  claimType: number;
+  signalingPeriod: ClaimType
 };
 
 export type SafeCreation = {
@@ -58,6 +60,8 @@ export type SafeCreation = {
   encSafeKeyShards: Shard[];
   claims: Claims[];
   onChain: boolean;
+  claimType: ClaimType;
+  signalingPeriod: number
 };
 
 
