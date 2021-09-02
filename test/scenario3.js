@@ -27,6 +27,11 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     const apiKey = process.env.USER_API_KEY
     const secret = process.env.USER_API_SECRET
 
+    const ClaimType = {
+      SignalBased: 0,
+      ArbitrationBased: 1
+    }
+
   before(async () => {
     provider = new JsonRpcProvider('http://localhost:8545');
     const network = await provider.getNetwork();
@@ -138,7 +143,7 @@ it('Should register a Guardian 3', async () => {
             beneficiary.idx.id,
             'This is a test data',
             true,
-            1,
+            ClaimType.ArbitrationBased,
             0
           );
 

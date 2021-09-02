@@ -28,6 +28,11 @@ describe('Unit test', async () => {
   const apiKey = process.env.USER_API_KEY
   const secret = process.env.USER_API_SECRET
 
+  const ClaimType = {
+    SignalBased: 0,
+    ArbitrationBased: 1
+  }
+
   before(async() => {
     provider = new JsonRpcProvider('http://localhost:8545');
     const network = await provider.getNetwork();
@@ -131,7 +136,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should create safe with "Testing Safe data" as data', async () => {
 
-      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, 1, 0)
+      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
       const safeData = await creatorSc.safientCore.getSafeData(safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
   });

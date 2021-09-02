@@ -3,7 +3,6 @@ const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
 const chai = require('chai');
 const { writeFile } = require('fs').promises
-
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
@@ -28,6 +27,10 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   const apiKey = process.env.USER_API_KEY
   const secret = process.env.USER_API_SECRET
 
+  const ClaimType = {
+    SignalBased: 0,
+    ArbitrationBased: 1
+  }
 
   before(async() => {
     provider = new JsonRpcProvider('http://localhost:8545');
@@ -132,7 +135,7 @@ it('Should register a Guardian 3', async () => {
   it('Should create safe with "Testing Safe data" as data offchain', async () => {
    
      
-      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", false, 1, 0)
+      safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", false, ClaimType.ArbitrationBased, 0)
       const safeData = await creatorSc.safientCore.getSafeData(safeId);
       expect(safeData.creator).to.equal(creator.idx.id);
   });
