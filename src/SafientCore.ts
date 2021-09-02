@@ -12,14 +12,10 @@ import { JWE } from 'did-jwt';
 import { decryptData } from './utils/aes';
 import { JsonRpcProvider, JsonRpcSigner, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import {SafientClaims} from "@safient/claims"
+import {ClaimType} from "@safient/claims/dist/types/Types"
 import {ethers} from "ethers"
 require('dotenv').config();
 
-
-const ClaimType = {
-  "SIGNAL": 0,
-  "ARBITRATION": 1
-}
 
 const safeStages = {
   "ACTIVE" : 0,
@@ -301,12 +297,14 @@ export class SafientCore {
         const guardianFee: number = 0.1;
 
 
-        const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
-        if(claimType === ClaimType.ARBITRATION){
+        
+        if(claimType === ClaimType.ArbitrationBased){
+          const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
           const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
           txReceipt = await tx.wait();
-        }else{
-          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', '') //NOTE: Change the time from 1 to required period here
+        }else if(claimType === ClaimType.SignalBased){
+          const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)))
+          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', totalFee ) //NOTE: Change the time from 1 to required period here
           txReceipt = await tx.wait();
         }
         
@@ -400,6 +398,7 @@ export class SafientCore {
         let txReceipt: any
         let createSafetx: TransactionResponse
         let createSafetxReceipt: TransactionReceipt
+        let dispute: any
 
         const creatorQuery = new Where('did').eq(result[0].creator)
         const beneficiaryQuery = new Where('did').eq(result[0].beneficiary)
@@ -408,11 +407,11 @@ export class SafientCore {
 
       if(result[0].onChain === true && result[0].stage === safeStages.ACTIVE){
 
-        evidenceUri = await this.utils.createClaimEvidenceUri(file, evidenceName, description)
-        if(result[0].claimType === ClaimType.ARBITRATION){
+        if(result[0].claimType === ClaimType.ArbitrationBased){
+          evidenceUri = await this.utils.createClaimEvidenceUri(file, evidenceName, description)
           tx = await this.claims.safientMain.createClaim(result[0]._id, evidenceUri)
           txReceipt = await tx.wait()
-        }else{
+        }else if(result[0].claimType === ClaimType.SignalBased){
           tx = await this.claims.safientMain.createClaim(result[0]._id, '')
           txReceipt = await tx.wait()
         }
@@ -426,7 +425,7 @@ export class SafientCore {
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
 
         //safeSync
-        if(result[0].claimType === ClaimType.ARBITRATION){
+        if(result[0].claimType === ClaimType.ArbitrationBased){
          createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, result[0].claimType, result[0].signalingPeriod, metaDataEvidenceUri, totalFee,)
          createSafetxReceipt = await createSafetx.wait();
         }
@@ -442,8 +441,14 @@ export class SafientCore {
       }
 
       if(txReceipt.status === 1 && result[0].stage === safeStages.ACTIVE){
-        let dispute: any = txReceipt.events[2].args[2];
-        disputeId = parseInt(dispute._hex);
+        if(result[0].claimType === ClaimType.ArbitrationBased){
+          dispute = txReceipt.events[2].args[2];
+          disputeId = parseInt(dispute._hex);
+        }else if(result[0].claimType === ClaimType.SignalBased){
+          dispute = txReceipt.events[0].args[2];
+          disputeId = parseInt(dispute._hex);
+        }
+        
         result[0].stage = safeStages.CLAIMING
 
         if( result[0].claims.length === 0){
@@ -473,6 +478,7 @@ export class SafientCore {
       const result: SafeData[] = await this.connection.client.find(this.connection.threadId, 'Safes', query);
       const indexValue = result[0].guardians.indexOf(did)
       let recoveryCount: number = 0;
+      let recoveryStatus: boolean = false
 
       if(result[0].stage === safeStages.RECOVERING) {
         const decShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
@@ -492,13 +498,18 @@ export class SafientCore {
         }else{
           result[0].stage = safeStages.RECOVERING
         }
+
+        recoveryStatus = true
+        await this.connection.client.save(this.connection.threadId,'Safes',[result[0]])
+
+      }else{
+        recoveryStatus = false
       }
 
-      await this.connection.client.save(this.connection.threadId,'Safes',[result[0]])
 
-      return true;
+      return recoveryStatus;
       } catch (err) {
-      throw new Error(`Error while guardian Recovery, ${err}`);
+      throw new Error(`Error while guardian Recovery`);
     }
   };
 
@@ -552,7 +563,7 @@ export class SafientCore {
           }
           return data;
           } catch (err) {
-          throw new Error(`Error while recovering data for Beneficiary, ${err}`);
+          throw new Error(`Error while recovering data for Beneficiary`);
         }
       };
 
@@ -632,12 +643,16 @@ export class SafientCore {
 
       }
 
-      sendSignal = async(safeId: string): Promise<TransactionResponse> => {
+      sendSignal = async(safeId: string): Promise<TransactionReceipt> => {
         try{
            const tx: TransactionResponse = await this.claims.safientMain.sendSignal(safeId)
-          return tx;
+           const txReceipt: TransactionReceipt = await tx.wait()
+           if(txReceipt.status === 1){
+            await this.updateStage(safeId, claimStages.ACTIVE, safeStages.ACTIVE);
+           }
+          return txReceipt;
         }catch(err){
-          throw new Error('Error while giving a ruling for dispute')
+          throw new Error(`Error while sending a signal, ${err}`)
         }
 
       }
