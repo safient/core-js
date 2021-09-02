@@ -152,7 +152,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should send signal after claim', async () => {
 
-      const result = await creatorSc.safientCore.sendSignal(safeId) //Passing a claim
+      const result = await creatorSc.safientCore.sendSignal(safeId)
       expect(result.status).to.equal(1);
   });
 
