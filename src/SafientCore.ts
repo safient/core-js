@@ -1,19 +1,21 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
-import { getThreadId } from './utils/threadDb';
-import {generateIDX} from './lib/identity'
-import {generateSignature} from './lib/signer'
-// @ts-ignore
-import shamirs from 'shamirs-secret-sharing';
-import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation } from './types/types';
-import {definitions} from "./utils/config.json"
-import {utils} from "./lib/helpers"
-import { JWE } from 'did-jwt';
-import { decryptData } from './utils/aes';
 import { JsonRpcProvider, JsonRpcSigner, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import {SafientClaims} from "@safient/claims"
 import {ClaimType} from "@safient/claims/dist/types/Types"
 import {ethers} from "ethers"
+
+
+import { getThreadId } from './utils/threadDb';
+import {generateIDX} from './lib/identity'
+import {generateSignature} from './lib/signer'
+// @ts-ignore
+import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation, Share, EncryptedSafeData } from './types/types';
+import {definitions} from "./utils/config.json"
+import {utils} from "./lib/helpers"
+import { JWE } from 'did-jwt';
+import { decryptData } from './utils/aes';
+import {crypto} from "./crypto/index"
 require('dotenv').config();
 
 
@@ -37,13 +39,14 @@ export class SafientCore {
   private provider: JsonRpcProvider;
   private claims: SafientClaims
   private connection: Connection
-
+  private crypto: crypto
 
   constructor(signer: JsonRpcSigner, chainId: number) {
     this.signer = signer;
     this.utils = new utils();
     this.provider = this.provider
     this.claims = new SafientClaims(signer, chainId)
+    this.crypto = new crypto();
   }
 
   /**
@@ -161,7 +164,7 @@ export class SafientCore {
         caller,
       };
     } catch (err) {
-      throw new Error(err);
+      throw new Error("Error while getting new users");
     }
   };
 
@@ -219,7 +222,7 @@ export class SafientCore {
         return data;
       }
     } catch (err) {
-      throw new Error(err);
+      throw new Error("Error while querying user");
     }
   };
 
@@ -258,19 +261,21 @@ export class SafientCore {
           }
 
 
-          const recoveryProofData = this.utils.generateRecoveryMessage(guardians);
-          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(recoveryProofData.hash));
+          const secretsData = this.crypto.generateSecrets(guardians)
+
+          //note 1: Change here
+          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
 
 
-          const encryptedSafeData = await this.utils.generateSafeData(
+          const encryptedSafeData: EncryptedSafeData = await this.crypto.encryptSafeData(
             safeData,
             beneficiaryDID,
             this.connection.idx?.id,
             this.connection,
             guardiansDid,
             signature,
-            recoveryProofData.recoveryMessage,
-            recoveryProofData.secrets
+            secretsData.recoveryMessage,
+            secretsData.secrets
             )
           //
 
@@ -373,13 +378,14 @@ export class SafientCore {
     }
   };
 
+  //threadDB function
   getSafeData = async (safeId: string): Promise<SafeData> => {
     try {
       const query = new Where('_id').eq(safeId);
       const result: SafeData[] = await this.connection.client.find(this.connection.threadId, 'Safes', query);
       return result[0];
     } catch (err) {
-      throw new Error(err);
+      throw new Error("Error while fetching safe data");
     }
   };
 
@@ -513,12 +519,11 @@ export class SafientCore {
     }
   };
 
-  decryptSafeData = async(safeId: string): Promise<any> =>{
+  creatorSafeRecovery = async(safeId: string): Promise<any> =>{
     try{
       const safeData:SafeData = await this.getSafeData(safeId);
       const encSafeData = safeData.encSafeData
-      const aesKey = await this.connection.idx?.ceramic.did?.decryptDagJWE(safeData.encSafeKey)
-      const data = await decryptData(encSafeData, aesKey);
+      const data = await this.crypto.decryptSafeData(safeData.encSafeKey, this.connection, encSafeData);
       const reconstructedData = JSON.parse(data.toString());
       return reconstructedData;
     }catch(err){
@@ -527,8 +532,8 @@ export class SafientCore {
   }
 
 
-
-      private updateStage = async(safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
+  //Has to be a threadDB function
+  private updateStage = async(safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
         try{
           const query = new Where('_id').eq(safeId);
           const result: SafeData[] = await this.connection.client.find(this.connection.threadId, 'Safes', query);
@@ -542,31 +547,38 @@ export class SafientCore {
         }
       }
 
-      recoverData = async (safeId: string, did: string): Promise<any> => {
+    beneficiarySafeRecovery = async (safeId: string, did: string): Promise<any> => {
         try {
           const query = new Where('_id').eq(safeId);
           const result: SafeData[] = await this.connection.client.find(this.connection.threadId, 'Safes', query);
           let shards: Object[] = [];
-          let data: any;
+          let reconstructedSafeData: any;
+          let safeData: any
+
           if(result[0].stage === safeStages.RECOVERED || result[0].stage === safeStages.CLAIMED){
 
             result[0].encSafeKeyShards.map(share => {
               share.status === 1 ? shards.push(share.decData.share) : null
             })
 
-            data = await this.utils.reconstructShards(this.connection, shards,result[0].encSafeData);
-            if(data && result[0].stage === safeStages.RECOVERED){
+            reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
+            safeData = await this.crypto.decryptSafeData(reconstructedSafeData.beneficiaryEncKey, this.connection, Buffer.from(result[0].encSafeData))
+
+            if(safeData && result[0].stage === safeStages.RECOVERED){
               await this.updateStage(safeId, claimStages.PASSED, safeStages.CLAIMED);
             }
 
             result[0].stage = safeStages.CLAIMED
           }
-          return data;
+
+          return JSON.parse(safeData.toString());;
+
           } catch (err) {
-          throw new Error(`Error while recovering data for Beneficiary`);
+          throw new Error(`Error while recovering data for Beneficiary, ${err}`);
         }
       };
 
+      //Onchain function
       getOnChainData = async (safeId: string) => {
         try{
           const data = await this.claims.safientMain.getSafeBySafeId(safeId)
@@ -576,6 +588,7 @@ export class SafientCore {
         }
       }
 
+      //Onchain function
       getOnChainClaimData = async(claimId: number) => {
         try{
           const data = await this.claims.safientMain.getClaimByClaimId(claimId)
@@ -586,6 +599,7 @@ export class SafientCore {
 
       }
 
+      //OnChain function
       getStatus = async(safeId: string, claimId: number) => {
         try{
           const claimStage = await this.claims.safientMain.getClaimStatus(safeId, claimId);
@@ -677,10 +691,8 @@ export class SafientCore {
                 })
 
                 if(shards.length !== 0){
-                  const reconstructedData = shamirs.combine([Buffer.from(shards[0]), Buffer.from(shards[1])])
-                  const data = JSON.parse(reconstructedData.toString());
-
-                  const message = data.message;
+                  const reconstructedData: Share = await this.crypto.reconstructSafeData([Buffer.from(shards[0]), Buffer.from(shards[1])])
+                  const message = reconstructedData.message;
                   message.data.guardians.map((guardian: any) => {
                     const guardianTuple = [guardian.secret, guardian.address]
                     guardianArray.push(guardianTuple);
@@ -688,14 +700,16 @@ export class SafientCore {
 
                   tx = await this.claims.safientMain.guardianProof(
                     JSON.stringify(message),
-                    data.signature,
+                    reconstructedData.signature,
                     guardianArray,
                     guardianSecret,
                     safeId
                     )
                 }
             }
+
             return tx
+            
         }catch(e){
           throw new Error(`Error while incentiving the guardians ${e}`)
         }

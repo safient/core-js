@@ -2,6 +2,7 @@ import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JWE } from 'did-jwt';
 import {ClaimType} from '@safient/claims/dist/types/Types'
+
 export type Connection = {
   client: Client;
   threadId: ThreadID;
@@ -73,7 +74,7 @@ export type Claims = {
 
 export type Shard = {
   status: number;
-  encShard: JWE;
+  encShard: any;
   decData: any;
 };
 
@@ -95,4 +96,17 @@ export type Evidence = {
   fileTypeExtension: string;
   name: string;
   description: string;
+}
+
+export type Share = {
+  beneficiaryEncKey : JWE;
+  message: any;
+  signature: any;
+}
+
+export type EncryptedSafeData = {
+  creatorEncKey: JWE,
+  beneficiaryEncKey: JWE,
+  encryptedData: Buffer,
+  shardData: Shard[],
 }

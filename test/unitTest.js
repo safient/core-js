@@ -190,7 +190,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
 
-      const data = await beneficiarySc.safientCore.recoverData(safeId, beneficiary.idx.id)
+      const data = await beneficiarySc.safientCore.beneficiarySafeRecovery(safeId, beneficiary.idx.id)
       expect(data.data).to.equal('Testing safe Data');
 
   });
