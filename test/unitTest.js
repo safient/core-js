@@ -50,7 +50,7 @@ describe('Unit test', async () => {
   //Step 1: Register all users
   it('Should register a Creator', async () => {
   
-    creatorSc = new SafientSDK(creatorSigner, chainId);
+    creatorSc = new SafientSDK(creatorSigner, chainId, 'threadDB');
     creator = await creatorSc.safientCore.connectUser(apiKey, secret);
     
     const userAddress = await creatorSigner.getAddress()

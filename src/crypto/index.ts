@@ -7,7 +7,7 @@ import {_generateCipherKey} from "./tools/aes"
 import {_generateShards, _reconstructShards} from "./tools/shamirs"
 
 
-export class crypto {
+export class Crypto {
 
 
     /**

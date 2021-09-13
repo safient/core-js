@@ -9,6 +9,15 @@ export type Connection = {
   idx: IDX | null;
 };
 
+export type UserSchema = {
+  did: string;
+  email: string;
+  name: string;
+  safes: Safe[];
+  signUpMode: number;
+  userAddress: string;
+};
+
 export type User = {
   _id: string;
   _mod: number;
@@ -110,3 +119,9 @@ export type EncryptedSafeData = {
   encryptedData: Buffer,
   shardData: Shard[],
 }
+
+
+export type RegisterStatus = {
+  status: boolean;
+  user: User;
+};
