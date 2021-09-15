@@ -10,13 +10,16 @@ import { getThreadId } from './utils/threadDb';
 import {generateIDX} from './lib/identity'
 import {generateSignature} from './lib/signer'
 // @ts-ignore
-import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation, Share, EncryptedSafeData, UserSchema } from './types/types';
+import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils } from './types/types';
 import {definitions} from "./utils/config.json"
 import {utils} from "./lib/helpers"
 import { JWE } from 'did-jwt';
 import { decryptData } from './utils/aes';
-import {Crypto} from "./crypto/index"
+// import {Crypto} from "./crypto/index"
+// import { Database } from './database';
+import {init} from "./logic/index"
 import { Database } from './database';
+import { Crypto } from './crypto';
 require('dotenv').config();
 
 
@@ -43,13 +46,13 @@ export class SafientCore {
   private crypto: Crypto
   private database: Database
   private databaseType: string
+  private Utils: Utils
 
   constructor(signer: JsonRpcSigner, chainId: number, databaseType: string) {
     this.signer = signer;
     this.utils = new utils();
     this.provider = this.provider
     this.claims = new SafientClaims(signer, chainId)
-    this.crypto = new Crypto();
     this.databaseType = databaseType
   }
 
@@ -70,7 +73,9 @@ export class SafientCore {
       const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
-      this.database = new Database(this.databaseType, this.connection);
+      this.Utils = init(this.databaseType, this.connection);
+      this.crypto = this.Utils.crypto
+      this.database = this.Utils.database
       return connectionData
     }catch(err){
       throw new Error(`Error, while connecting the user, ${err}`);
@@ -306,16 +311,16 @@ export class SafientCore {
           }
 
             
-            await this.database.db.saveData(creatorUser[0], 'Users');
-            await this.database.db.saveData(beneficiaryUser[0], 'Users')
+            await this.database.save(creatorUser[0], 'Users');
+            await this.database.save(beneficiaryUser[0], 'Users')
 
           for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-            await this.database.db.saveData(guardians[guardianIndex], 'Users')
+            await this.database.save(guardians[guardianIndex], 'Users')
           }
       }
 
       if(txReceipt?.status === 0){
-        await this.database.db.deleteData(safe[0], 'Users')
+        await this.database.delete(safe[0], 'Users')
         console.log("Transaction Failed!");
       }
 
@@ -414,7 +419,7 @@ export class SafientCore {
               "disputeId": disputeId
             })
         }
-        await this.database.db.saveData(safe, 'Safes')
+        await this.database.save(safe, 'Safes')
     }
       return disputeId;
     } catch (err) {
@@ -450,7 +455,7 @@ export class SafientCore {
           safe.stage = safeStages.RECOVERING
         }
         recoveryStatus = true
-        await this.database.db.saveData(safe, 'Safes')
+        await this.database.save(safe, 'Safes')
       }
       else{
         recoveryStatus = false
@@ -578,7 +583,7 @@ export class SafientCore {
             safe.claims[claimIndex].claimStatus = claimStage;
           }
 
-          await this.database.db.saveData(safe, 'Safes')
+          await this.database.save(safe, 'Safes')
           return true;
         }catch(err){
           throw new Error(`Error while syncing stage data, ${err}`)

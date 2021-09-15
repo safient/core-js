@@ -1,3 +1,4 @@
+
 const { Where } = require('@textile/hub');
 
 import { Connection, RegisterStatus, SafeCreation, SafeData, User, UserBasic, Users, UserSchema } from "../../types/types";
@@ -194,24 +195,6 @@ export class ThreadDB {
         
       }
 
-      saveData = async(data: any, collection: string): Promise<boolean> => {
-        try{
-            await this.connection.client.save(this.connection.threadId, collection,[data])
-            return true
-        }catch(err){
-            throw new Error("Error while saving data")
-        }
-      }
-
-      deleteData = async(data: any, collection: string): Promise<boolean> => {
-        try{
-            await this.connection.client.delete(this.connection.threadId, collection, [data] );
-            return true
-        }catch(err){
-            throw new Error("Error while deleting data")
-        }
-      }
-
       getSafeData = async (safeId: string): Promise<SafeData> => {
         try {
           const query = new Where('_id').eq(safeId);
@@ -229,13 +212,8 @@ export class ThreadDB {
           safe.stage = safeStage;
           safe.claims[0].claimStatus = claimStage;
         
-          const saveStatus: boolean = await this.saveData(safe, 'Safes');
-        //   await this.connection.client.save(this.connection.threadId, 'Safes', [result[0]]);
-        if(saveStatus === true){
-               return saveStatus; 
-        }else{
-            return false;
-        }
+          await this.connection.client.save(this.connection.threadId, 'Safes', [safe]);
+          return true
           
         }catch(err){
           throw new Error(`Error while updating a stage ${err}`)

@@ -2,6 +2,8 @@ import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JWE } from 'did-jwt';
 import {ClaimType} from '@safient/claims/dist/types/Types'
+import { Database } from '../database';
+import { Crypto } from '../crypto';
 
 export type Connection = {
   client: Client;
@@ -125,3 +127,8 @@ export type RegisterStatus = {
   status: boolean;
   user: User;
 };
+
+export type Utils = {
+  database: Database;
+  crypto: Crypto;
+}
