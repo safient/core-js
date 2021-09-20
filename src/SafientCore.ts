@@ -17,7 +17,7 @@ import { JWE } from 'did-jwt';
 import { decryptData } from './utils/aes';
 // import {Crypto} from "./crypto/index"
 // import { Database } from './database';
-import {init} from "./logic/index"
+import {createSafe, generateRandomGuardians, getLoginUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, registerNewUser, updateStage} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
 require('dotenv').config();
@@ -106,7 +106,7 @@ export class SafientCore {
       };
 
       //get the threadDB user
-      const result : String = await this.database.db.registerNewUser(data)
+      const result : string = await registerNewUser(data)
       if(result !== ''){
         const ceramicResult = await idx?.set(definitions.profile, {
           name: name,
@@ -128,7 +128,7 @@ export class SafientCore {
    */
   getLoginUser = async (did:string): Promise<User | any> => {
     try {
-      const result: any = await this.database.db.getLoginUser(did);
+      const result: any = await getLoginUser(did);
       return result
     } catch (err) {
       throw new Error(`${did} not registered`);
@@ -143,7 +143,7 @@ export class SafientCore {
 
   getUsers = async (): Promise<Users> => {
     try {
-      const users: Users = await this.database.db.getUsers();
+      const users: Users = await getUsers();
       return users;
     } catch (err) {
       throw new Error("Error while getting new users");
@@ -157,7 +157,7 @@ export class SafientCore {
   private randomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<string[]> => {
 
     try{
-      const guardians: string[] = await this.database.db.generateRandomGuardians(creatorDID, beneficiaryDID);
+      const guardians: string[] = await generateRandomGuardians(creatorDID, beneficiaryDID);
       return guardians;
     }catch(err){
       throw new Error(`Couldn't fetch random guardians, ${err}`);
@@ -173,7 +173,7 @@ export class SafientCore {
   queryUser = async (email:string): Promise<UserBasic | Boolean> => {
     try {
 
-      const result: UserBasic | Boolean = await this.database.db.queryUserEmail(email)
+      const result: UserBasic | Boolean = await queryUserEmail(email)
       return result;
 
       }catch (err) {
@@ -201,8 +201,8 @@ export class SafientCore {
         let txReceipt: TransactionReceipt | undefined
 
         //userQueryDid function
-        const creatorUser: User[] = await this.database.db.queryUserDid(creatorDID)
-        const beneficiaryUser: User[] = await this.database.db.queryUserDid(beneficiaryDID)
+        const creatorUser: User[] = await queryUserDid(creatorDID)
+        const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID)
 
 
 
@@ -248,7 +248,7 @@ export class SafientCore {
             signalingPeriod: signalingPeriod
           };
 
-          const safe: string[] = await this.database.db.createSafe(data)
+          const safe: string[] = await createSafe(data)
 
       if(onChain === true){
         const metaDataEvidenceUri:string = await this.utils.createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
@@ -310,7 +310,6 @@ export class SafientCore {
               }
           }
 
-            
             await this.database.save(creatorUser[0], 'Users');
             await this.database.save(beneficiaryUser[0], 'Users')
 
@@ -334,7 +333,7 @@ export class SafientCore {
   //threadDB function
   getSafeData = async (safeId: string): Promise<SafeData> => {
     try {
-      const result: SafeData = await this.database.db.getSafeData(safeId)
+      const result: SafeData = await getSafeData(safeId)
       return result;
     } catch (err) {
       throw new Error("Error while fetching safe data");
@@ -358,7 +357,7 @@ export class SafientCore {
         let dispute: any
 
         const safe: SafeData = await this.getSafeData(safeId)
-        let creatorUser:User[]  = await this.database.db.queryUserDid(safe.creator)
+        let creatorUser:User[]  = await queryUserDid(safe.creator)
 
         if(safe.onChain === true && safe.stage === safeStages.ACTIVE){
 
@@ -485,7 +484,7 @@ export class SafientCore {
   private updateStage = async(safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
         try{
 
-          const result:boolean = await this.database.db.updateStage(safeId, claimStage, safeStage)
+          const result:boolean = await updateStage(safeId, claimStage, safeStage)
           return result;
 
         }catch(err){
