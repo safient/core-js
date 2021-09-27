@@ -2,13 +2,27 @@ import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JWE } from 'did-jwt';
 import {ClaimType} from '@safient/claims/dist/types/Types'
+import { Database } from '../database';
+import { Crypto } from '../crypto';
+
+
+
 export type Connection = {
   client: Client;
   threadId: ThreadID;
   idx: IDX | null;
 };
 
-export type User = {
+export type UserSchema = {
+  did: string;
+  email: string;
+  name: string;
+  safes: Safe[];
+  signUpMode: number;
+  userAddress: string;
+};
+
+export interface User {
   _id: string;
   _mod: number;
   did: string;
@@ -35,7 +49,7 @@ export type Safe = {
   type: string;
 };
 
-export type SafeData = {
+export interface SafeData {
   _id: string;
   creator: string;
   guardians: string[];
@@ -73,7 +87,7 @@ export type Claims = {
 
 export type Shard = {
   status: number;
-  encShard: JWE;
+  encShard: any;
   decData: any;
 };
 
@@ -95,4 +109,28 @@ export type Evidence = {
   fileTypeExtension: string;
   name: string;
   description: string;
+}
+
+export type Share = {
+  beneficiaryEncKey : JWE;
+  message: any;
+  signature: any;
+}
+
+export type EncryptedSafeData = {
+  creatorEncKey: JWE,
+  beneficiaryEncKey: JWE,
+  encryptedData: Buffer,
+  shardData: Shard[],
+}
+
+
+export type RegisterStatus = {
+  status: boolean;
+  user: User;
+};
+
+export type Utils = {
+  database: Database;
+  crypto: Crypto;
 }

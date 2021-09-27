@@ -49,7 +49,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
   //Step 1: Register all users
   it('Should register a Creator', async () => {
   
-    creatorSc = new SafientSDK(creatorSigner, chainId);
+    creatorSc = new SafientSDK(creatorSigner, chainId, 'threadDB');
     creator = await creatorSc.safientCore.connectUser(apiKey, secret);
     
     const userAddress = await creatorSigner.getAddress()
@@ -67,7 +67,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
 
 it('Should register a beneficiary', async () => {
   
-    beneficiarySc = new SafientSDK(beneficiarySigner, chainId);
+    beneficiarySc = new SafientSDK(beneficiarySigner, chainId, 'threadDB');
     beneficiary = await beneficiarySc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
 
@@ -85,7 +85,7 @@ it('Should register a beneficiary', async () => {
 
 
 it('Should register a Guardian 1', async () => {
-    guardianOneSc = new SafientSDK(guardianOneSigner, chainId);
+    guardianOneSc = new SafientSDK(guardianOneSigner, chainId, 'threadDB');
     guardianOne = await guardianOneSc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
     const userAddress = await guardianOneSigner.getAddress()
@@ -101,7 +101,7 @@ it('Should register a Guardian 1', async () => {
 });
 
 it('Should register a Guardian 2', async () => {
-    guardianTwoSc = new SafientSDK(guardianTwoSigner, chainId);
+    guardianTwoSc = new SafientSDK(guardianTwoSigner, chainId, 'threadDB');
     guardianTwo = await guardianTwoSc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
     const userAddress = await guardianTwoSigner.getAddress()
@@ -117,7 +117,7 @@ it('Should register a Guardian 2', async () => {
 });
 
 it('Should register a Guardian 3', async () => {
-    guardianThreeSc = new SafientSDK(guardianThreeSigner, chainId);
+    guardianThreeSc = new SafientSDK(guardianThreeSigner, chainId, 'threadDB');
     guardianThree = await guardianThreeSc.safientCore.connectUser(apiKey, secret);
 
     const userAddress = await guardianThreeSigner.getAddress()
@@ -228,7 +228,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
    
-      const data = await beneficiarySc.safientCore.recoverData(safeId, beneficiary.idx.id)
+    const data = await beneficiarySc.safientCore.beneficiarySafeRecovery(safeId, beneficiary.idx.id)
       expect(data.data).to.equal('Testing safe Data');
 
   });
