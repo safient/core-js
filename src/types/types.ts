@@ -5,6 +5,8 @@ import {ClaimType} from '@safient/claims/dist/types/Types'
 import { Database } from '../database';
 import { Crypto } from '../crypto';
 
+
+
 export type Connection = {
   client: Client;
   threadId: ThreadID;
@@ -20,7 +22,7 @@ export type UserSchema = {
   userAddress: string;
 };
 
-export type User = {
+export interface User {
   _id: string;
   _mod: number;
   did: string;
@@ -47,7 +49,7 @@ export type Safe = {
   type: string;
 };
 
-export type SafeData = {
+export interface SafeData {
   _id: string;
   creator: string;
   guardians: string[];

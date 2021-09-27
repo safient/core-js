@@ -40,32 +40,22 @@ export class ThreadDB {
       }
     }
   
-    threadReadUser = async(queryVariable: string, queryValue: string): Promise<User[]> => {
+    threadRead = async<T extends User | SafeData>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
       try{
-        const emailQuery = new Where(queryVariable).eq(queryValue);
-        const result: User[] = await this.connection.client.find(this.connection.threadId, 'Users', emailQuery);
+        let result: T[] = []
+        if(collection === 'Users' && queryValue !== ''){
+          const query = new Where(queryVariable).eq(queryValue);
+          result = await this.connection.client.find<T>(this.connection.threadId, 'Users', query);
+        }else if(collection === 'Users' && queryValue === '' && queryVariable === ''){
+          result = await this.connection.client.find(this.connection.threadId, 'Users', {});
+        }else{
+          const query = new Where('_id').eq(queryValue);
+          result = await this.connection.client.find(this.connection.threadId, 'Safes', query);
+        }
+       
         return result
       }catch(err){
           throw new Error("Error while reading user data")
-      }
-    }
-
-    threadReadAllUsers = async(): Promise<User[]> => {
-      try{
-        const result: User[] = await this.connection.client.find(this.connection.threadId, 'Users', {});
-        return result
-      }catch(err){
-          throw new Error("Error while reading user data")
-      }
-    }
-
-    threadReadSafe = async(safeId: string): Promise<SafeData[]> => {
-      try{
-        const query = new Where('_id').eq(safeId);
-        const result: SafeData[] = await this.connection.client.find(this.connection.threadId, 'Safes', query);
-        return result
-      }catch(err){
-          throw new Error("Error while reading safe data")
       }
     }
 }

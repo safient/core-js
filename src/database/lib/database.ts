@@ -75,48 +75,11 @@ export class Database {
     }
   }
 
-  readUser = async(queryVariable: string, queryValue: string): Promise<User[]> => {
+  read = async<T extends User | SafeData>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
     try{
-        let result: User[]
-        if(this.dbName === 'threadDB'){
-            result = await this.db.threadReadUser(queryVariable, queryValue)
-            return result
-        }else{
-            result = await this.db.threadReadUser(queryVariable, queryValue)
-            return result
-        }
-
-    }catch(err){
-        throw new Error("Error while reading user data")
-    }
-  }
-
-  readAllUsers = async(): Promise<User[]> => {
-    try{
-        let result: User[]
-        if(this.dbName === 'threadDB'){
-            result = await this.db.threadReadAllUsers();
-            return result
-        }else{
-            result = await this.db.threadReadAllUsers();
-            return result
-        }
-
-    }catch(err){
-        throw new Error("Error while reading user data")
-    }
-  }
-
-  readSafe = async(safeId: string): Promise<SafeData[]> => {
-    try{
-        let result: SafeData[]
-        if(this.dbName === 'threadDB'){
-            result = await this.db.threadReadSafe(safeId)
-            return result
-        }else{
-            result = await this.db.threadReadSafe(safeId)
-            return result
-        }
+        let result
+        result = await this.db.threadRead<T>(queryVariable, queryValue, collection)
+        return result
 
     }catch(err){
         throw new Error("Error while reading user data")

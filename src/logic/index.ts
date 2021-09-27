@@ -30,7 +30,7 @@ export const checkUser = async(email: string): Promise<RegisterStatus> =>{
 
     try{
         let registerStatus: RegisterStatus
-        const result: User[] = await database.readUser('email', email)
+        const result: User[] = await database.read<User>('email', email, 'Users')
 
         if(result.length === 1){
             registerStatus = {
@@ -91,7 +91,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
   export const getLoginUser = async (did:string): Promise<User | any> => {
 
     try {
-       const result: User[] = await database.readUser('did', did)
+       const result: User[] = await database.read<User>('did', did, 'Users')
       if (result.length < 1) {
         return null
       } else {
@@ -111,7 +111,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
 
     try {
         
-      const registeredUsers: User[] =  await database.readAllUsers()
+      const registeredUsers: User[] =  await database.read<User>('', '', 'Users')
       
       let caller: UserBasic | string = connection.idx?.id || '';
       let userArray: UserBasic[] = [];
@@ -149,7 +149,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
   export const queryUserEmail = async (email:string): Promise<UserBasic | Boolean> => {
     try {
 
-      const result: User[] = await database.readUser('email', email)
+      const result: User[] = await database.read<User>('email', email, 'Users')
       if (result.length < 1) {
         return false
       } else {
@@ -174,8 +174,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
   export const queryUserDid = async (did:string): Promise<User[]> => {
     try {
       
-        const result: User[] = await database.readUser('did', did)
-
+        const result: User[] = await database.read<User>('did', did, 'Users')
 
       if (result.length < 1) {
         return []
@@ -198,7 +197,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
 
     try{
 
-      const users: User[] = await database.readAllUsers()
+      const users: User[] = await database.read<User>('', '', 'Users')
       let guardians: string[] = [];
       let guardianIndex = 0;
 
@@ -246,7 +245,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
    */
   export const getSafeData = async (safeId: string): Promise<SafeData> => {
     try {
-      const result: SafeData[] = await database.readSafe(safeId)
+      const result: SafeData[] = await database.read<SafeData>('', safeId, 'Safes')
       return result[0];
     } catch (err) {
       throw new Error("Error while fetching safe data");
