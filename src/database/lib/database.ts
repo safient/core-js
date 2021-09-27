@@ -31,14 +31,12 @@ export class Database {
    */
   create = async(data: any, collection: string): Promise<string[]> => {
     try{
-        let result: string[]
+        let result: string[] = []
         if(this.dbName === "threadDB"){
             result = await this.db.threadCreate(data, collection)
-            return result
-        }else{
-            result = await this.db.threadCreate(data, collection)
-            return result
         }
+        return result
+
     }catch(err){
         throw new Error(`Error while creating data, ${err}`)
     }
@@ -48,13 +46,9 @@ export class Database {
     try{
         if(this.dbName === 'threadDB'){
             await this.db.threadSave(data, collection)
-            return true
-        }else{
-            //mongoDB or other
-            await this.db.threadSave(data, collection)
-            return true
         }
-        
+        return true
+
     }catch(err){
         throw new Error("Error while saving data")
     }
@@ -64,11 +58,8 @@ export class Database {
     try{
         if(this.dbName === 'threadDB'){
             await this.db.threadDelete(data, collection);
-            return true
-        }else{
-            await this.db.threadDelete(data, collection);
-            return true
         }
+        return true
 
     }catch(err){
         throw new Error("Error while deleting data")
@@ -77,8 +68,11 @@ export class Database {
 
   read = async<T extends User | SafeData>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
     try{
-        let result
-        result = await this.db.threadRead<T>(queryVariable, queryValue, collection)
+        let result: T[]=[] 
+        if(this.dbName === 'threadDB'){
+            result = await this.db.threadRead<T>(queryVariable, queryValue, collection)
+        }
+
         return result
 
     }catch(err){

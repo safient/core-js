@@ -45,12 +45,12 @@ export class ThreadDB {
         let result: T[] = []
         if(collection === 'Users' && queryValue !== ''){
           const query = new Where(queryVariable).eq(queryValue);
-          result = await this.connection.client.find<T>(this.connection.threadId, 'Users', query);
+          result = await this.connection.client.find<T>(this.connection.threadId, collection, query);
         }else if(collection === 'Users' && queryValue === '' && queryVariable === ''){
-          result = await this.connection.client.find(this.connection.threadId, 'Users', {});
+          result = await this.connection.client.find(this.connection.threadId, collection, {});
         }else{
           const query = new Where('_id').eq(queryValue);
-          result = await this.connection.client.find(this.connection.threadId, 'Safes', query);
+          result = await this.connection.client.find(this.connection.threadId, collection, query);
         }
        
         return result

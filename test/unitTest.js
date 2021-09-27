@@ -68,7 +68,7 @@ describe('Unit test', async () => {
 
 it('Should register a beneficiary', async () => {
   
-    beneficiarySc = new SafientSDK(beneficiarySigner, chainId);
+    beneficiarySc = new SafientSDK(beneficiarySigner, chainId, 'threadDB');
     beneficiary = await beneficiarySc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
 
@@ -86,7 +86,7 @@ it('Should register a beneficiary', async () => {
 
 
 it('Should register a Guardian 1', async () => {
-    guardianOneSc = new SafientSDK(guardianOneSigner, chainId);
+    guardianOneSc = new SafientSDK(guardianOneSigner, chainId, 'threadDB');
     guardianOne = await guardianOneSc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
     const userAddress = await guardianOneSigner.getAddress()
@@ -102,7 +102,7 @@ it('Should register a Guardian 1', async () => {
 });
 
 it('Should register a Guardian 2', async () => {
-    guardianTwoSc = new SafientSDK(guardianTwoSigner, chainId);
+    guardianTwoSc = new SafientSDK(guardianTwoSigner, chainId, 'threadDB');
     guardianTwo = await guardianTwoSc.safientCore.connectUser(apiKey, secret);
     // SUCCESS : create user A
     const userAddress = await guardianTwoSigner.getAddress()
@@ -118,7 +118,7 @@ it('Should register a Guardian 2', async () => {
 });
 
 it('Should register a Guardian 3', async () => {
-    guardianThreeSc = new SafientSDK(guardianThreeSigner, chainId);
+    guardianThreeSc = new SafientSDK(guardianThreeSigner, chainId, 'threadDB');
     guardianThree = await guardianThreeSc.safientCore.connectUser(apiKey, secret);
 
     const userAddress = await guardianThreeSigner.getAddress()
