@@ -1,8 +1,8 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
-import { JsonRpcProvider, JsonRpcSigner, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
-import {SafientClaims} from "@safient/claims"
-import {ClaimType} from "@safient/claims/dist/types/Types"
+import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
+import {SafientClaims} from "@safient/contracts"
+import {ClaimType} from "@safient/contracts/dist/types/Types"
 import {ethers} from "ethers"
 
 
@@ -13,13 +13,12 @@ import {generateSignature} from './lib/signer'
 import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils } from './types/types';
 import {definitions} from "./utils/config.json"
 import {utils} from "./lib/helpers"
-import { JWE } from 'did-jwt';
-import { decryptData } from './utils/aes';
-// import {Crypto} from "./crypto/index"
-// import { Database } from './database';
+
+import { Signer } from './types/types'
 import {createSafe, generateRandomGuardians, getLoginUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, registerNewUser, updateStage} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
+
 require('dotenv').config();
 
 
@@ -38,7 +37,7 @@ const claimStages = {
     "REJECTED": 3
 }
 export class SafientCore {
-  private signer: JsonRpcSigner;
+  private signer: Signer;
   private utils: utils;
   private provider: JsonRpcProvider;
   private claims: SafientClaims
@@ -48,7 +47,8 @@ export class SafientCore {
   private databaseType: string
   private Utils: Utils
 
-  constructor(signer: JsonRpcSigner, chainId: number, databaseType: string) {
+
+  constructor(signer: Signer, chainId: number, databaseType: string) {
     this.signer = signer;
     this.utils = new utils();
     this.provider = this.provider
@@ -203,7 +203,6 @@ export class SafientCore {
         //userQueryDid function
         const creatorUser: User[] = await queryUserDid(creatorDID)
         const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID)
-
 
 
           const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
