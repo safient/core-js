@@ -1,9 +1,13 @@
-import { JsonRpcSigner } from '@ethersproject/providers';
 import { SafientCore } from './SafientCore';
+import { Wallet } from "ethers"
+
+import { Signer } from "./types/types"
+
 export class SafientSDK {
   safientCore: SafientCore;
 
-  constructor(signer: JsonRpcSigner, chainId: number, databaseType: string) {
+  constructor(signer: Signer, chainId: number, databaseType: string) {
     this.safientCore = new SafientCore(signer, chainId, databaseType);
+
   }
 }

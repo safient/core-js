@@ -1,5 +1,6 @@
-import { JsonRpcProvider, JsonRpcSigner } from '@ethersproject/providers';
-import { BigNumber, providers, utils } from 'ethers'
+import { BigNumber, utils } from 'ethers'
+
+import { Signer } from '../types/types'
 
 const generateMessageForEntropy = (ethereum_address: string, application_name: string): string => {
     return (
@@ -75,7 +76,7 @@ const generateMessageForEntropy = (ethereum_address: string, application_name: s
   //   return {address, signer}
   // }
 
-  export const generateSignature = async (signer: JsonRpcSigner): Promise<any> => {
+  export const generateSignature = async (signer: Signer): Promise<any> => {
       let signedText: string;
       const userAddress: string = await signer.getAddress();
       const message: string = generateMessageForEntropy(userAddress, 'Safient')

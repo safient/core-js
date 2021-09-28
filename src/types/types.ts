@@ -1,11 +1,14 @@
 import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
+import { JsonRpcSigner } from '@ethersproject/providers';
 import { JWE } from 'did-jwt';
-import {ClaimType} from '@safient/claims/dist/types/Types'
+import {ClaimType} from '@safient/contracts/dist/types/Types'
 import { Database } from '../database';
 import { Crypto } from '../crypto';
+import { Wallet } from 'ethers';
 
 
+export type Signer = JsonRpcSigner | Wallet
 
 export type Connection = {
   client: Client;

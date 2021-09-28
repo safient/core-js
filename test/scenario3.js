@@ -1,5 +1,5 @@
 const { ThreadID } = require('@textile/hub');
-const { SafientClaims } = require('@safient/claims');
+const { SafientClaims } = require('@safient/contracts');
 const { utils } = require('ethers');
 const { getThreadId } = require('../dist/utils/threadDb');
 const fs = require('fs');
