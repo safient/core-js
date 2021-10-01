@@ -1,12 +1,18 @@
 import { Crypto } from "../crypto"
-import {Database} from "../database/index"
+import {Database} from "../database"
+import {Storage} from "../storage/index"
+ 
+import { Connection, Evidence, RegisterStatus, SafeCreation, SafeData, User, UserBasic, Users, UserSchema, Utils } from "../types/types";
 
-import { Connection, RegisterStatus, SafeCreation, SafeData, User, UserBasic, Users, UserSchema, Utils } from "../types/types";
+var environment = require("browser-or-node");
 
 
 let database: Database
 let crypto: Crypto;
 let connection: Connection
+let storage = new Storage('IPFS')
+let safientAgreementURI: string = '/ipfs/QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u6yoJu13/Safex Agreement.png';
+
 
 /**
  * 
@@ -18,6 +24,7 @@ export const init = (databaseType: string, connectionObject: Connection): Utils 
     database = new Database(databaseType, connectionObject);
     crypto = new Crypto();
     connection = connectionObject;
+    console.log("Finished init")
     return {database, crypto}
 }
 
@@ -272,4 +279,90 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
       throw new Error(`Error while updating a stage ${err}`)
     }
   }
+
+  export const createMetaData = async (safientContractAddress: string, address: string): Promise<string> => {
+    try{
+      const metaevidenceObj = {
+          fileURI: safientAgreementURI,
+          fileHash: 'QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u6yoJu13',
+          fileTypeExtension: 'png',
+          category: 'Safex Claims',
+          title: 'Provide a convenient and safe way to propose and claim the inheritance and safekeeping mechanism',
+          description:
+            'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+          aliases: {
+            [safientContractAddress]: 'SafexMain',
+            [address]: [address],
+          },
+          question: 'Does the claimer qualify for inheritence?',
+          rulingOptions: {
+            type: 'single-select',
+            titles: ['Yes', 'No'],
+            descriptions: ['The claimer is qualified for inheritence', 'The claimer is not qualified for inheritence'],
+          },
+        };
+        const cid: any = await storage.add('metaEvidence.json', JSON.stringify(metaevidenceObj));
+        console.log(cid)
+        const metaevidenceURI: string = `/ipfs/${cid[1].hash}${cid[0].path}`;
+        return metaevidenceURI
+  }catch(err){
+      throw new Error(`Error while creating metadata, ${err}`)
+  }
+  }
+
+  export const createClaimEvidenceUri = async(file: any, evidenceName: string, description: string ): Promise<any> => {
+    try{
+        let evidenceURI: string = ''
+        let buffer: Buffer | undefined
+        let evidenceObj: Evidence
+        let cid: any
+
+        if(file && file.name.split('.')[1] ){
+        const fileName: string = file.name;
+        const fileExtension: string = file.name.split('.')[1]
+        if(environment.isBrowser){
+            const reader: any = new FileReader();
+            reader.readAsArrayBuffer(file);
+            reader.onloadend = () => {
+                buffer = Buffer.from(reader.result);
+            };
+            const fileCid = await storage.add(fileName, buffer);
+            const fileURI = `/ipfs/${fileCid[1].hash}${fileCid[0].path}`;
+            evidenceObj = {
+              fileURI,
+              fileHash: fileCid[1].hash,
+              fileTypeExtension: fileExtension,
+              name: evidenceName,
+              description: description,
+            };
+         cid = await storage.add('evidence.json', JSON.stringify(evidenceObj));
+         evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+
+        }
+        if(environment.isNode){
+            evidenceObj = {
+                fileURI: `https://ipfs.kleros.io/ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`,
+                fileHash:'QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF',
+                fileTypeExtension: fileExtension,
+                name: evidenceName,
+                description: description,
+              };
+              //evidenceURI = `ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`
+              cid = await storage.add('evidence.json', JSON.stringify(evidenceObj));
+              evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
+        }
+        }
+        else{
+            evidenceURI = "NULL"
+        }
+
+        return evidenceURI 
+
+    }catch(e){
+        throw new Error(`Error while creating evidence, ${e}`)
+    }
+
+  }
+
+  
 

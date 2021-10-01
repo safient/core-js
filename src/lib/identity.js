@@ -32,3 +32,6 @@ export const generateIDX = async (seed) => {
     }
 
   }
+
+
+

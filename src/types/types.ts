@@ -6,6 +6,7 @@ import {ClaimType} from '@safient/contracts/dist/types/Types'
 import { Database } from '../database';
 import { Crypto } from '../crypto';
 import { Wallet } from 'ethers';
+import CeramicClient from '@ceramicnetwork/http-client';
 
 
 export type Signer = JsonRpcSigner | Wallet
@@ -136,4 +137,9 @@ export type RegisterStatus = {
 export type Utils = {
   database: Database;
   crypto: Crypto;
+}
+
+export type CeramicIdx = {
+  ceramic: CeramicClient | null;
+  idx: IDX | null
 }

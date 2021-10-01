@@ -138,6 +138,7 @@ it('Should register a Guardian 3', async () => {
 
       safeId = await creatorSc.safientCore.createNewSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
       const safeData = await creatorSc.safientCore.getSafeData(safeId);
+      console.log(safeData)
       expect(safeData.creator).to.equal(creator.idx.id);
   });
 

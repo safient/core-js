@@ -39,43 +39,6 @@ const generateMessageForEntropy = (ethereum_address: string, application_name: s
     );
   }
 
-  // const getSigner = async (): Promise<JsonRpcSigner> => {
-  //   if (!window.ethereum) {
-  //     throw new Error(
-  //       'Ethereum is not connected. Please download Metamask from https://metamask.io/download.html'
-  //     );
-  //   }
-
-  //   console.debug('Initializing web3 provider...');
-  //   const provider: JsonRpcProvider = new providers.Web3Provider(window.ethereum);
-  //   const signer: JsonRpcSigner = provider.getSigner();
-  //   return signer
-  // }
-
-  // export const getProvider = async (): Promise<JsonRpcProvider> => {
-  //   if (!window.ethereum) {
-  //     throw new Error(
-  //       'Ethereum is not connected. Please download Metamask from https://metamask.io/download.html'
-  //     );
-  //   }
-
-  //   console.debug('Initializing web3 provider...');
-  //   window.ethereum.enable()
-  //   const provider: JsonRpcProvider = new providers.Web3Provider(window.ethereum);
-  //   return provider
-  // }
-
-  // const getAddressAndSigner = async(): Promise<any> => {
-  //   const signer: JsonRpcSigner = await getSigner()
-  //   // @ts-ignore
-  //   const accounts: any = await window.ethereum.request({ method: 'eth_requestAccounts' });
-  //   if (accounts.length === 0) {
-  //     throw new Error('No account is provided. Please provide an account to this application.');
-  //   }
-  //   const address: string = accounts[0];
-  //   return {address, signer}
-  // }
-
   export const generateSignature = async (signer: Signer): Promise<any> => {
       let signedText: string;
       const userAddress: string = await signer.getAddress();
