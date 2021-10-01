@@ -19,7 +19,6 @@ const CERAMIC_URL: string = 'http://0.0.0.0:7007'
                 await ceramic.did?.authenticate()
                 
                 const idx: IDX = new IDX({ceramic, aliases: definitions})
-                console.log("Generated idx")
                 return {idx:idx, ceramic: ceramic}
             }else{
                 return {idx:null, ceramic: null}

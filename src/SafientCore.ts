@@ -1,39 +1,24 @@
 import { IDX } from '@ceramicstudio/idx';
-import { Client, PrivateKey, ThreadID, Where } from '@textile/hub';
 import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import {SafientClaims, Types} from "@safient/contracts"
-import {ClaimType} from "@safient/contracts/dist/types/Types"
 import {ethers} from "ethers"
 
 
-import { getThreadId } from './utils/threadDb';
-
 // @ts-ignore
-import { Connection, User, UserBasic, Users, SafeData, Shard, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, CeramicIdx } from './types/types';
+import { Connection, User, UserBasic, Users, SafeData, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, Signer } from './types/types';
 import {definitions} from "./utils/config.json"
-
-import { Signer } from './types/types'
 import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getLoginUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, registerNewUser, updateStage} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
+
+import {claimStages, safeStages} from "./lib/enums"
+
+
 require('dotenv').config();
 
 
-const safeStages = {
-  "ACTIVE" : 0,
-  "CLAIMING": 1,
-  "RECOVERING": 2,
-  "RECOVERED": 3,
-  "CLAIMED": 4
-}
 
-const claimStages = {
-    "ACTIVE": 0,
-    "PASSED": 1,
-    "FAILED": 2,
-    "REJECTED": 3
-}
 export class SafientCore {
   private signer: Signer;
   private provider: JsonRpcProvider;
@@ -62,23 +47,13 @@ export class SafientCore {
   connectUser = async (apiKey:any, secret:any): Promise<Connection> => {
     try{
       const seed = await this.signature.sign()
-      console.log("Done signing")
       const {idx, ceramic} = await this.auth.generateIdx(Uint8Array.from(seed))
-      console.log("Ceramic generated")
-      const identity = PrivateKey.fromRawEd25519Seed(Uint8Array.from(seed));
-      const client = await Client.withKeyInfo({
-        key: apiKey,
-        secret: secret,
-      });
-      await client.getToken(identity);
-      const threadId = ThreadID.fromBytes(Uint8Array.from(await getThreadId()));
-      console.log("Thread generated")
+      const {client, threadId} = await this.auth.generateThread(seed, apiKey, secret)
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
-      console.log("Finished connection")
       return connectionData
     }catch(err){
       throw new Error(`Error, while connecting the user, ${err}`);
@@ -109,14 +84,12 @@ export class SafientCore {
       };
 
       //get the threadDB user
-      console.log("Started registration")
       const result : string = await registerNewUser(data)
       if(result !== ''){
         const ceramicResult = await idx?.set(definitions.profile, {
           name: name,
           email: email
         })
-        console.log("Finished registration")
         return result
       }else {
         return `${email} already registered.`
@@ -365,11 +338,11 @@ export class SafientCore {
 
         if(safe.onChain === true && safe.stage === safeStages.ACTIVE){
 
-          if(safe.claimType === ClaimType.ArbitrationBased){
+          if(safe.claimType === Types.ClaimType.ArbitrationBased){
             evidenceUri = await createClaimEvidenceUri(file, evidenceName, description)
             tx = await this.claims.safientMain.createClaim(safe._id, evidenceUri)
             txReceipt = await tx.wait()
-          }else if(safe.claimType === ClaimType.SignalBased){
+          }else if(safe.claimType === Types.ClaimType.SignalBased){
             tx = await this.claims.safientMain.createClaim(safe._id, '')
             txReceipt = await tx.wait()
           }
@@ -383,7 +356,7 @@ export class SafientCore {
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
 
         //safeSync
-        if(safe.claimType === ClaimType.ArbitrationBased){
+        if(safe.claimType === Types.ClaimType.ArbitrationBased){
          createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, metaDataEvidenceUri, totalFee,)
          createSafetxReceipt = await createSafetx.wait();
         }
@@ -399,10 +372,10 @@ export class SafientCore {
       }
 
       if(txReceipt.status === 1 && safe.stage === safeStages.ACTIVE){
-        if(safe.claimType === ClaimType.ArbitrationBased){
+        if(safe.claimType === Types.ClaimType.ArbitrationBased){
           dispute = txReceipt.events[2].args[2];
           disputeId = parseInt(dispute._hex);
-        }else if(safe.claimType === ClaimType.SignalBased){
+        }else if(safe.claimType === Types.ClaimType.SignalBased){
           dispute = txReceipt.events[0].args[2];
           disputeId = parseInt(dispute._hex);
         }

@@ -10,7 +10,7 @@ var environment = require("browser-or-node");
 let database: Database
 let crypto: Crypto;
 let connection: Connection
-let storage = new Storage('IPFS')
+let storage: Storage
 let safientAgreementURI: string = '/ipfs/QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u6yoJu13/Safex Agreement.png';
 
 
@@ -24,7 +24,7 @@ export const init = (databaseType: string, connectionObject: Connection): Utils 
     database = new Database(databaseType, connectionObject);
     crypto = new Crypto();
     connection = connectionObject;
-    console.log("Finished init")
+    storage = new Storage('IPFS')
     return {database, crypto}
 }
 
@@ -302,7 +302,6 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
           },
         };
         const cid: any = await storage.add('metaEvidence.json', JSON.stringify(metaevidenceObj));
-        console.log(cid)
         const metaevidenceURI: string = `/ipfs/${cid[1].hash}${cid[0].path}`;
         return metaevidenceURI
   }catch(err){

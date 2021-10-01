@@ -59,6 +59,5 @@ export const generateSignature = async (signer: Signer): Promise<any> => {
     // @ts-ignore
     .match(/.{2}/g)
     .map((hexNoPrefix:any) => BigNumber.from('0x' + hexNoPrefix).toNumber())
-    console.log("Seed generated")
   return seed
 }
