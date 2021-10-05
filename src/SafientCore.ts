@@ -47,7 +47,7 @@ export class SafientCore {
   connectUser = async (apiKey:any, secret:any): Promise<Connection> => {
     try{
       const seed = await this.signature.sign()
-      const {idx, ceramic} = await this.auth.generateIdx(Uint8Array.from(seed))
+      const {idx, ceramic} = await this.auth.generateIdentity(Uint8Array.from(seed))
       const {client, threadId} = await this.auth.generateThread(seed, apiKey, secret)
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;

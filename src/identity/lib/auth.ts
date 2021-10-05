@@ -4,7 +4,7 @@ import { thread } from "../utils/threadId";
 
 export class Auth {
 
-    generateIdx = async(seed: any) => {
+    generateIdentity = async(seed: any) => {
         try{
             const result = await generateIDX(seed);
             return result
