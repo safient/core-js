@@ -124,7 +124,7 @@ export class SafientCore {
   /**
    * This API is used to get the login information of the user
    * @param did - DID of the user.
-   * @returns - Returns User information
+   * @returns - User information
    */
   getLoginUser = async (did:string): Promise<User | any> => {
     try {
@@ -509,7 +509,6 @@ export class SafientCore {
 
  /**
   * This API updates the stages for a safe.
-  * @ignore
   * @param safeId - ID of the safe being updated.
   * @param claimStage - The stage of the claim.
   * @param safeStage - The stage of the safe.
@@ -569,7 +568,6 @@ export class SafientCore {
       
       /**
        * This function is used to get onChain safe data.
-       * @ignore
        * @param safeId -ID of the safe. 
        * @returns - onChain Safe Data
        */
@@ -584,7 +582,6 @@ export class SafientCore {
       
       /**
        * This API gets claim data for the safe from onChain.
-       * @ignore
        * @param claimId - onChain dispute/claim ID
        * @returns - Claim information.
        */
