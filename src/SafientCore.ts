@@ -3,7 +3,6 @@ import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ether
 import {SafientClaims, Types} from "@safient/contracts"
 import {ethers} from "ethers"
 
-
 // @ts-ignore
 import { Connection, User, UserBasic, Users, SafeData, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, Signer } from './types/types';
 import {definitions} from "./utils/config.json"
@@ -20,17 +19,33 @@ require('dotenv').config();
 
 
 export class SafientCore {
+   /** @ignore */
   private signer: Signer;
+   /** @ignore */
   private provider: JsonRpcProvider;
+   /** @ignore */
   private claims: SafientClaims
+   /** @ignore */
   private connection: Connection
+   /** @ignore */
   private crypto: Crypto
+   /** @ignore */
   private database: Database
+   /** @ignore */
   private databaseType: string
+   /** @ignore */
   private Utils: Utils
+   /** @ignore */
   private auth: Auth
+   /** @ignore */
   private signature: Signature
 
+  /**
+   * Constructor to initilize the Core SDK.
+   * @param signer - Signer object of the wallet.
+   * @param chainId - Chain ID.
+   * @param databaseType - Type of Database being used.
+   */
   constructor(signer: Signer, chainId: number, databaseType: string) {
     this.signer = signer;
     this.provider = this.provider
@@ -40,10 +55,12 @@ export class SafientCore {
     this.signature = new Signature(signer);
   }
 
-  /**
-   * API 1:connectUser
-   *
-   */
+ /**
+  * This API generates user ceramic and database connection object
+  * @param apiKey - API key of the database being used.
+  * @param secret - API secretphrase of the database being used.
+  * @returns - Connection datatype
+  */
   connectUser = async (apiKey:any, secret:any): Promise<Connection> => {
     try{
       const seed = await this.signature.sign()
@@ -60,11 +77,15 @@ export class SafientCore {
     }
   };
 
+  
   /**
-   * API 2:registerUser
-   *
+   * This API registers users onto the platform.
+   * @param name  - Name of the user
+   * @param email - Email of the user 
+   * @param signUpMode - Signup mode (0 - Metamask, 1 - Social Login)
+   * @param userAddress - Metamask address of the user.
+   * @returns - User registration ID
    */
-
   registerNewUser = async (
     name: string,
     email: string,
@@ -83,7 +104,6 @@ export class SafientCore {
         userAddress
       };
 
-      //get the threadDB user
       const result : string = await registerNewUser(data)
       if(result !== ''){
         const ceramicResult = await idx?.set(definitions.profile, {
@@ -100,9 +120,11 @@ export class SafientCore {
     }
   };
 
+ 
   /**
-   * API 3:getLoginUser
-   *
+   * This API is used to get the login information of the user
+   * @param did - DID of the user.
+   * @returns - User information
    */
   getLoginUser = async (did:string): Promise<User | any> => {
     try {
@@ -114,11 +136,11 @@ export class SafientCore {
   };
 
 
+  
   /**
-   * API 4:getAllUsers
-   *
+   * This API is used to get all the user basic information on the platform.
+   * @returns - Array of users on the platform
    */
-
   getUsers = async (): Promise<Users> => {
     try {
       const users: Users = await getUsers();
@@ -128,9 +150,12 @@ export class SafientCore {
     }
   };
 
-   /**
-   * API 5:randomGuardians
-   *
+  /**
+   * This API is used to select random guardians from the platform for a safe.
+   * @ignore
+   * @param creatorDID - DID of the safe creator.
+   * @param beneficiaryDID - DID of the safe beneficiary.
+   * @returns - array of guardian DIDs
    */
   private randomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<string[]> => {
 
@@ -144,10 +169,10 @@ export class SafientCore {
 
 
   /**
-   * API 6: Query Users
-   *  
+   * This is API is used to query users information using email.
+   * @param email - Email of the user being queried
+   * @returns - User's basic information
    */
-
   queryUser = async (email:string): Promise<UserBasic | Boolean> => {
     try {
 
@@ -161,11 +186,17 @@ export class SafientCore {
 
 
 
+  
   /**
-   * 
-   * CORE API 1: createNewSafe
+   * This API is used to create a safe either onChain or offChain.
+   * @param creatorDID - DID of the user who creates the safe.
+   * @param beneficiaryDID - DID of the user who inherits the safe.
+   * @param safeData - Data being stored in the safe.
+   * @param onChain - The data to be stored onChain or offChain.
+   * @param claimType - The safe is claimed through either "Arbitration" or "Signal" (Arbitration - 0, Signal - 1)
+   * @param signalingPeriod - If it's "Signal" based claim, Signaling period is provided
+   * @returns - ID generated for the Safe. 
    */
-
   createNewSafe = async (
     creatorDID: string,
     beneficiaryDID:string,
@@ -307,7 +338,11 @@ export class SafientCore {
     }
   };
 
-  //threadDB function
+ /**
+  * This API returns the data of the safe.
+  * @param safeId - ID of the safe being queried.
+  * @returns - Encrypted Safe Data.
+  */
   getSafeData = async (safeId: string): Promise<SafeData> => {
     try {
       const result: SafeData = await getSafeData(safeId)
@@ -317,6 +352,14 @@ export class SafientCore {
     }
   };
 
+  /**
+   * This API allows for safe claiming for the beneficiary.
+   * @param safeId - ID of the safe being claimed.
+   * @param file - Evidence submitted with the claim.
+   * @param evidenceName - Name of the evidence.
+   * @param description - Decscription of the evidence and claim being submitted.
+   * @returns - Dispute Number generated for the claim.
+   */
   claimSafe = async (
     safeId: string,
     file: any,
@@ -355,7 +398,6 @@ export class SafientCore {
         const guardianFee: number = 0.1;
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
 
-        //safeSync
         if(safe.claimType === Types.ClaimType.ArbitrationBased){
          createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, metaDataEvidenceUri, totalFee,)
          createSafetxReceipt = await createSafetx.wait();
@@ -403,6 +445,12 @@ export class SafientCore {
     }
   };
 
+  /**
+   * This API is called by guardians when they have to recover the safe they are part of.
+   * @param safeId - ID of the safe being recovered.
+   * @param did - DID of the guardian.
+   * @returns - True of False based on the recovery process.
+   */
   guardianRecovery = async (safeId: string, did: string): Promise<boolean> => {
     try {
       const safe: SafeData = await this.getSafeData(safeId)
@@ -442,6 +490,11 @@ export class SafientCore {
     }
   };
 
+  /**
+   * This API is for creator of the safe to recover safe data.
+   * @param safeId - ID of the safe being recovered.
+   * @returns - Decrypted Safe Data.
+   */
   creatorSafeRecovery = async(safeId: string): Promise<any> =>{
     try{
       const safeData:SafeData = await this.getSafeData(safeId);
@@ -454,8 +507,13 @@ export class SafientCore {
     }
   }
 
-
-  //Has to be a threadDB function
+ /**
+  * This API updates the stages for a safe.
+  * @param safeId - ID of the safe being updated.
+  * @param claimStage - The stage of the claim.
+  * @param safeStage - The stage of the safe.
+  * @returns - True or False based on update process.
+  */
   private updateStage = async(safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
         try{
 
@@ -467,6 +525,12 @@ export class SafientCore {
         }
       }
 
+    /**
+     * This API decryptes safe data and enables recovery for the Beneficiary of the safe.
+     * @param safeId - ID of the safe being recovered.
+     * @param did - DID of the beneficiary.
+     * @returns - Decrypted Safe Data.
+     */
     beneficiarySafeRecovery = async (safeId: string, did: string): Promise<any> => {
         try {
 
@@ -501,7 +565,12 @@ export class SafientCore {
         }
       };
 
-      //Onchain function
+      
+      /**
+       * This function is used to get onChain safe data.
+       * @param safeId -ID of the safe. 
+       * @returns - onChain Safe Data
+       */
       getOnChainData = async (safeId: string) => {
         try{
           const data = await this.claims.safientMain.getSafeBySafeId(safeId)
@@ -510,8 +579,12 @@ export class SafientCore {
           throw new Error('Error while getting onChain data')
         }
       }
-
-      //Onchain function
+      
+      /**
+       * This API gets claim data for the safe from onChain.
+       * @param claimId - onChain dispute/claim ID
+       * @returns - Claim information.
+       */
       getOnChainClaimData = async(claimId: number) => {
         try{
           const data = await this.claims.safientMain.getClaimByClaimId(claimId)
@@ -522,7 +595,13 @@ export class SafientCore {
 
       }
 
-      //OnChain function
+      
+      /**
+       * This API get's status of the claim.
+       * @param safeId - ID of the safe.
+       * @param claimId - Claim/Dispute ID of the safe.
+       * @returns - The status of the safe claim.
+       */
       getStatus = async(safeId: string, claimId: number) => {
         try{
           const claimStage = await this.claims.safientMain.getClaimStatus(safeId, claimId);
@@ -533,6 +612,12 @@ export class SafientCore {
 
       }
 
+      /**
+       * This API syncs onChain and offChain stages of the safe. 
+       * @ignore
+       * @param safeId - ID of the safe.
+       * @returns - True or False based on the sync process.
+       */
       syncStage = async(safeId: string): Promise<boolean> => {
         try{
           
@@ -567,6 +652,7 @@ export class SafientCore {
 
 
       /**
+       * @ignore
        * Disclaimer: Internal API only. Not production API.
        * Use at your loss.
        * If you reading this code and come across this. Be warned not to use this at all
@@ -581,6 +667,11 @@ export class SafientCore {
 
       }
 
+      /**
+       * The API is used to send signal to the safe onChain.
+       * @param safeId - ID of the safe.
+       * @returns - Transaction details of the signal.
+       */
       sendSignal = async(safeId: string): Promise<TransactionReceipt> => {
         try{
            const tx: TransactionResponse = await this.claims.safientMain.sendSignal(safeId)
@@ -597,7 +688,11 @@ export class SafientCore {
 
 
 
-
+      /**
+       * This API is used by guardians to claim the incentivisation. 
+       * @param safeId - ID of the safe.
+       * @returns - True or false based on the incentivisation process.
+       */
       incentiviseGuardians = async(safeId: string): Promise<boolean> =>{
         try{
           

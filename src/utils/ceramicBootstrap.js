@@ -7,7 +7,7 @@ const KeyDidResolver = require("key-did-resolver").default
 const {DID} = require("dids")
 const fromString = require('uint8arrays/from-string')
 
-const CERAMIC_URL = 'http://0.0.0.0:7007'
+const CERAMIC_URL = 'https://ceramic.safient.io/'
 
 const ProfileSchema = {
     "type": "object",
