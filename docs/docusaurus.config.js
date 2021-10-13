@@ -17,7 +17,7 @@ module.exports = {
       },
       items: [
         {
-          href: 'https://blog.consensolabs.com/tag/safient',
+          href: 'https://blog.safient.io',
           label: 'Blog',
           position: 'right',
         },
@@ -45,7 +45,7 @@ module.exports = {
             },
             {
               label: 'Developers',
-              to: '/getting-started',
+              to: '/dev-overview',
             },
             {
               label: 'Roadmap',
@@ -71,7 +71,7 @@ module.exports = {
           items: [
             {
               label: 'Blog',
-              href: 'https://blog.consensolabs.com/tag/safient',
+              href: 'https://blog.safient.io',
             },
             {
               label: 'GitHub',

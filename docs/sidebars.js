@@ -19,13 +19,14 @@ module.exports = {
       collapsible: true,
       collapsed: true,
       items: [
-        'getting-started',
+        'dev-overview',
         {
           type: 'category',
           label: 'Safient Core',
           collapsible: true,
           collapsed: true,
           items: [
+            'core-getting-started',
             {
               type: 'category',
               label: 'API',

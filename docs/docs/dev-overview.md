@@ -1,5 +1,4 @@
 ---
-sidebar_position: 1
 keywords:
   - digital assets
   - self-sovereign
@@ -15,7 +14,7 @@ twitter: https://twitter.com/safientio
 npm: https://www.npmjs.com/package/@safient/core
 ---
 
-# Getting started
+# Overview
 
 Safient developers guide will help you understand the various implementations.
 
@@ -24,5 +23,5 @@ Safient developers guide will help you understand the various implementations.
 You can start by checking out our applications to understand the implementation.
 If you are looking to integrate with Safient protocol, checkout our SDKs.
 
-- [Safient Core](./api/classes/SafientCore)
+- [Safient Core](./core-getting-started)
 - [Safient Contracts](https://contracts.safient.io/)
