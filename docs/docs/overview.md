@@ -1,65 +1,40 @@
 ---
-id: "overview"
-title: "Safient Contracts SDK"
-slug: "/"
-sidebar_label: "Overview"
-sidebar_position: 0
-custom_edit_url: null
+sidebar_position: 1
+slug: /
+keywords:
+  - digital assets
+  - self-sovereign
+  - Crypto Inheritance
+  - decentralized storage
+  - trustless mechanism
+description: Safient promises to securely and conveniently store any critical information that is needed to access and recover the assets in case of any tragic events. Safient also provides a trustless yet safe way to transfer and inherit the assets by close ones whenever such an unfortunate scenario occurs
+image: https://twitter.com/safientio/photo
+website: https://safient.io/
+app: https://safient.io/
+github: https://github.com/safient
+twitter: https://twitter.com/safientio
+npm: https://www.npmjs.com/package/@safient/core
 ---
 
-# Safient Core SDK
+# Overview
 
-JavaScript SDK for client to interact with Safient protocol.
+Welcome to the Safient protocol documentation.
 
-## Local installation
+:::note what is Safient?
 
-```bash
-  git clone git@github.com:safient/safient-core-js.git
-  cd safient-core-js
-  npm install
-```
+Safient aims to provide a convenient and safe way of inheriting and safekeeping mechanism for crypto assets without exposing it to any intermediaries.
 
-## Running Tests
+:::
 
-Create a .env file in the root directory with `USER_API_KEY` and `USER_API_SECRET` for the threadDB or any database of choice.
+### Where to begin?
 
-#### Testing the contracts
+This documentation covers all the basic and advanced concepts of Safient protocol.
 
-```bash
-  npm run test
-```
+You can checkout the Developers section if you want to understand the Safient implentation or use Safient SDKs.
 
-## Getting started
+- [Safient basics](./safient-basics/basics)
+- [Safient for developers](getting-started)
 
-```bash
-  npm i @safient/core
-```
+### Other resources
 
-## Usage
-
-`SafientCore` takes 3 parameters:
-
-- `signer` - Signer object from the wallet being used.
-- `chainId` - Chain ID of the network being used.
-- `databaseType` - Database to be used.
-
-```javascript
-// If not injected web3 provider, create a jsonRpcProvider
-const { JsonRpcProvider } = require("@ethersproject/providers");
-const provider = new JsonRpcProvider("http://localhost:8545");
-
-// Get signer and chainId from provider
-(async () => {
-  const signer = await provider.getSigner();
-  const providerNetwork = await provider.getNetwork();
-  const chainId = providerNetwork.chainId;
-})();
-```
-
-## Initialization
-
-```javascript
-import { SafientCore, Types } from "@safient/core";
-
-const safient = new SafientCore(signer, chainId, "threadDB");
-```
+You can checkout the detailed roadmap and resources at [https://resources.safient.io](https://resources.safient.io)

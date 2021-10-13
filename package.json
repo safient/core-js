@@ -12,7 +12,10 @@
   "scripts": {
     "prettier": "prettier --write 'contracts/**/*.sol'",
     "test": "mocha --timeout 120000",
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "build:docs": "cd docs && npm install && npm run build",
+    "serve:docs": "npm run build:docs && cd docs && npm run start",
+    "deploy:docs": "npm run build:docs && cd docs && npx docusaurus deploy"
   },
   "repository": {
     "type": "git",

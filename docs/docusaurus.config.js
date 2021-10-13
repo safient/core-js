@@ -1,8 +1,7 @@
 /** @type {import('@docusaurus/types').DocusaurusConfig} */
 module.exports = {
   title: 'Safient Core SDK',
-  tagline:
-    'JavaScript SDK to manage and interact with core Safient client features on Safient protocol',
+  tagline: 'JavaScript SDK to manage and interact with core Safient client features on Safient protocol',
   url: 'https://docs.safient.io',
   baseUrl: '/',
   onBrokenLinks: 'ignore',
@@ -38,15 +37,19 @@ module.exports = {
       style: 'dark',
       links: [
         {
-          title: 'Safient',
+          title: 'Docs',
           items: [
             {
-              href: 'https://docs.safient.io/safient-basics/basics',
               label: 'Basics',
+              to: '/safient-basics/basics',
             },
             {
-              href: 'https://docs.safient.io/roadmap',
+              label: 'Developers',
+              to: '/getting-started',
+            },
+            {
               label: 'Roadmap',
+              to: '/roadmap',
             },
           ],
         },
