@@ -37,6 +37,7 @@ export interface User {
   userAddress: string;
 };
 
+
 export type UserBasic = {
   name: string;
   email: string;
@@ -142,4 +143,11 @@ export type Utils = {
 export type CeramicIdx = {
   ceramic: CeramicClient | null;
   idx: IDX | null
+}
+
+export type UserResponse = {
+  status: boolean;
+  data: User | null;
+  idx: IDX | null;
+  error: Error | string
 }

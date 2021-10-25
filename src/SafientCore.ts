@@ -1,12 +1,12 @@
 import { IDX } from '@ceramicstudio/idx';
 import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
-import {SafientClaims, Types} from "@safient/contracts"
+import {SafientMain, Arbitrator, Types} from "@safient/contracts"
 import {ethers} from "ethers"
 
 // @ts-ignore
-import { Connection, User, UserBasic, Users, SafeData, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, Signer } from './types/types';
+import { Connection, User, UserBasic, Users, SafeData, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, Signer, UserResponse } from './types/types';
 import {definitions} from "./utils/config.json"
-import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getLoginUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, registerNewUser, updateStage} from "./logic/index"
+import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, updateStage, createUser} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
@@ -24,7 +24,9 @@ export class SafientCore {
    /** @ignore */
   private provider: JsonRpcProvider;
    /** @ignore */
-  private claims: SafientClaims
+  private contract: SafientMain;
+  /**@ignore */
+  private arbitrator: Arbitrator
    /** @ignore */
   private connection: Connection
    /** @ignore */
@@ -49,7 +51,8 @@ export class SafientCore {
   constructor(signer: Signer, chainId: number, databaseType: string) {
     this.signer = signer;
     this.provider = this.provider
-    this.claims = new SafientClaims(signer, chainId)
+    this.contract = new SafientMain(signer, chainId)
+    this.arbitrator = new Arbitrator(signer, chainId)
     this.databaseType = databaseType
     this.auth = new Auth();
     this.signature = new Signature(signer);
@@ -61,8 +64,16 @@ export class SafientCore {
   * @param secret - API secretphrase of the database being used.
   * @returns - Connection datatype
   */
-  connectUser = async (apiKey:any, secret:any): Promise<Connection> => {
+  loginUser = async (apiKey:any, secret:any): Promise<UserResponse> => {
     try{
+
+      let response: UserResponse = {
+        status: false,
+        data: null,
+        idx: null, 
+        error: ''
+      }
+
       const seed = await this.signature.sign()
       const {idx, ceramic} = await this.auth.generateIdentity(Uint8Array.from(seed))
       const {client, threadId} = await this.auth.generateThread(seed, apiKey, secret)
@@ -71,7 +82,24 @@ export class SafientCore {
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
-      return connectionData
+      const userData: User | null = await this.getUser(idx?.id!, '')
+
+      if(userData === null) {
+        response = {
+          status: false,
+          data: null,
+          idx: idx!,
+          error: new Error("User doesn't exist")
+        }
+      }else{
+        response = {
+          status: true,
+          data: userData,
+          idx: idx!, 
+          error: ''
+        }
+      }
+      return response
     }catch(err){
       throw new Error(`Error, while connecting the user, ${err}`);
     }
@@ -86,13 +114,21 @@ export class SafientCore {
    * @param userAddress - Metamask address of the user.
    * @returns - User registration ID
    */
-  registerNewUser = async (
+  createUser = async (
     name: string,
     email: string,
     signUpMode: number,
     userAddress: string
-  ): Promise<String> => {
+  ): Promise<UserResponse> => {
     try {
+
+      let response: UserResponse = {
+        status: false,
+        data: null,
+        idx: null,
+        error: ''
+      }
+
       let idx: IDX | null = this.connection.idx
       let did: string = idx?.id || ''
       const data: UserSchema = {
@@ -104,17 +140,27 @@ export class SafientCore {
         userAddress
       };
 
-      const result : string = await registerNewUser(data)
-      if(result !== ''){
+      const result : UserResponse = await createUser(data, this.connection.idx?.id!)
+      if(result.status === false){
         const ceramicResult = await idx?.set(definitions.profile, {
           name: name,
           email: email
         })
-        return result
-      }else {
-        return `${email} already registered.`
+        response = {
+          status: true,
+          data: result.data,
+          idx: null,
+          error: ''
+        }
+      }else if(result.status === true) {
+        response = {
+          status: false,
+          data: result.data,
+          idx: null,
+          error: `${email} already registered.`
+        }
       }
-    
+      return response
     } catch (err) {
       throw new Error(`Error while registering user, ${err}`);
     }
@@ -126,9 +172,16 @@ export class SafientCore {
    * @param did - DID of the user.
    * @returns - User information
    */
-  getLoginUser = async (did:string): Promise<User | any> => {
+  getUser = async (did:string , email: string ): Promise<User | null> => {
     try {
-      const result: any = await getLoginUser(did);
+      
+      let result: User | null = null
+      if(did !== '' && email === ''){
+        result = await getUser(did, '');
+      }else if(did === '' && email !== ''){
+        result = await getUser(email, '');
+      }
+      
       return result
     } catch (err) {
       throw new Error(`${did} not registered`);
@@ -168,24 +221,6 @@ export class SafientCore {
   };
 
 
-  /**
-   * This is API is used to query users information using email.
-   * @param email - Email of the user being queried
-   * @returns - User's basic information
-   */
-  queryUser = async (email:string): Promise<UserBasic | Boolean> => {
-    try {
-
-      const result: UserBasic | Boolean = await queryUserEmail(email)
-      return result;
-
-      }catch (err) {
-      throw new Error("Error while querying user");
-    }
-  };
-
-
-
   
   /**
    * This API is used to create a safe either onChain or offChain.
@@ -197,7 +232,7 @@ export class SafientCore {
    * @param signalingPeriod - If it's "Signal" based claim, Signaling period is provided
    * @returns - ID generated for the Safe. 
    */
-  createNewSafe = async (
+  createSafe = async (
     creatorDID: string,
     beneficiaryDID:string,
     safeData: any,
@@ -218,8 +253,8 @@ export class SafientCore {
 
 
           for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-              let guardianData: User = await this.getLoginUser(guardiansDid[guardianIndex]);
-              guardians.push(guardianData)
+              let guardianData: User | null = await this.getUser(guardiansDid[guardianIndex], '');
+              guardians.push(guardianData!)
           }
 
 
@@ -261,18 +296,18 @@ export class SafientCore {
       if(onChain === true){
         const metaDataEvidenceUri:string = await createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
 
-        const arbitrationFee: number = await this.claims.arbitrator.getArbitrationFee()
+        const arbitrationFee: number = await this.arbitrator.getArbitrationFee()
         const guardianFee: number = 0.1;
 
 
         
         if(claimType === Types.ClaimType.ArbitrationBased){
           const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
-          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
+          const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
           txReceipt = await tx.wait();
         }else if(claimType === Types.ClaimType.SignalBased){
           const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)))
-          const tx: TransactionResponse = await this.claims.safientMain.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', totalFee ) //NOTE: Change the time from 1 to required period here
+          const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', totalFee ) //NOTE: Change the time from 1 to required period here
           txReceipt = await tx.wait();
         }
         
@@ -343,7 +378,7 @@ export class SafientCore {
   * @param safeId - ID of the safe being queried.
   * @returns - Encrypted Safe Data.
   */
-  getSafeData = async (safeId: string): Promise<SafeData> => {
+  getSafe= async (safeId: string): Promise<SafeData> => {
     try {
       const result: SafeData = await getSafeData(safeId)
       return result;
@@ -360,7 +395,7 @@ export class SafientCore {
    * @param description - Decscription of the evidence and claim being submitted.
    * @returns - Dispute Number generated for the claim.
    */
-  claimSafe = async (
+   createClaim = async (
     safeId: string,
     file: any,
     evidenceName: string,
@@ -376,17 +411,17 @@ export class SafientCore {
         let createSafetxReceipt: TransactionReceipt
         let dispute: any
 
-        const safe: SafeData = await this.getSafeData(safeId)
+        const safe: SafeData = await this.getSafe(safeId)
         let creatorUser:User[]  = await queryUserDid(safe.creator)
 
         if(safe.onChain === true && safe.stage === safeStages.ACTIVE){
 
           if(safe.claimType === Types.ClaimType.ArbitrationBased){
             evidenceUri = await createClaimEvidenceUri(file, evidenceName, description)
-            tx = await this.claims.safientMain.createClaim(safe._id, evidenceUri)
+            tx = await this.contract.createClaim(safe._id, evidenceUri)
             txReceipt = await tx.wait()
           }else if(safe.claimType === Types.ClaimType.SignalBased){
-            tx = await this.claims.safientMain.createClaim(safe._id, '')
+            tx = await this.contract.createClaim(safe._id, '')
             txReceipt = await tx.wait()
           }
           
@@ -394,21 +429,21 @@ export class SafientCore {
       if(safe.onChain === false && safe.stage === safeStages.ACTIVE){
 
         const metaDataEvidenceUri:string = await createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
-        const arbitrationFee: number = await this.claims.arbitrator.getArbitrationFee()
+        const arbitrationFee: number = await this.arbitrator.getArbitrationFee()
         const guardianFee: number = 0.1;
         const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
 
         if(safe.claimType === Types.ClaimType.ArbitrationBased){
-         createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, metaDataEvidenceUri, totalFee,)
+         createSafetx = await this.contract.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, metaDataEvidenceUri, totalFee,)
          createSafetxReceipt = await createSafetx.wait();
         }
         else{
-           createSafetx = await this.claims.safientMain.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, '', '') //Note update time here
+           createSafetx = await this.contract.syncSafe(creatorUser[0].userAddress, safeId, safe.claimType, safe.signalingPeriod, '', '') //Note update time here
            createSafetxReceipt = await createSafetx.wait();
         }
         if(createSafetxReceipt.status === 1){
           evidenceUri = await createClaimEvidenceUri(file, evidenceName, description)
-          tx = await this.claims.safientMain.createClaim(safe._id, evidenceUri)
+          tx = await this.contract.createClaim(safe._id, evidenceUri)
           txReceipt = await tx.wait()
         }
       }
@@ -451,9 +486,9 @@ export class SafientCore {
    * @param did - DID of the guardian.
    * @returns - True of False based on the recovery process.
    */
-  guardianRecovery = async (safeId: string, did: string): Promise<boolean> => {
+   reconstructSafe = async (safeId: string, did: string): Promise<boolean> => {
     try {
-      const safe: SafeData = await this.getSafeData(safeId)
+      const safe: SafeData = await this.getSafe(safeId)
       const indexValue = safe.guardians.indexOf(did)
       let recoveryCount: number = 0;
       let recoveryStatus: boolean = false
@@ -495,9 +530,9 @@ export class SafientCore {
    * @param safeId - ID of the safe being recovered.
    * @returns - Decrypted Safe Data.
    */
-  creatorSafeRecovery = async(safeId: string): Promise<any> =>{
+   recoverSafeByCreator = async(safeId: string): Promise<any> =>{
     try{
-      const safeData:SafeData = await this.getSafeData(safeId);
+      const safeData:SafeData = await this.getSafe(safeId);
       const encSafeData = safeData.encSafeData
       const data = await this.crypto.decryptSafeData(safeData.encSafeKey, this.connection, encSafeData);
       const reconstructedData = JSON.parse(data.toString());
@@ -509,6 +544,7 @@ export class SafientCore {
 
  /**
   * This API updates the stages for a safe.
+  * @ignore
   * @param safeId - ID of the safe being updated.
   * @param claimStage - The stage of the claim.
   * @param safeStage - The stage of the safe.
@@ -531,14 +567,14 @@ export class SafientCore {
      * @param did - DID of the beneficiary.
      * @returns - Decrypted Safe Data.
      */
-    beneficiarySafeRecovery = async (safeId: string, did: string): Promise<any> => {
+     recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<any> => {
         try {
 
           let shards: Object[] = [];
           let reconstructedSafeData: any;
           let safeData: any
           let result: any
-          const safe: SafeData = await this.getSafeData(safeId)
+          const safe: SafeData = await this.getSafe(safeId)
 
           if(safe.stage === safeStages.RECOVERED || safe.stage === safeStages.CLAIMED){
 
@@ -573,7 +609,7 @@ export class SafientCore {
        */
       getOnChainData = async (safeId: string) => {
         try{
-          const data = await this.claims.safientMain.getSafeBySafeId(safeId)
+          const data = await this.contract.getSafeBySafeId(safeId)
           return data
         }catch(err){
           throw new Error('Error while getting onChain data')
@@ -587,7 +623,7 @@ export class SafientCore {
        */
       getOnChainClaimData = async(claimId: number) => {
         try{
-          const data = await this.claims.safientMain.getClaimByClaimId(claimId)
+          const data = await this.contract.getClaimByClaimId(claimId)
           return data;
         }catch(err){
           throw new Error(`Error while getting onChain claim data ${err}`)
@@ -602,9 +638,9 @@ export class SafientCore {
        * @param claimId - Claim/Dispute ID of the safe.
        * @returns - The status of the safe claim.
        */
-      getStatus = async(safeId: string, claimId: number) => {
+       getClaimStatus = async(safeId: string, claimId: number) => {
         try{
-          const claimStage = await this.claims.safientMain.getClaimStatus(safeId, claimId);
+          const claimStage = await this.contract.getClaimStatus(safeId, claimId);
           return claimStage;
         }catch(err){
           throw new Error(`Error while getting onChain claim data ${err}`)
@@ -623,7 +659,7 @@ export class SafientCore {
           
           let disputeId: number = 0
           let claimIndex : number = 0
-          const safe: SafeData = await this.getSafeData(safeId)
+          const safe: SafeData = await this.getSafe(safeId)
 
           const claims = safe.claims
           claims.map((claim,index) => {
@@ -632,7 +668,7 @@ export class SafientCore {
               claimIndex = index
             }
           })
-          const claimStage = await this.claims.safientMain.getClaimStatus(safeId, disputeId);
+          const claimStage = await this.contract.getClaimStatus(safeId, disputeId);
           if(claimStage === claimStages.PASSED){
             safe.stage = safeStages.RECOVERING;
             safe.claims[claimIndex].claimStatus = claimStages.PASSED;
@@ -659,7 +695,7 @@ export class SafientCore {
        *  */
       giveRuling = async(disputeId: number, ruling: number): Promise<boolean> => {
         try{
-          const result: boolean = await this.claims.arbitrator.giveRulingCall(disputeId, ruling)
+          const result: boolean = await this.arbitrator.giveRulingCall(disputeId, ruling)
           return result;
         }catch(err){
           throw new Error('Error while giving a ruling for dispute')
@@ -672,9 +708,9 @@ export class SafientCore {
        * @param safeId - ID of the safe.
        * @returns - Transaction details of the signal.
        */
-      sendSignal = async(safeId: string): Promise<TransactionReceipt> => {
+       createSignal = async(safeId: string): Promise<TransactionReceipt> => {
         try{
-           const tx: TransactionResponse = await this.claims.safientMain.sendSignal(safeId)
+           const tx: TransactionResponse = await this.contract.sendSignal(safeId)
            const txReceipt: TransactionReceipt = await tx.wait()
            if(txReceipt.status === 1){
             await this.updateStage(safeId, claimStages.ACTIVE, safeStages.ACTIVE);
@@ -699,9 +735,9 @@ export class SafientCore {
           let shards: any = []
           let guardianArray: any = [];
           let guardianSecret: string[] = [];
-          let tx: boolean = false
+          let result: boolean = false
 
-          const safe: SafeData = await this.getSafeData(safeId)
+          const safe: SafeData = await this.getSafe(safeId)
 
             if(safe.stage === safeStages.CLAIMED){
               safe.encSafeKeyShards.map((share) => {
@@ -719,7 +755,7 @@ export class SafientCore {
                     guardianArray.push(guardianTuple);
                   })
 
-                  tx = await this.claims.safientMain.guardianProof(
+                  result = await this.contract.guardianProof(
                     JSON.stringify(message),
                     reconstructedData.signature,
                     guardianArray,
@@ -728,13 +764,42 @@ export class SafientCore {
                     )
                 }
             }
-
-            return tx
+            return result
 
         }catch(e){
           throw new Error(`Error while incentiving the guardians ${e}`)
         }
       }
 
+      /**
+       * This function returns the total guardian reward balance of a guardian
+       * @param address The address of the guardian
+       * @returns The total guardian reward balance
+       */
+       getRewardBalance = async(userAddress: string): Promise<Number> =>{
+        try{
+          
+          const result: Number = await this.contract.getGuardianRewards(userAddress)
+          return result
 
+        }catch(e){
+          throw new Error(`Error while get the guardian's rewards balance ${e}`)
+        }
+      }
+
+      /**
+       * This function returns the total guardian reward balance of a guardian
+       * @param address The address of the guardian
+       * @returns The total guardian reward balance
+       */
+       claimRewards = async(amountInGwei: number): Promise<TransactionResponse> =>{
+        try{
+          
+          const result: TransactionResponse = await this.contract.claimRewards(amountInGwei)
+          return result
+
+        }catch(e){
+          throw new Error(`Error while claiming rewards for the guardians ${e}`)
+        }
+      }
 }
