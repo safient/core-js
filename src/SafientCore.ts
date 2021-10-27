@@ -71,7 +71,7 @@ export class SafientCore {
         status: false,
         data: null,
         idx: null, 
-        error: ''
+        error: null
       }
 
       const seed = await this.signature.sign()
@@ -82,7 +82,7 @@ export class SafientCore {
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
-      const userData: User | null = await this.getUser(idx?.id!, '')
+      const userData: User | null = await this.getUser({did: idx?.id})
 
       if(userData === null) {
         response = {
@@ -96,7 +96,7 @@ export class SafientCore {
           status: true,
           data: userData,
           idx: idx!, 
-          error: ''
+          error: null
         }
       }
       return response
@@ -126,7 +126,7 @@ export class SafientCore {
         status: false,
         data: null,
         idx: null,
-        error: ''
+        error: null
       }
 
       let idx: IDX | null = this.connection.idx
@@ -150,41 +150,41 @@ export class SafientCore {
           status: true,
           data: result.data,
           idx: null,
-          error: ''
+          error: null
         }
       }else if(result.status === true) {
         response = {
           status: false,
           data: result.data,
           idx: null,
-          error: `${email} already registered.`
+          error: new Error(`${email} already registered.`)
         }
       }
       return response
     } catch (err) {
-      throw new Error(`Error while registering user, ${err}`);
+      throw new Error(`Error while registering user`);
     }
   };
 
  
   /**
    * This API is used to get the login information of the user
-   * @param did - DID of the user.
-   * @returns - User information
+   * @param obj - Takes email or did as parameter to get the user information 
+   * @returns - User or null based on user information present.
    */
-  getUser = async (did:string , email: string ): Promise<User | null> => {
+  getUser = async (obj : {email?: string, did?:string} ): Promise<User | null> => {
     try {
       
       let result: User | null = null
-      if(did !== '' && email === ''){
-        result = await getUser(did, '');
-      }else if(did === '' && email !== ''){
-        result = await getUser(email, '');
+      if(obj.did){
+        result = await getUser({did: obj.did});
+      }else if(obj.email){
+          result = await getUser({email: obj.email});
       }
       
       return result
     } catch (err) {
-      throw new Error(`${did} not registered`);
+      throw new Error(`User not registered`);
     }
   };
 
@@ -194,9 +194,9 @@ export class SafientCore {
    * This API is used to get all the user basic information on the platform.
    * @returns - Array of users on the platform
    */
-  getUsers = async (): Promise<Users> => {
+  getUsers = async (): Promise<UserBasic[]> => {
     try {
-      const users: Users = await getUsers();
+      const users: UserBasic[] = await getUsers();
       return users;
     } catch (err) {
       throw new Error("Error while getting new users");
@@ -253,7 +253,7 @@ export class SafientCore {
 
 
           for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-              let guardianData: User | null = await this.getUser(guardiansDid[guardianIndex], '');
+              let guardianData: User | null = await this.getUser({did:guardiansDid[guardianIndex]});
               guardians.push(guardianData!)
           }
 

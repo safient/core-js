@@ -73,13 +73,13 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
         status: false,
         data: null,
         idx: null,
-        error: ''
+        error: null
       }
       const userStatus: RegisterStatus = await checkUser(userData.email);
 
       if (userStatus.status === true) {
 
-        const userData: User | null = await getUser(did, '');
+        const userData: User | null = await getUser({did: did});
 
         response = {
           status: true,
@@ -91,12 +91,12 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
       }else if(userStatus.status === false){
 
         const userRegistration: string[] = await database.create(userData, 'Users')
-        const user: User | null = await getUser(did, '');
+        const user: User | null = await getUser({did: did});
         response = {
           status: false,
           data: user!,
           idx: null, 
-          error: ''
+          error: null
         }
 
       }
@@ -113,16 +113,15 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param did - Did of the user
    * @returns - User data if it exists
    */
-  export const getUser = async (did: string, email: string): Promise<User | null> => {
+  export const getUser = async (Obj : {email?: string, did?:string}): Promise<User | null> => {
 
     try {
 
       let result: User[] = []
-
-      if(did !== '' && email === ''){
-        result = await database.read<User>('did', did!, 'Users')
-      }else{
-        result = await database.read<User>('email', email!, 'Users')
+      if(Obj.did){
+        result = await database.read<User>('did', Obj.did!, 'Users')
+      }else{ if(Obj.email)
+        result = await database.read<User>('email', Obj.email!, 'Users')
       }
       if (result.length < 1) {
         return null
@@ -131,7 +130,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
       }
 
     } catch (err) {
-      throw new Error(`${did} not registered`);
+      throw new Error(`User not registered`);
     }
   };
 
@@ -139,7 +138,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * 
    * @returns - All the users on the database
    */
-  export const getUsers = async (): Promise<Users> => {
+  export const getUsers = async (): Promise<UserBasic[]> => {
 
     try {
         
@@ -160,13 +159,8 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
         value.did.toLowerCase() === result.did.toLowerCase() ? (caller = value) : (caller = `${value.did} is not registered!`);
         userArray.push(value);
       }
-      
-      const result: Users = {
-          userArray: userArray,
-          caller: caller
-      }
 
-      return result;
+      return userArray;
 
     } catch (err) {
       throw new Error("Error while getting new users");

@@ -149,5 +149,5 @@ export type UserResponse = {
   status: boolean;
   data: User | null;
   idx: IDX | null;
-  error: Error | string
+  error: Error | null
 }
