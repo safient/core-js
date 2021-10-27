@@ -2,7 +2,7 @@ import { Crypto } from "../crypto"
 import {Database} from "../database"
 import {Storage} from "../storage/index"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, SafeData, User, UserBasic, Users, UserSchema, Utils } from "../types/types";
+import { Connection, Evidence, RegisterStatus, SafeCreation, SafeData, User, UserBasic, UserResponse, Users, UserSchema, Utils } from "../types/types";
 
 var environment = require("browser-or-node");
 
@@ -65,25 +65,43 @@ export const checkUser = async(email: string): Promise<RegisterStatus> =>{
  * @returns - Database ID of the created data
  */
 
-export const registerNewUser = async(userData: UserSchema): Promise<string> => {
+export const createUser = async(userData: UserSchema, did: string): Promise<UserResponse> => {
 
     try {
 
-      let result: string = ''
+      let response: UserResponse = {
+        status: false,
+        data: null,
+        idx: null,
+        error: null
+      }
       const userStatus: RegisterStatus = await checkUser(userData.email);
 
       if (userStatus.status === true) {
 
-        result = '';
+        const userData: User | null = await getUser({did: did});
+
+        response = {
+          status: true,
+          data: userData!,
+          idx: null,
+          error: new Error("User already exists")
+        }
 
       }else if(userStatus.status === false){
 
         const userRegistration: string[] = await database.create(userData, 'Users')
-        result = userRegistration[0]
+        const user: User | null = await getUser({did: did});
+        response = {
+          status: false,
+          data: user!,
+          idx: null, 
+          error: null
+        }
 
       }
 
-      return result;
+      return response;
 
     } catch (err) {
         throw new Error(`Error while registering user, ${err}`);
@@ -95,10 +113,16 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
    * @param did - Did of the user
    * @returns - User data if it exists
    */
-  export const getLoginUser = async (did:string): Promise<User | any> => {
+  export const getUser = async (Obj : {email?: string, did?:string}): Promise<User | null> => {
 
     try {
-       const result: User[] = await database.read<User>('did', did, 'Users')
+
+      let result: User[] = []
+      if(Obj.did){
+        result = await database.read<User>('did', Obj.did!, 'Users')
+      }else{ if(Obj.email)
+        result = await database.read<User>('email', Obj.email!, 'Users')
+      }
       if (result.length < 1) {
         return null
       } else {
@@ -106,7 +130,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
       }
 
     } catch (err) {
-      throw new Error(`${did} not registered`);
+      throw new Error(`User not registered`);
     }
   };
 
@@ -114,7 +138,7 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
    * 
    * @returns - All the users on the database
    */
-  export const getUsers = async (): Promise<Users> => {
+  export const getUsers = async (): Promise<UserBasic[]> => {
 
     try {
         
@@ -135,13 +159,8 @@ export const registerNewUser = async(userData: UserSchema): Promise<string> => {
         value.did.toLowerCase() === result.did.toLowerCase() ? (caller = value) : (caller = `${value.did} is not registered!`);
         userArray.push(value);
       }
-      
-      const result: Users = {
-          userArray: userArray,
-          caller: caller
-      }
 
-      return result;
+      return userArray;
 
     } catch (err) {
       throw new Error("Error while getting new users");
