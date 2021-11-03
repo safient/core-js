@@ -65,8 +65,8 @@ describe('Unit test', async () => {
     expect(result.error.message).to.equal(`creator@test.com already registered.`)
 
     const loginUser = await creatorSc.getUser({did: creator.idx.id});
-    expect(loginUser.name).to.equal('Creator');
-    expect(loginUser.email).to.equal('creator@test.com');
+    expect(loginUser.data.name).to.equal('Creator');
+    expect(loginUser.data.email).to.equal('creator@test.com');
 
 });
 
@@ -88,8 +88,8 @@ it('Should register a beneficiary', async () => {
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await beneficiarySc.getUser({did: beneficiary.idx.id});
-    expect(loginUser.name).to.equal('beneficiary');
-    expect(loginUser.email).to.equal('beneficiary@test.com');
+    expect(loginUser.data.name).to.equal('beneficiary');
+    expect(loginUser.data.email).to.equal('beneficiary@test.com');
 });
 
 
@@ -111,8 +111,8 @@ it('Should register a Guardian 1', async () => {
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await guardianOneSc.getUser({email: `guardianOne@test.com`});
-    expect(loginUser.name).to.equal('Guardian 1');
-    expect(loginUser.email).to.equal('guardianOne@test.com');
+    expect(loginUser.data.name).to.equal('Guardian 1');
+    expect(loginUser.data.email).to.equal('guardianOne@test.com');
 });
 
 it('Should register a Guardian 2', async () => {
@@ -133,8 +133,8 @@ it('Should register a Guardian 2', async () => {
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await guardianTwoSc.getUser({email: `guardianTwo@test.com`});
-    expect(loginUser.name).to.equal('Guardian 2');
-    expect(loginUser.email).to.equal('guardianTwo@test.com');
+    expect(loginUser.data.name).to.equal('Guardian 2');
+    expect(loginUser.data.email).to.equal('guardianTwo@test.com');
 });
 
 it('Should register a Guardian 3', async () => {
@@ -154,16 +154,17 @@ it('Should register a Guardian 3', async () => {
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await guardianThreeSc.getUser({did: guardianThree.idx.id});
-    expect(loginUser.name).to.equal('Guardian 3');
-    expect(loginUser.email).to.equal('guardianThree@test.com');
+    expect(loginUser.data.name).to.equal('Guardian 3');
+    expect(loginUser.data.email).to.equal('guardianThree@test.com');
 });
 
 
   it('Should create safe with "Testing Safe data" as data', async () => {
 
-      safeId = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
+      const safe = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
+      safeId = safe.safeId
       const safeData = await creatorSc.getSafe(safeId);
-      expect(safeData.creator).to.equal(creator.idx.id);
+      expect(safeData.data.creator).to.equal(creator.idx.id);
   });
 
   
@@ -198,9 +199,7 @@ it('Should register a Guardian 3', async () => {
   // //Step 4: Recover Safes
 
 
-  it('Should initiate recovery by guardian 1', async () => {
-   
-      
+  it('Should initiate recovery by guardian 1', async () => {   
       const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.idx.id)
       expect(data).to.equal(true);
 
@@ -236,14 +235,14 @@ it('Should register a Guardian 3', async () => {
    
   });
 
-  // it('Should claim rewards for the guardian One', async () => {
+  it('Should claim rewards for the guardian One', async () => {
    
-  //   const prevBalance = await guardianOneSigner.getBalance();
-  //   const result = await guardianOneSc.claimRewards(guardianOneRewardBalance);
-  //    console.log(guardianOneRewardBalance)
-  //    const newBalance = await guardianOneSigner.getBalance();
-  //    expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
+    const prevBalance = await guardianOneSigner.getBalance();
+    const result = await guardianOneSc.claimRewards(guardianOneRewardBalance);
+     console.log(guardianOneRewardBalance)
+     const newBalance = await guardianOneSigner.getBalance();
+     expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
     
-  //  });
+   });
 
 });

@@ -4,7 +4,7 @@ import {SafientMain, Arbitrator, Types} from "@safient/contracts"
 import {ethers} from "ethers"
 
 // @ts-ignore
-import { Connection, User, UserBasic, Users, SafeData, SafeCreation, Share, EncryptedSafeData, UserSchema, Utils, Signer, UserResponse } from './types/types';
+import { Connection, User, UserBasic, Safe, SafeCreation, Share, SafeEncrypted, UserSchema, Utils, Signer, UserResponse, SafeRecovered, SafeResponse, SafeCreationResponse } from './types/types';
 import {definitions} from "./utils/config.json"
 import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, updateStage, createUser} from "./logic/index"
 import { Database } from './database';
@@ -82,9 +82,9 @@ export class SafientCore {
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
-      const userData: User | null = await this.getUser({did: idx?.id})
+      const userData: UserResponse = await this.getUser({did: idx?.id})
 
-      if(userData === null) {
+      if(userData.status === false) {
         response = {
           status: false,
           data: null,
@@ -94,7 +94,7 @@ export class SafientCore {
       }else{
         response = {
           status: true,
-          data: userData,
+          data: userData.data,
           idx: idx!, 
           error: null
         }
@@ -172,16 +172,26 @@ export class SafientCore {
    * @param obj - Takes email or did as parameter to get the user information 
    * @returns - User or null based on user information present.
    */
-  getUser = async (obj : {email?: string, did?:string} ): Promise<User | null> => {
+  getUser = async (obj : {email?: string, did?:string} ): Promise<UserResponse> => {
     try {
-      
-      let result: User | null = null
-      if(obj.did){
-        result = await getUser({did: obj.did});
-      }else if(obj.email){
-          result = await getUser({email: obj.email});
+      let result: UserResponse = {
+        status: false,
+        data: null,
+        idx: null,
+        error: null
       }
-      
+      let user: User | null = null
+      if(obj.did){
+        user = await getUser({did: obj.did});
+      }else if(obj.email){
+          user = await getUser({email: obj.email});
+      }
+      result = {
+        status:true,
+        data: user,
+        idx: null,
+        error: null
+      }
       return result
     } catch (err) {
       throw new Error(`User not registered`);
@@ -239,8 +249,14 @@ export class SafientCore {
     onChain: boolean,
     claimType: number,
     signalingPeriod: number
-  ): Promise<string> => {
+  ): Promise<SafeCreationResponse> => {
     try {
+
+        let response: SafeCreationResponse = {
+          status: false,
+          safeId: null,
+          error: null
+        }
         let guardians: User[] = [];
         let txReceipt: TransactionReceipt | undefined
 
@@ -251,122 +267,134 @@ export class SafientCore {
 
           const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
 
-
-          for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-              let guardianData: User | null = await this.getUser({did:guardiansDid[guardianIndex]});
-              guardians.push(guardianData!)
-          }
-
-
-          const secretsData = this.crypto.generateSecrets(guardians)
-
-          //note 1: Change here
-          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
+          if(guardiansDid.length > 1){
+                      for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
+                        let guardianData: UserResponse = await this.getUser({did:guardiansDid[guardianIndex]});
+                        guardians.push(guardianData.data!)
+                    }
 
 
-          const encryptedSafeData: EncryptedSafeData = await this.crypto.encryptSafeData(
-            safeData,
-            beneficiaryDID,
-            this.connection.idx?.id,
-            this.connection,
-            guardiansDid,
-            signature,
-            secretsData.recoveryMessage,
-            secretsData.secrets
-            )
-          //
+                    const secretsData = this.crypto.generateSecrets(guardians)
+
+                    //note 1: Change here
+                    const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
 
 
-          const data: SafeCreation = {
-            creator: this.connection.idx?.id,
-            guardians: guardiansDid,
-            beneficiary: beneficiaryDID,
-            encSafeKey: encryptedSafeData.creatorEncKey,
-            encSafeData: encryptedSafeData.encryptedData,
-            stage: safeStages.ACTIVE,
-            encSafeKeyShards: encryptedSafeData.shardData,
-            claims: [],
-            onChain: onChain,
-            claimType: claimType,
-            signalingPeriod: signalingPeriod
-          };
-
-          const safe: string[] = await createSafe(data)
-
-      if(onChain === true){
-        const metaDataEvidenceUri:string = await createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
-
-        const arbitrationFee: number = await this.arbitrator.getArbitrationFee()
-        const guardianFee: number = 0.1;
+                    const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
+                      safeData,
+                      beneficiaryDID,
+                      this.connection.idx?.id,
+                      this.connection,
+                      guardiansDid,
+                      signature,
+                      secretsData.recoveryMessage,
+                      secretsData.secrets
+                      )
+                    //
 
 
-        
-        if(claimType === Types.ClaimType.ArbitrationBased){
-          const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
-          const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
-          txReceipt = await tx.wait();
-        }else if(claimType === Types.ClaimType.SignalBased){
-          const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)))
-          const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', totalFee ) //NOTE: Change the time from 1 to required period here
-          txReceipt = await tx.wait();
-        }
-        
-      }
+                    const data: SafeCreation = {
+                      creator: this.connection.idx?.id,
+                      guardians: guardiansDid,
+                      beneficiary: beneficiaryDID,
+                      encSafeKey: encryptedSafeData.creatorEncKey,
+                      encSafeData: encryptedSafeData.encryptedData,
+                      stage: safeStages.ACTIVE,
+                      encSafeKeyShards: encryptedSafeData.shardData,
+                      claims: [],
+                      onChain: onChain,
+                      claimType: claimType,
+                      signalingPeriod: signalingPeriod
+                    };
 
-      if(txReceipt?.status === 1 || onChain === false){
+                    const safe: string[] = await createSafe(data)
 
-            if (creatorUser[0].safes.length===0) {
-                creatorUser[0].safes = [{
-                    safeId: safe[0],
-                    type: 'creator'
-                }]
-            }else {
-                creatorUser[0].safes.push({
-                    safeId: safe[0],
-                    type: 'creator'
-                })
-            }
+                if(onChain === true){
+                  const metaDataEvidenceUri:string = await createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
 
-            if (beneficiaryUser[0].safes.length===0) {
-                beneficiaryUser[0].safes = [{
-                    safeId: safe[0],
-                    type: 'beneficiary'
-                }]
-            }else {
-                beneficiaryUser[0].safes.push({
-                    safeId: safe[0],
-                    type: 'beneficiary'
-                })
-            }
+                  const arbitrationFee: number = await this.arbitrator.getArbitrationFee()
+                  const guardianFee: number = 0.1;
 
-            for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-              if(guardians[guardianIndex].safes.length === 0){
-                guardians[guardianIndex].safes = [{
+
+                  
+                  if(claimType === Types.ClaimType.ArbitrationBased){
+                    const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)))
+                    const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod, metaDataEvidenceUri, totalFee)
+                    txReceipt = await tx.wait();
+                  }else if(claimType === Types.ClaimType.SignalBased){
+                    const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)))
+                    const tx: TransactionResponse = await this.contract.createSafe(beneficiaryUser[0].userAddress, safe[0], claimType, signalingPeriod , '', totalFee ) //NOTE: Change the time from 1 to required period here
+                    txReceipt = await tx.wait();
+                  }
+                  
+                }
+
+                if(txReceipt?.status === 1 || onChain === false){
+
+                      if (creatorUser[0].safes.length===0) {
+                          creatorUser[0].safes = [{
+                              safeId: safe[0],
+                              type: 'creator'
+                          }]
+                      }else {
+                          creatorUser[0].safes.push({
+                              safeId: safe[0],
+                              type: 'creator'
+                          })
+                      }
+
+                      if (beneficiaryUser[0].safes.length===0) {
+                          beneficiaryUser[0].safes = [{
+                              safeId: safe[0],
+                              type: 'beneficiary'
+                          }]
+                      }else {
+                          beneficiaryUser[0].safes.push({
+                              safeId: safe[0],
+                              type: 'beneficiary'
+                          })
+                      }
+
+                      for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
+                        if(guardians[guardianIndex].safes.length === 0){
+                          guardians[guardianIndex].safes = [{
+                            safeId: safe[0],
+                            type: 'guardian'
+                          }]
+                        }else{
+                          guardians[guardianIndex].safes.push({
+                            safeId: safe[0],
+                            type: 'guardian'
+                        })
+                        }
+                    }
+
+                      await this.database.save(creatorUser[0], 'Users');
+                      await this.database.save(beneficiaryUser[0], 'Users')
+
+                    for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
+                      await this.database.save(guardians[guardianIndex], 'Users')
+                    }
+                }
+
+                if(txReceipt?.status === 0){
+                  await this.database.delete(safe[0], 'Users')
+                  console.log("Transaction Failed!");
+                }
+                response = {
+                  status: true,
                   safeId: safe[0],
-                  type: 'guardian'
-                }]
-              }else{
-                guardians[guardianIndex].safes.push({
-                  safeId: safe[0],
-                  type: 'guardian'
-              })
-              }
+                  error: null
+                }
+          }else{
+             response = {
+               status: false,
+               safeId: null,
+               error: new Error("No guardians available to create a safe")
+             }
           }
-
-            await this.database.save(creatorUser[0], 'Users');
-            await this.database.save(beneficiaryUser[0], 'Users')
-
-          for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
-            await this.database.save(guardians[guardianIndex], 'Users')
-          }
-      }
-
-      if(txReceipt?.status === 0){
-        await this.database.delete(safe[0], 'Users')
-        console.log("Transaction Failed!");
-      }
-
-    return safe[0];
+         
+          return response
 
     } catch (err) {
       throw new Error(`Error while creating a safe. ${err}`);
@@ -378,10 +406,20 @@ export class SafientCore {
   * @param safeId - ID of the safe being queried.
   * @returns - Encrypted Safe Data.
   */
-  getSafe= async (safeId: string): Promise<SafeData> => {
+  getSafe= async (safeId: string): Promise<SafeResponse> => {
     try {
-      const result: SafeData = await getSafeData(safeId)
-      return result;
+      let response: SafeResponse = {
+        status: false,
+        data: null,
+        error: null
+      }
+      const result: Safe = await getSafeData(safeId)
+      response = {
+        status: true,
+        data: result,
+        error: null
+      }
+      return response;
     } catch (err) {
       throw new Error("Error while fetching safe data");
     }
@@ -411,7 +449,8 @@ export class SafientCore {
         let createSafetxReceipt: TransactionReceipt
         let dispute: any
 
-        const safe: SafeData = await this.getSafe(safeId)
+        let safeData: SafeResponse = await this.getSafe(safeId)
+        const safe = safeData.data!
         let creatorUser:User[]  = await queryUserDid(safe.creator)
 
         if(safe.onChain === true && safe.stage === safeStages.ACTIVE){
@@ -488,7 +527,8 @@ export class SafientCore {
    */
    reconstructSafe = async (safeId: string, did: string): Promise<boolean> => {
     try {
-      const safe: SafeData = await this.getSafe(safeId)
+      const safeData: SafeResponse = await this.getSafe(safeId)
+      const safe = safeData.data!
       const indexValue = safe.guardians.indexOf(did)
       let recoveryCount: number = 0;
       let recoveryStatus: boolean = false
@@ -532,10 +572,18 @@ export class SafientCore {
    */
    recoverSafeByCreator = async(safeId: string): Promise<any> =>{
     try{
-      const safeData:SafeData = await this.getSafe(safeId);
-      const encSafeData = safeData.encSafeData
-      const data = await this.crypto.decryptSafeData(safeData.encSafeKey, this.connection, encSafeData);
+      let recoveredData: SafeRecovered = {
+        status: false,
+        data: null
+      }
+      const safeData:SafeResponse = await this.getSafe(safeId);
+      const encSafeData = safeData.data!.encSafeData
+      const data = await this.crypto.decryptSafeData(safeData.data!.encSafeKey, this.connection, encSafeData);
       const reconstructedData = JSON.parse(data.toString());
+       recoveredData = {
+        status: true,
+        data: reconstructedData
+      }
       return reconstructedData;
     }catch(err){
       throw new Error(`Error whole decrypting data, ${err}`)
@@ -567,14 +615,19 @@ export class SafientCore {
      * @param did - DID of the beneficiary.
      * @returns - Decrypted Safe Data.
      */
-     recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<any> => {
+     recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<SafeRecovered> => {
         try {
 
+          let recoveredData: SafeRecovered = {
+            status: false,
+            data: null
+          }
           let shards: Object[] = [];
           let reconstructedSafeData: any;
           let safeData: any
           let result: any
-          const safe: SafeData = await this.getSafe(safeId)
+          const safeResponse: SafeResponse = await this.getSafe(safeId)
+          const safe = safeResponse.data!
 
           if(safe.stage === safeStages.RECOVERED || safe.stage === safeStages.CLAIMED){
 
@@ -588,13 +641,20 @@ export class SafientCore {
             if(safeData !== undefined && safe.stage === safeStages.RECOVERED){
               await this.updateStage(safeId, claimStages.PASSED, safeStages.CLAIMED);
               result = JSON.parse(safeData.toString());
+              recoveredData = {
+                status: true,
+                data: result.data
+              }
             }else{
-              result = undefined
+              recoveredData = {
+                status: false,
+                data: null
+              }
             }
 
           }
 
-          return result
+          return recoveredData
 
           } catch (err) {
           throw new Error(`Error while recovering data for Beneficiary, ${err}`);
@@ -659,9 +719,10 @@ export class SafientCore {
           
           let disputeId: number = 0
           let claimIndex : number = 0
-          const safe: SafeData = await this.getSafe(safeId)
-
+          const safeData: SafeResponse = await this.getSafe(safeId)
+          const safe = safeData.data!
           const claims = safe.claims
+
           claims.map((claim,index) => {
             if(claim.claimStatus === claimStages.ACTIVE){
               disputeId = claim.disputeId;
@@ -737,7 +798,8 @@ export class SafientCore {
           let guardianSecret: string[] = [];
           let result: boolean = false
 
-          const safe: SafeData = await this.getSafe(safeId)
+          const safeData: SafeResponse = await this.getSafe(safeId)
+          const safe = safeData.data!
 
             if(safe.stage === safeStages.CLAIMED){
               safe.encSafeKeyShards.map((share) => {

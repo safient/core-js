@@ -21,7 +21,7 @@ export type UserSchema = {
   did: string;
   email: string;
   name: string;
-  safes: Safe[];
+  safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
 };
@@ -32,29 +32,25 @@ export interface User {
   did: string;
   email: string;
   name: string;
-  safes: Safe[];
+  safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
 };
 
 
-export type UserBasic = {
+export type UserMeta = {
   name: string;
   email: string;
   did: string;
 };
 
-export type Users = {
-  userArray: UserBasic[];
-  caller: UserBasic | string;
-};
 
-export type Safe = {
+export type SafeMeta = {
   safeId: string;
   type: string;
 };
 
-export interface SafeData {
+export interface Safe {
   _id: string;
   creator: string;
   guardians: string[];
@@ -63,7 +59,7 @@ export interface SafeData {
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
-  claims: Claims[];
+  claims: Claim[];
   onChain: boolean;
   claimType: number;
   signalingPeriod: ClaimType
@@ -77,14 +73,14 @@ export type SafeCreation = {
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
-  claims: Claims[];
+  claims: Claim[];
   onChain: boolean;
   claimType: ClaimType;
   signalingPeriod: number
 };
 
 
-export type Claims = {
+export type Claim = {
   createdBy: string | undefined;
   claimStatus: number;
   disputeId: number
@@ -122,7 +118,7 @@ export type Share = {
   signature: any;
 }
 
-export type EncryptedSafeData = {
+export type SafeEncrypted = {
   creatorEncKey: JWE,
   beneficiaryEncKey: JWE,
   encryptedData: Buffer,
@@ -149,5 +145,22 @@ export type UserResponse = {
   status: boolean;
   data: User | null;
   idx: IDX | null;
+  error: Error | null
+}
+
+export type SafeResponse = {
+  status: boolean;
+  data: Safe | null;
+  error: Error | null
+}
+
+export type SafeRecovered = {
+  status: boolean;
+  data: any
+}
+
+export type SafeCreationResponse = {
+  status: boolean;
+  safeId: string | null;
   error: Error | null
 }

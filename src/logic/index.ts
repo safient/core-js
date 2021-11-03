@@ -2,7 +2,7 @@ import { Crypto } from "../crypto"
 import {Database} from "../database"
 import {Storage} from "../storage/index"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, SafeData, User, UserBasic, UserResponse, Users, UserSchema, Utils } from "../types/types";
+import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils } from "../types/types";
 
 var environment = require("browser-or-node");
 
@@ -138,19 +138,19 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * 
    * @returns - All the users on the database
    */
-  export const getUsers = async (): Promise<UserBasic[]> => {
+  export const getUsers = async (): Promise<UserMeta[]> => {
 
     try {
         
       const registeredUsers: User[] =  await database.read<User>('', '', 'Users')
       
-      let caller: UserBasic | string = connection.idx?.id || '';
-      let userArray: UserBasic[] = [];
+      let caller: UserMeta | string = connection.idx?.id || '';
+      let userArray: UserMeta[] = [];
 
       for (let i = 0; i < registeredUsers.length; i++) 
       {
         const result = registeredUsers[i];
-        const value: UserBasic = {
+        const value: UserMeta = {
           name: result.name,
           email: result.email,
           did: result.did,
@@ -172,14 +172,14 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param email - Email of the user to be queried
    * @returns - Users basic information
    */
-  export const queryUserEmail = async (email:string): Promise<UserBasic | Boolean> => {
+  export const queryUserEmail = async (email:string): Promise<UserMeta | Boolean> => {
     try {
 
       const result: User[] = await database.read<User>('email', email, 'Users')
       if (result.length < 1) {
         return false
       } else {
-        const data: UserBasic = {
+        const data: UserMeta = {
             name: result[0].name,
             email: result[0].email,
             did: result[0].did,
@@ -269,9 +269,9 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param safeId - Safe id
    * @returns - Safe data
    */
-  export const getSafeData = async (safeId: string): Promise<SafeData> => {
+  export const getSafeData = async (safeId: string): Promise<Safe> => {
     try {
-      const result: SafeData[] = await database.read<SafeData>('', safeId, 'Safes')
+      const result: Safe[] = await database.read<Safe>('', safeId, 'Safes')
       return result[0];
     } catch (err) {
       throw new Error("Error while fetching safe data");
@@ -288,7 +288,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
   export const updateStage = async(safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
     try{
       
-      const safe: SafeData = await getSafeData(safeId);
+      const safe: Safe = await getSafeData(safeId);
       safe.stage = safeStage;
       safe.claims[0].claimStatus = claimStage;
       await database.save(safe, 'Safes')
