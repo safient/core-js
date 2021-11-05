@@ -1,4 +1,4 @@
-import { Connection, SafeData, User } from '../../types/types';
+import { Connection, Safe, User } from '../../types/types';
 import { ThreadDB } from '../utils/threadDB';
 
 export class Database {
@@ -66,7 +66,7 @@ export class Database {
     }
   }
 
-  read = async<T extends User | SafeData>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
+  read = async<T extends User | Safe>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
     try{
         let result: T[]=[] 
         if(this.dbName === 'threadDB'){

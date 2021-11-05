@@ -1,6 +1,6 @@
 const { Where } = require('@textile/hub');
 
-import { Connection, SafeData, User} from "../../types/types";
+import { Connection, Safe, User} from "../../types/types";
 
 
 
@@ -40,7 +40,7 @@ export class ThreadDB {
       }
     }
   
-    threadRead = async<T extends User | SafeData>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
+    threadRead = async<T extends User | Safe>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
       try{
         let result: T[] = []
         if(collection === 'Users' && queryValue !== ''){

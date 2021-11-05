@@ -1,4 +1,4 @@
-import { Connection, EncryptedSafeData, GuardianSecrets, RecoveryMessage, Shard, Share, User } from "../../types/types"
+import { Connection, SafeEncrypted, GuardianSecrets, RecoveryMessage, Shard, Share, User } from "../../types/types"
 import {_decryptData, _encryptData, _generateCipherKey, _shamirCombine, _shamirSplit} from "../utils/encryption"
 import {randomBytes, JWE, utils} from "../utils/helpers"
 
@@ -27,7 +27,7 @@ export class Crypto {
     signature: string,
     recoveryMessage: string,
     secrets: string []
-    ): Promise<EncryptedSafeData> => {
+    ): Promise<SafeEncrypted> => {
 
         let shardData: Shard[] = [];
 
@@ -68,7 +68,7 @@ export class Crypto {
                 })
             }
 
-            let result: EncryptedSafeData = {
+            let result: SafeEncrypted = {
                 creatorEncKey: creatorEncKey,
                 beneficiaryEncKey: beneficiaryEncKey,
                 encryptedData: encryptedData,
