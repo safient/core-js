@@ -83,7 +83,6 @@ export class SafientCore {
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
       const userData: UserResponse = await this.getUser({did: idx?.id})
-
       if(userData.status === false) {
         response = {
           status: false,
@@ -140,8 +139,6 @@ export class SafientCore {
         userAddress
       };
 
-      console.log(data)
-
       const result : UserResponse = await createUser(data, this.connection.idx?.id!)
       if(result.status === false){
         const ceramicResult = await idx?.set(definitions.profile, {
@@ -188,12 +185,22 @@ export class SafientCore {
       }else if(obj.email){
           user = await getUser({email: obj.email});
       }
-      result = {
-        status:true,
-        data: user,
-        idx: null,
-        error: null
+      if(user !== null){
+        result = {
+          status:true,
+          data: user,
+          idx: null,
+          error: null
+        }
+      }else{
+        result = {
+          status:false,
+          data: user,
+          idx: null,
+          error: null
+        }
       }
+      
       return result
     } catch (err) {
       throw new Error(`User not registered`);
@@ -265,9 +272,7 @@ export class SafientCore {
         //userQueryDid function
         const creatorUser: User[] = await queryUserDid(creatorDID)
         const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID)
-
-
-          const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
+        const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
 
           if(guardiansDid.length > 1){
                       for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
