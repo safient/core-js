@@ -12,3 +12,8 @@ export const claimStages = {
       "FAILED": 2,
       "REJECTED": 3
   }
+
+  export const SafeType = {
+    "CRYPTO": 0,
+    "GENERIC": 1
+  }

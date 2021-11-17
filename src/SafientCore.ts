@@ -4,14 +4,14 @@ import {SafientMain, Arbitrator, Types} from "@safient/contracts"
 import {ethers} from "ethers"
 
 // @ts-ignore
-import { Connection, User, UserBasic, Safe, SafeCreation, Share, SafeEncrypted, UserSchema, Utils, Signer, UserResponse, SafeRecovered, SafeResponse, SafeCreationResponse } from './types/types';
+import { Connection, User, UserBasic, Safe, SafeCreation, Share, SafeEncrypted, UserSchema, Utils, Signer, UserResponse, SafeRecovered, SafeResponse, SafeCreationResponse, SafeStore } from './types/types';
 import {definitions} from "./utils/config.json"
-import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, updateStage, createUser} from "./logic/index"
+import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, updateStage, createUser} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
 
-import {claimStages, safeStages} from "./lib/enums"
+import {claimStages, safeStages, SafeType} from "./lib/enums"
 
 
 require('dotenv').config();
@@ -83,7 +83,6 @@ export class SafientCore {
       this.crypto = this.Utils.crypto
       this.database = this.Utils.database
       const userData: UserResponse = await this.getUser({did: idx?.id})
-
       if(userData.status === false) {
         response = {
           status: false,
@@ -186,12 +185,22 @@ export class SafientCore {
       }else if(obj.email){
           user = await getUser({email: obj.email});
       }
-      result = {
-        status:true,
-        data: user,
-        idx: null,
-        error: null
+      if(user !== null){
+        result = {
+          status:true,
+          data: user,
+          idx: null,
+          error: null
+        }
+      }else{
+        result = {
+          status:false,
+          data: user,
+          idx: null,
+          error: null
+        }
       }
+      
       return result
     } catch (err) {
       throw new Error(`User not registered`);
@@ -245,10 +254,10 @@ export class SafientCore {
   createSafe = async (
     creatorDID: string,
     beneficiaryDID:string,
-    safeData: any,
+    safeData: SafeStore,
     onChain: boolean,
     claimType: number,
-    signalingPeriod: number
+    signalingPeriod: number,
   ): Promise<SafeCreationResponse> => {
     try {
 
@@ -263,9 +272,7 @@ export class SafientCore {
         //userQueryDid function
         const creatorUser: User[] = await queryUserDid(creatorDID)
         const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID)
-
-
-          const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
+        const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
 
           if(guardiansDid.length > 1){
                       for(let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++){
@@ -278,7 +285,6 @@ export class SafientCore {
 
                     //note 1: Change here
                     const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
-
 
                     const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
                       safeData,

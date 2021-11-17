@@ -159,12 +159,23 @@ it('Should register a Guardian 3', async () => {
 });
 
 
-  it('Should create safe with "Testing Safe data" as data', async () => {
+  it('Should create a new Crypto Safe with Seed phrase', async () => {
 
-      const safe = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
-      safeId = safe.safeId
-      const safeData = await creatorSc.getSafe(safeId);
-      expect(safeData.data.creator).to.equal(creator.idx.id);
+    const secretSafe = {
+      seedPhrase: "index negative film salon crumble wish rebuild seed betray meadow next ability",
+      privateKey: null,
+      keyStore: null
+    }
+    const cryptoSafe = {
+        data: secretSafe
+    }
+    const safeData = {
+      data: cryptoSafe
+    }
+      const safeid= await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.ArbitrationBased, 0)
+      safeId = safeid.safeId
+      const safe = await creatorSc.getSafe(safeId);
+      expect(safe.data.creator).to.equal(creator.idx.id);
   });
 
   
@@ -215,7 +226,8 @@ it('Should register a Guardian 3', async () => {
   it('Should recover data for the beneficiary', async () => {
 
       const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-      expect(data.data).to.equal('Testing safe Data');
+      
+      expect(data.data.data.data.seedPhrase).to.equal('index negative film salon crumble wish rebuild seed betray meadow next ability');
 
   });
 
@@ -239,7 +251,6 @@ it('Should register a Guardian 3', async () => {
    
     const prevBalance = await guardianOneSigner.getBalance();
     const result = await guardianOneSc.claimRewards(guardianOneRewardBalance);
-     console.log(guardianOneRewardBalance)
      const newBalance = await guardianOneSigner.getBalance();
      expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
     

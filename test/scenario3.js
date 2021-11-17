@@ -157,12 +157,23 @@ it('Should register a Guardian 3', async () => {
 
   describe('Safe creation and claim creation', async () => {
     describe('Onchain', async () => {
-      it('Should Create Safe', async () => {
+      it('Should Create Crypto Safe with software wallet instructions', async () => {
       
-        const safe = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.ArbitrationBased, 0)
-        safeId = safe.safeId
-        const safeData = await creatorSc.getSafe(safe.safeId);
-        expect(safeData.data.creator).to.equal(creator.idx.id);
+        const instructionSafe = {
+            softwareWallet: "Instruction for software wallet",
+            hardwareWallet: null,
+          }
+          const cryptoSafe = {
+              data: instructionSafe
+          }
+          const safeData = {
+            data: cryptoSafe
+          }
+
+        const safeid = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.ArbitrationBased, 0)
+        safeId = safeid.safeId
+        const safe = await creatorSc.getSafe(safeId);
+        expect(safe.data.creator).to.equal(creator.idx.id);
         
       });
 
@@ -216,7 +227,7 @@ it('Should register a Guardian 3', async () => {
   describe('Beneficiary data recovery', async () => {
     it('Data is recovered by the beneficiary', async () => {
         const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-        expect(data.data).to.equal('Testing safe Data');
+        expect(data.data.data.data.softwareWallet).to.equal('Instruction for software wallet');
       
     });
   });

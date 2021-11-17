@@ -155,13 +155,23 @@ it('Should register a Guardian 3', async () => {
 });
 
   //should create a safe onChain and offChain
-  it('Should create safe with "Testing Safe data" as data offchain', async () => {
+  it('Should create Crypto safe with private key as data offchain', async () => {
    
-     
-      const safe = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", false, ClaimType.ArbitrationBased, 0)
-      safeId = safe.safeId
-      const safeData = await creatorSc.getSafe(safe.safeId);
-      expect(safeData.data.creator).to.equal(creator.idx.id);
+    const secretSafe = {
+        seedPhrase: null,
+        privateKey: "0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea",
+        keyStore: null
+      }
+      const cryptoSafe = {
+          data: secretSafe
+      }
+      const safeData = {
+        data: cryptoSafe
+      }
+      const safeid = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, false, ClaimType.ArbitrationBased, 0)
+      safeId = safeid.safeId
+      const safe = await creatorSc.getSafe(safeId);
+      expect(safe.data.creator).to.equal(creator.idx.id);
   });
 
 
@@ -201,7 +211,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
     const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-      expect(data.data).to.equal('Testing safe Data');
+      expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
 

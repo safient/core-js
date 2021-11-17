@@ -157,12 +157,19 @@ it('Should register a Guardian 3', async () => {
 });
 
   //should create a safe onChain and offChain
-  it('Should create safe with "Testing Safe data" with Signal Based Claim', async () => {
+  it('Should create generic safe with "Testing Safe data" with Signal Based Claim', async () => {
      
-    const safe = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, "Testing safe Data", true, ClaimType.SignalBased, 10)
-    safeId = safe.safeId 
-    const safeData = await creatorSc.getSafe(safe.safeId);
-      expect(safeData.data.creator).to.equal(creator.idx.id);
+    
+      const generic = {
+       data: "Testing safe Data"
+      }
+      const safeData = {
+        data: generic
+      }
+    const safeid = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.SignalBased, 10)
+    safeId = safeid.safeId 
+    const safe = await creatorSc.getSafe(safeId);
+    expect(safe.data.creator).to.equal(creator.idx.id);
   });
 
 

@@ -164,3 +164,25 @@ export type SafeCreationResponse = {
   safeId: string | null;
   error: Error | null
 }
+
+export type SecretSafe = {
+  seedPhrase: string | null,
+  privateKey: string | null,
+  keyStore: string | null
+}
+
+export type Instructions = {
+  softwareWallet: string | null,
+  hardwareWallet: string | null,
+}
+export interface CryptoSafe {
+   data: SecretSafe | Instructions
+}
+
+export interface GenericSafe {
+  data: any
+}
+
+export type SafeStore = {
+  safe: CryptoSafe | GenericSafe
+}
