@@ -164,12 +164,9 @@ it('Should register a Guardian 3', async () => {
         keyStore: "key store"
       }
       const cryptoSafe = {
-        walletStoreType: {
           data: secretSafe
-        }
       }
       const safeData = {
-        safeType: 0,
         data: cryptoSafe
       }
 
@@ -268,7 +265,7 @@ it('Should register a Guardian 3', async () => {
   it('Should recover data for the beneficiary', async () => {
    
     const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-      expect(data.data.data.walletStoreType.data.keyStore).to.equal('key store');
+      expect(data.data.data.data.keyStore).to.equal('key store');
 
   });
 

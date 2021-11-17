@@ -164,12 +164,9 @@ it('Should register a Guardian 3', async () => {
             hardwareWallet: null,
           }
           const cryptoSafe = {
-            walletStoreType: {
               data: instructionSafe
-            }
           }
           const safeData = {
-            safeType: 0,
             data: cryptoSafe
           }
 
@@ -230,7 +227,7 @@ it('Should register a Guardian 3', async () => {
   describe('Beneficiary data recovery', async () => {
     it('Data is recovered by the beneficiary', async () => {
         const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-        expect(data.data.data.walletStoreType.data.softwareWallet).to.equal('Instruction for software wallet');
+        expect(data.data.data.data.softwareWallet).to.equal('Instruction for software wallet');
       
     });
   });

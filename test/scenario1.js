@@ -163,12 +163,9 @@ it('Should register a Guardian 3', async () => {
         keyStore: null
       }
       const cryptoSafe = {
-        walletStoreType: {
           data: secretSafe
-        }
       }
       const safeData = {
-        safeType: 0,
         data: cryptoSafe
       }
       const safeid = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, false, ClaimType.ArbitrationBased, 0)
@@ -214,7 +211,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
     const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-      expect(data.data.data.walletStoreType.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
+      expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
 

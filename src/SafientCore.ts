@@ -4,9 +4,9 @@ import {SafientMain, Arbitrator, Types} from "@safient/contracts"
 import {ethers} from "ethers"
 
 // @ts-ignore
-import { Connection, User, UserBasic, Safe, SafeCreation, Share, SafeEncrypted, UserSchema, Utils, Signer, UserResponse, SafeRecovered, SafeResponse, SafeCreationResponse, SafeStorage } from './types/types';
+import { Connection, User, UserBasic, Safe, SafeCreation, Share, SafeEncrypted, UserSchema, Utils, Signer, UserResponse, SafeRecovered, SafeResponse, SafeCreationResponse, SafeStore } from './types/types';
 import {definitions} from "./utils/config.json"
-import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, queryUserEmail, updateStage, createUser} from "./logic/index"
+import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardians, getUser, getSafeData, getUsers, init, queryUserDid, updateStage, createUser} from "./logic/index"
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
@@ -254,7 +254,7 @@ export class SafientCore {
   createSafe = async (
     creatorDID: string,
     beneficiaryDID:string,
-    safeData: SafeStorage,
+    safeData: SafeStore,
     onChain: boolean,
     claimType: number,
     signalingPeriod: number,

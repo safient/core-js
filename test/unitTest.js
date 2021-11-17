@@ -167,12 +167,9 @@ it('Should register a Guardian 3', async () => {
       keyStore: null
     }
     const cryptoSafe = {
-      walletStoreType: {
         data: secretSafe
-      }
     }
     const safeData = {
-      safeType: 0,
       data: cryptoSafe
     }
       const safeid= await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.ArbitrationBased, 0)
@@ -230,7 +227,7 @@ it('Should register a Guardian 3', async () => {
 
       const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
       
-      expect(data.data.data.walletStoreType.data.seedPhrase).to.equal('index negative film salon crumble wish rebuild seed betray meadow next ability');
+      expect(data.data.data.data.seedPhrase).to.equal('index negative film salon crumble wish rebuild seed betray meadow next ability');
 
   });
 

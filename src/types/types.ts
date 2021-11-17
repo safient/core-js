@@ -176,16 +176,13 @@ export type Instructions = {
   hardwareWallet: string | null,
 }
 export interface CryptoSafe {
-  walletStoreType: {
    data: SecretSafe | Instructions
-  }
 }
 
 export interface GenericSafe {
   data: any
 }
 
-export type SafeStorage = {
-  safeType: number
+export type SafeStore = {
   safe: CryptoSafe | GenericSafe
 }

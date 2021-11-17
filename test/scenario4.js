@@ -163,12 +163,9 @@ it('Should register a Guardian 3', async () => {
         hardwareWallet: "Instruction for hardware wallet",
       }
       const cryptoSafe = {
-        walletStoreType: {
           data: instructionSafe
-        }
       }
       const safeData = {
-        safeType: 0,
         data: cryptoSafe
       }
 
@@ -229,7 +226,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should recover data for the beneficiary', async () => {
     const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)     
-      expect(data.data.data.walletStoreType.data.hardwareWallet).to.equal('Instruction for hardware wallet');
+      expect(data.data.data.data.hardwareWallet).to.equal('Instruction for hardware wallet');
   });
 
 

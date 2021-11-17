@@ -164,7 +164,6 @@ it('Should register a Guardian 3', async () => {
        data: "Testing safe Data"
       }
       const safeData = {
-        safeType: 0,
         data: generic
       }
     const safeid = await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.SignalBased, 10)
