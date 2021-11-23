@@ -13,7 +13,11 @@ export const claimStages = {
       "REJECTED": 3
   }
 
-  export const SafeType = {
-    "CRYPTO": 0,
-    "GENERIC": 1
+  export const NetworkType = {
+    "LocalHost": 0,
+    "Mainnet": 1,
+    "Ropsten": 2,
+    "Rinkeby": 3,
+    "Kovan": 4
   }
+ 

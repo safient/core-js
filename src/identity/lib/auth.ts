@@ -13,9 +13,9 @@ export class Auth {
         }
     }
 
-    generateThread = async(seed: any, apiKey: string, secret:string) => {
+    generateThread = async(seed: any, apiKey: string, secret:string, threadId: number[]) => {
         try{
-            const result = await thread(seed, apiKey, secret);
+            const result = await thread(seed, apiKey, secret, threadId);
             return result
         }catch(err){
             throw new Error(`${err}`)

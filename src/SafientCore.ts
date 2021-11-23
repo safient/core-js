@@ -10,9 +10,8 @@ import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardi
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
-
-import {claimStages, safeStages, SafeType} from "./lib/enums"
-
+import {claimStages, safeStages, NetworkType} from "./lib/enums"
+import {Networks} from "./utils/networks"
 
 require('dotenv').config();
 
@@ -41,6 +40,14 @@ export class SafientCore {
   private auth: Auth
    /** @ignore */
   private signature: Signature
+  /**@ignore */
+  private apiKey: any
+  /**@ignore */
+  private apiSecret: any
+  /**@ignore */
+  private threadId: number[]
+  /**@ignore */
+  private chainId: number
 
   /**
    * Constructor to initilize the Core SDK.
@@ -48,11 +55,21 @@ export class SafientCore {
    * @param chainId - Chain ID.
    * @param databaseType - Type of Database being used.
    */
-  constructor(signer: Signer, chainId: number, databaseType: string) {
+  constructor(signer: Signer, network: number, databaseType: string, databaseAPIKey: any, databaseAPISecret: any, threadId: number[] | null ) {
+    
     this.signer = signer;
     this.provider = this.provider
-    this.contract = new SafientMain(signer, chainId)
-    this.arbitrator = new Arbitrator(signer, chainId)
+    
+    this.chainId = Networks[network].chainId
+    if(threadId === null){
+      this.threadId = Networks[network].threadId
+    }else{
+      this.threadId = threadId!
+    }
+    this.contract = new SafientMain(signer, this.chainId)
+    this.arbitrator = new Arbitrator(signer, this.chainId)
+    this.apiKey = databaseAPIKey
+    this.apiSecret = databaseAPISecret
     this.databaseType = databaseType
     this.auth = new Auth();
     this.signature = new Signature(signer);
@@ -64,7 +81,7 @@ export class SafientCore {
   * @param secret - API secretphrase of the database being used.
   * @returns - Connection datatype
   */
-  loginUser = async (apiKey:any, secret:any): Promise<UserResponse> => {
+  loginUser = async (): Promise<UserResponse> => {
     try{
 
       let response: UserResponse = {
@@ -76,7 +93,7 @@ export class SafientCore {
 
       const seed = await this.signature.sign()
       const {idx, ceramic} = await this.auth.generateIdentity(Uint8Array.from(seed))
-      const {client, threadId} = await this.auth.generateThread(seed, apiKey, secret)
+      const {client, threadId} = await this.auth.generateThread(seed, this.apiKey, this.apiSecret, this.threadId)
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
       this.Utils = init(this.databaseType, this.connection);
@@ -161,7 +178,7 @@ export class SafientCore {
       }
       return response
     } catch (err) {
-      throw new Error(`Error while registering user`);
+      throw new Error(`Error while registering user ${err}`);
     }
   };
 

@@ -186,3 +186,46 @@ export interface GenericSafe {
 export type SafeStore = {
   safe: CryptoSafe | GenericSafe
 }
+
+export type  Networks = {
+  localhost: {
+    chainId: number,
+    addresses: {
+      safientMain: string,
+      arbitrator: string
+    },
+    threadId: any
+  },
+  mainnet: {
+    chainId: number,
+    addresses: {
+      safientMain: string,
+      arbitrator: string
+    },
+    threadId: any
+  },
+  "ropsten": {
+    chainId: number,
+    addresses: {
+      safientMain: string,
+      arbitrator: string
+    },
+    threadId: any
+  },
+  "rinkeby": {
+    chainId: number,
+    addresses: {
+      safientMain: string,
+      arbitrator: string
+    },
+    threadId: any
+  },
+  "kovan": {
+    chainId: number,
+    addresses: {
+      safientMain: string,
+      arbitrator: string
+    },
+    threadId: any
+  }
+}
