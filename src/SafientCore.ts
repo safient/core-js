@@ -49,11 +49,15 @@ export class SafientCore {
   /**@ignore */
   private chainId: number
 
+ 
   /**
    * Constructor to initilize the Core SDK.
-   * @param signer - Signer object of the wallet.
-   * @param chainId - Chain ID.
-   * @param databaseType - Type of Database being used.
+   * @param signer - Signer object of the wallet
+   * @param network - The type of network from NetworkType Enum
+   * @param databaseType - Type of database to use.
+   * @param databaseAPIKey - Database API key.
+   * @param databaseAPISecret - Database API secret.
+   * @param threadId - ThreadDB ID if its available (optional)
    */
   constructor(signer: Signer, network: number, databaseType: string, databaseAPIKey: any, databaseAPISecret: any, threadId: number[] | null ) {
     
@@ -77,8 +81,6 @@ export class SafientCore {
 
  /**
   * This API generates user ceramic and database connection object
-  * @param apiKey - API key of the database being used.
-  * @param secret - API secretphrase of the database being used.
   * @returns - Connection datatype
   */
   loginUser = async (): Promise<UserResponse> => {
