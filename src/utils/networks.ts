@@ -20,25 +20,16 @@ export const Networks = [
   },
 
   {
-      "name":"ropsten",
-      "chainId": 3,
+      "name":"devnet",
+      "chainId": 31337,
       "addresses": {
-        "safientMain": "",
-        "arbitrator": ""
+        "safientMain": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+        "arbitrator": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
       },
       "threadId": [1,85,23,230,154,71,255,216,209,205,109,43,124,32,233,81,194,69,98,6,47,80,123,70,130,138,223,250,137,164,227,190,115,226]
   },
   {
-      "name":"Rinkeby",
-      "chainId": 4,
-      "addresses": {
-        "safientMain": "",
-        "arbitrator": ""
-      },
-      "threadId": [1,85,23,230,154,71,255,216,209,205,109,43,124,32,233,81,194,69,98,6,47,80,123,70,130,138,223,250,137,164,227,190,115,226]
-  },
-  {
-      "name":"kovan",
+      "name":"testnet",
       "chainId": 42,
       "addresses": {
         "safientMain": "",
