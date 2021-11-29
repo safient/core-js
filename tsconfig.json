@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "es5",
+    "target": "es6",
     "module": "commonjs",
-    "lib": ["es2017", "dom"],
+    "lib": ["esnext", "dom"],
     "allowJs": true,
     "outDir": "dist",
     "rootDir": "src",

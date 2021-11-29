@@ -10,9 +10,8 @@ import {createClaimEvidenceUri, createMetaData, createSafe, generateRandomGuardi
 import { Database } from './database';
 import { Crypto } from './crypto';
 import {Auth, Signature} from "./identity"
-
-import {claimStages, safeStages, SafeType} from "./lib/enums"
-
+import {ClaimStages, SafeStages, NetworkType} from "./lib/enums"
+import {Networks} from "./utils/networks"
 
 require('dotenv').config();
 
@@ -41,18 +40,39 @@ export class SafientCore {
   private auth: Auth
    /** @ignore */
   private signature: Signature
+  /**@ignore */
+  private apiKey: any
+  /**@ignore */
+  private apiSecret: any
+  /**@ignore */
+  private threadId: number[]
+  /**@ignore */
+  private chainId: number
 
+ 
   /**
    * Constructor to initilize the Core SDK.
-   * @param signer - Signer object of the wallet.
-   * @param chainId - Chain ID.
-   * @param databaseType - Type of Database being used.
+   * @param signer - Signer object of the wallet
+   * @param network - The type of network from NetworkType Enum
+   * @param databaseType - Type of database to use.
+   * @param databaseAPIKey - Database API key.
+   * @param databaseAPISecret - Database API secret.
+   * @param threadId - ThreadDB ID if its available (optional)
    */
-  constructor(signer: Signer, chainId: number, databaseType: string) {
+  constructor(signer: Signer, network: NetworkType, databaseType: string, databaseAPIKey: any, databaseAPISecret: any, threadId: number[] | null ) {
+    
     this.signer = signer;
     this.provider = this.provider
-    this.contract = new SafientMain(signer, chainId)
-    this.arbitrator = new Arbitrator(signer, chainId)
+    this.chainId = Networks[network].chainId
+    if(threadId === null){
+      this.threadId = Networks[network].threadId
+    }else{
+      this.threadId = threadId!
+    }
+    this.contract = new SafientMain(signer, this.chainId)
+    this.arbitrator = new Arbitrator(signer, this.chainId)
+    this.apiKey = databaseAPIKey
+    this.apiSecret = databaseAPISecret
     this.databaseType = databaseType
     this.auth = new Auth();
     this.signature = new Signature(signer);
@@ -60,11 +80,9 @@ export class SafientCore {
 
  /**
   * This API generates user ceramic and database connection object
-  * @param apiKey - API key of the database being used.
-  * @param secret - API secretphrase of the database being used.
   * @returns - Connection datatype
   */
-  loginUser = async (apiKey:any, secret:any): Promise<UserResponse> => {
+  loginUser = async (): Promise<UserResponse> => {
     try{
 
       let response: UserResponse = {
@@ -76,7 +94,7 @@ export class SafientCore {
 
       const seed = await this.signature.sign()
       const {idx, ceramic} = await this.auth.generateIdentity(Uint8Array.from(seed))
-      const {client, threadId} = await this.auth.generateThread(seed, apiKey, secret)
+      const {client, threadId} = await this.auth.generateThread(seed, this.apiKey, this.apiSecret, this.threadId)
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
       this.Utils = init(this.databaseType, this.connection);
@@ -161,7 +179,7 @@ export class SafientCore {
       }
       return response
     } catch (err) {
-      throw new Error(`Error while registering user`);
+      throw new Error(`Error while registering user ${err}`);
     }
   };
 
@@ -305,7 +323,7 @@ export class SafientCore {
                       beneficiary: beneficiaryDID,
                       encSafeKey: encryptedSafeData.creatorEncKey,
                       encSafeData: encryptedSafeData.encryptedData,
-                      stage: safeStages.ACTIVE,
+                      stage: SafeStages.ACTIVE,
                       encSafeKeyShards: encryptedSafeData.shardData,
                       claims: [],
                       onChain: onChain,
@@ -459,7 +477,7 @@ export class SafientCore {
         const safe = safeData.data!
         let creatorUser:User[]  = await queryUserDid(safe.creator)
 
-        if(safe.onChain === true && safe.stage === safeStages.ACTIVE){
+        if(safe.onChain === true && safe.stage === SafeStages.ACTIVE){
 
           if(safe.claimType === Types.ClaimType.ArbitrationBased){
             evidenceUri = await createClaimEvidenceUri(file, evidenceName, description)
@@ -471,7 +489,7 @@ export class SafientCore {
           }
           
         }
-      if(safe.onChain === false && safe.stage === safeStages.ACTIVE){
+      if(safe.onChain === false && safe.stage === SafeStages.ACTIVE){
 
         const metaDataEvidenceUri:string = await createMetaData('0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512', creatorUser[0].userAddress);
         const arbitrationFee: number = await this.arbitrator.getArbitrationFee()
@@ -493,7 +511,7 @@ export class SafientCore {
         }
       }
 
-      if(txReceipt.status === 1 && safe.stage === safeStages.ACTIVE){
+      if(txReceipt.status === 1 && safe.stage === SafeStages.ACTIVE){
         if(safe.claimType === Types.ClaimType.ArbitrationBased){
           dispute = txReceipt.events[2].args[2];
           disputeId = parseInt(dispute._hex);
@@ -502,18 +520,18 @@ export class SafientCore {
           disputeId = parseInt(dispute._hex);
         }
         
-        safe.stage = safeStages.CLAIMING
+        safe.stage = SafeStages.CLAIMING
 
         if( safe.claims.length === 0){
           safe.claims = [{
                 "createdBy": this.connection.idx?.id,
-                "claimStatus": claimStages.ACTIVE,
+                "claimStatus": ClaimStages.ACTIVE,
                 "disputeId": disputeId
             }]
         }else{
           safe.claims.push({
               "createdBy": this.connection.idx?.id,
-              "claimStatus": claimStages.ACTIVE,
+              "claimStatus": ClaimStages.ACTIVE,
               "disputeId": disputeId
             })
         }
@@ -539,7 +557,7 @@ export class SafientCore {
       let recoveryCount: number = 0;
       let recoveryStatus: boolean = false
 
-      if(safe.stage === safeStages.RECOVERING) {
+      if(safe.stage === SafeStages.RECOVERING) {
         const decShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
           safe.encSafeKeyShards[indexValue].encShard
         )
@@ -553,9 +571,9 @@ export class SafientCore {
         })
 
         if(recoveryCount >= 2){
-          safe.stage = safeStages.RECOVERED
+          safe.stage = SafeStages.RECOVERED
         }else{
-          safe.stage = safeStages.RECOVERING
+          safe.stage = SafeStages.RECOVERING
         }
         recoveryStatus = true
         await this.database.save(safe, 'Safes')
@@ -635,7 +653,7 @@ export class SafientCore {
           const safeResponse: SafeResponse = await this.getSafe(safeId)
           const safe = safeResponse.data!
 
-          if(safe.stage === safeStages.RECOVERED || safe.stage === safeStages.CLAIMED){
+          if(safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED){
 
             safe.encSafeKeyShards.map(share => {
               share.status === 1 ? shards.push(share.decData.share) : null
@@ -644,8 +662,8 @@ export class SafientCore {
             reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
             safeData = await this.crypto.decryptSafeData(reconstructedSafeData.beneficiaryEncKey, this.connection, Buffer.from(safe.encSafeData))
 
-            if(safeData !== undefined && safe.stage === safeStages.RECOVERED){
-              await this.updateStage(safeId, claimStages.PASSED, safeStages.CLAIMED);
+            if(safeData !== undefined && safe.stage === SafeStages.RECOVERED){
+              await this.updateStage(safeId, ClaimStages.PASSED, SafeStages.CLAIMED);
               result = JSON.parse(safeData.toString());
               recoveredData = {
                 status: true,
@@ -730,18 +748,18 @@ export class SafientCore {
           const claims = safe.claims
 
           claims.map((claim,index) => {
-            if(claim.claimStatus === claimStages.ACTIVE){
+            if(claim.claimStatus === ClaimStages.ACTIVE){
               disputeId = claim.disputeId;
               claimIndex = index
             }
           })
           const claimStage = await this.contract.getClaimStatus(safeId, disputeId);
-          if(claimStage === claimStages.PASSED){
-            safe.stage = safeStages.RECOVERING;
-            safe.claims[claimIndex].claimStatus = claimStages.PASSED;
+          if(claimStage === ClaimStages.PASSED){
+            safe.stage = SafeStages.RECOVERING;
+            safe.claims[claimIndex].claimStatus = ClaimStages.PASSED;
           }
-          if(claimStage === claimStages.FAILED || claimStage === claimStages.REJECTED){
-            safe.stage = safeStages.ACTIVE;
+          if(claimStage === ClaimStages.FAILED || claimStage === ClaimStages.REJECTED){
+            safe.stage = SafeStages.ACTIVE;
             safe.claims[claimIndex].claimStatus = claimStage;
           }
 
@@ -780,7 +798,7 @@ export class SafientCore {
            const tx: TransactionResponse = await this.contract.sendSignal(safeId)
            const txReceipt: TransactionReceipt = await tx.wait()
            if(txReceipt.status === 1){
-            await this.updateStage(safeId, claimStages.ACTIVE, safeStages.ACTIVE);
+            await this.updateStage(safeId, ClaimStages.ACTIVE, SafeStages.ACTIVE);
            }
           return txReceipt;
         }catch(err){
@@ -807,7 +825,7 @@ export class SafientCore {
           const safeData: SafeResponse = await this.getSafe(safeId)
           const safe = safeData.data!
 
-            if(safe.stage === safeStages.CLAIMED){
+            if(safe.stage === SafeStages.CLAIMED){
               safe.encSafeKeyShards.map((share) => {
                   if(share.status === 1){
                     shards.push(share.decData.share)

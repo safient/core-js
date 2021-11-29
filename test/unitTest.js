@@ -9,6 +9,7 @@ chai.use(require('chai-as-promised'));
 
 // Import package
 const { SafientCore } = require('../dist/index');
+const {Enums} = require('../dist/index')
 const { JsonRpcProvider } = require('@ethersproject/providers');
 const { SignatureKind } = require('typescript');
 
@@ -29,6 +30,7 @@ describe('Unit test', async () => {
   let guardianOneRewardBalance
   const apiKey = process.env.USER_API_KEY
   const secret = process.env.USER_API_SECRET
+  
 
   const ClaimType = {
     SignalBased: 0,
@@ -51,8 +53,8 @@ describe('Unit test', async () => {
   })
   //Step 1: Register all users
   it('Should register a Creator', async () => {
-    creatorSc = new SafientCore(creatorSigner, chainId, 'threadDB');
-    creator = await creatorSc.loginUser(apiKey, secret);
+    creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+    creator = await creatorSc.loginUser();
     const userAddress = await creatorSigner.getAddress()
     if(creator.status === false){
       const res = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
@@ -72,8 +74,8 @@ describe('Unit test', async () => {
 
 it('Should register a beneficiary', async () => {
   
-    beneficiarySc = new SafientCore(beneficiarySigner, chainId, 'threadDB');
-    beneficiary = await beneficiarySc.loginUser(apiKey, secret);
+    beneficiarySc = new SafientCore(beneficiarySigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+    beneficiary = await beneficiarySc.loginUser();
     // SUCCESS : create user A
 
     const userAddress = await beneficiarySigner.getAddress()
@@ -94,8 +96,8 @@ it('Should register a beneficiary', async () => {
 
 
 it('Should register a Guardian 1', async () => {
-    guardianOneSc = new SafientCore(guardianOneSigner, chainId, 'threadDB');
-    guardianOne = await guardianOneSc.loginUser(apiKey, secret);
+    guardianOneSc = new SafientCore(guardianOneSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+    guardianOne = await guardianOneSc.loginUser();
     // SUCCESS : create user A
     const userAddress = await guardianOneSigner.getAddress()
     guardianOneAddress = userAddress
@@ -116,8 +118,8 @@ it('Should register a Guardian 1', async () => {
 });
 
 it('Should register a Guardian 2', async () => {
-    guardianTwoSc = new SafientCore(guardianTwoSigner, chainId, 'threadDB');
-    guardianTwo = await guardianTwoSc.loginUser(apiKey, secret);
+    guardianTwoSc = new SafientCore(guardianTwoSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+    guardianTwo = await guardianTwoSc.loginUser();
     // SUCCESS : create user A
     const userAddress = await guardianTwoSigner.getAddress()
 
@@ -138,8 +140,8 @@ it('Should register a Guardian 2', async () => {
 });
 
 it('Should register a Guardian 3', async () => {
-    guardianThreeSc = new SafientCore(guardianThreeSigner, chainId, 'threadDB');
-    guardianThree = await guardianThreeSc.loginUser(apiKey, secret);
+    guardianThreeSc = new SafientCore(guardianThreeSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+    guardianThree = await guardianThreeSc.loginUser();
 
     const userAddress = await guardianThreeSigner.getAddress()
     if(guardianThree.status === false){
@@ -192,7 +194,7 @@ it('Should register a Guardian 3', async () => {
 
   it('Should give Ruling for the dispute', async () => {
    
-      const sc = new SafientCore(admin, chainId);
+      const sc = new SafientCore(admin, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
 
       const result = await sc.giveRuling(disputeId, 1) //Passing a claim
       expect(result).to.equal(true);

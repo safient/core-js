@@ -41,7 +41,7 @@
     "@magic-sdk/admin": "^1.3.0",
     "@safient/contracts": "^0.1.10-alpha",
     "@stablelib/random": "^1.0.1",
-    "@textile/hub": "^6.1.2",
+    "@textile/hub": "^6.3.1",
     "bcryptjs": "^2.4.3",
     "browser-or-node": "^1.3.0",
     "chai": "^4.3.4",
