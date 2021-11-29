@@ -14,9 +14,9 @@ export const ClaimStages = {
   }
 
   export enum NetworkType {
-    LOCALHOST,
-    MAINNET,
-    DEVNET,
-    TESTNET
+    localhost,
+    mainnet,
+    devnet,
+    testnet
   }
  
