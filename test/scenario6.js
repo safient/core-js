@@ -1,19 +1,18 @@
-const { ThreadID } = require('@textile/hub');
-const { SafientClaims } = require('@safient/contracts');
-const { utils } = require('ethers');
+const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
+const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
-const fs = require('fs');
 const chai = require('chai');
+const { writeFile } = require('fs').promises;
 
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
+// Import package
 const { SafientCore } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
 const { Enums } = require('../dist/index');
 
-describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () => {
-  let admin;
+describe('Scenario 6 - Creating DDay based Safe', async () => {
   let creator;
   let beneficiary;
   let guardianOne;
@@ -23,6 +22,7 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
   let provider, chainId;
   let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
   let disputeId;
+  let admin;
   let creatorSc, beneficiarySc, guardianOneSc, guardianTwoSc, guardianThreeSc;
 
   const apiKey = process.env.USER_API_KEY;
@@ -41,13 +41,13 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
 
     admin = await provider.getSigner(0);
     creatorSigner = await provider.getSigner(1);
-
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
   });
+
   //Step 1: Register all users
   it('Should register a Creator', async () => {
     creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
@@ -158,89 +158,160 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     expect(loginUser.data.email).to.equal('guardianThree@test.com');
   });
 
-  describe('Safe creation and claim creation', async () => {
-    describe('Onchain', async () => {
-      it('Should Create Crypto Safe with software wallet instructions', async () => {
-        const instructionSafe = {
-          softwareWallet: 'Instruction for software wallet',
-          hardwareWallet: null,
-        };
-        const cryptoSafe = {
-          data: instructionSafe,
-        };
-        const safeData = {
-          data: cryptoSafe,
-        };
+  //should create a safe onChain and offChain
+  it('Should create crypto safe with hardware wallet with DDay Based Claim', async () => {
+    const instructionSafe = {
+      softwareWallet: null,
+      hardwareWallet: 'Instruction for hardware wallet',
+    };
+    const cryptoSafe = {
+      data: instructionSafe,
+    };
+    const safeData = {
+      data: cryptoSafe,
+    };
 
-        const safeid = await creatorSc.createSafe(
-          creator.idx.id,
-          beneficiary.idx.id,
-          safeData,
-          true,
-          ClaimType.ArbitrationBased,
-          0,
-          0
-        );
-        safeId = safeid.safeId;
-        const safe = await creatorSc.getSafe(safeId);
-        expect(safe.data.creator).to.equal(creator.idx.id);
-      });
+    const latestBlockNumber = await provider.getBlockNumber();
+    const latestBlock = await provider.getBlock(latestBlockNumber);
+    const now = latestBlock.timestamp;
 
-      it('Should claim safe', async () => {
-        const file = {
-          name: 'signature.jpg',
-        };
-        disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-        expect(disputeId).to.be.a('number');
-      });
-    });
+    const safeid = await creatorSc.createSafe(
+      creator.idx.id,
+      beneficiary.idx.id,
+      safeData,
+      true,
+      ClaimType.DDayBased,
+      0,
+      now + 120 // 2 mins after the safe creation
+    );
+    safeId = safeid.safeId;
+    const safe = await creatorSc.getSafe(safeId);
+    expect(safe.data.creator).to.equal(creator.idx.id);
   });
 
-  describe('Ruling...', async () => {
-    it('Should PASS ruling on the dispute', async () => {
-      const sc = new SafientCore(admin, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
+  it('Should create a claim - Before D-Day (claim should FAIL)', async () => {
+    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
 
-      const result = await sc.giveRuling(disputeId, 1); //Passing a claim
-      expect(result).to.equal(true);
-    });
+    // check claim status
+    const claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
+    expect(claimResult).to.equal(2); // claim got Failed (before D-Day)
   });
 
-  describe('Sync safe stage', async () => {
-    it('Updates the safe stage on threadDB according to the ruling', async () => {
-      const result = await beneficiarySc.syncStage(safeId);
-      expect(result).to.equal(true);
+  it('Should create a claim - After D-Day (claim should PASS)', async () => {
+    // mine a new block after 60 seconds
+    const mineNewBlock = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve(provider.send('evm_mine'));
+      }, 60000);
     });
+    const result = await mineNewBlock;
+
+    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+
+    // check claim status
+    const claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
+    expect(claimResult).to.equal(1); // claim got Passed (after D-Day)
   });
 
-  describe('Guardian recovery', async () => {
-    it('Recovery done by guardian 1', async () => {
-      const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.idx.id);
-      expect(data).to.equal(true);
-    });
+  it('Should allow safe current owner to UPDATE the D-Day', async () => {
+    let latestBlockNumber, latestBlock, now, claimResult, mineNewBlock;
 
-    it('Recovery done by guardian 2', async () => {
-      const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.idx.id);
-      expect(data).to.equal(true);
+    // create a new safe to updateDDay
+    const instructionSafe = {
+      softwareWallet: null,
+      hardwareWallet: 'Instruction for hardware wallet',
+    };
+    const cryptoSafe = {
+      data: instructionSafe,
+    };
+    const safeData = {
+      data: cryptoSafe,
+    };
+    latestBlockNumber = await provider.getBlockNumber();
+    latestBlock = await provider.getBlock(latestBlockNumber);
+    now = latestBlock.timestamp;
+    const safeid = await creatorSc.createSafe(
+      creator.idx.id,
+      beneficiary.idx.id,
+      safeData,
+      true,
+      ClaimType.DDayBased,
+      0,
+      now + 120 // 2 mins after the safe creation
+    );
+    safeId = safeid.safeId;
+    const safe = await creatorSc.getSafe(safeId);
+    expect(safe.data.creator).to.equal(creator.idx.id);
+
+    // create a claim - before D-Day (2 mins) (claim should fail)
+    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    // check claim status
+    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
+    expect(claimResult).to.equal(2); // claim got Failed (before D-Day)
+
+    // update the D-Day to 60 secs from the time of updating
+    latestBlockNumber = await provider.getBlockNumber();
+    latestBlock = await provider.getBlock(latestBlockNumber);
+    now = latestBlock.timestamp;
+    await creatorSc.updateDDay(safeId, now + 60);
+
+    // mine a new block after 10 seconds
+    mineNewBlock = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve(provider.send('evm_mine'));
+      }, 10000);
     });
+    const result1 = await mineNewBlock;
+
+    // create a claim - before D-Day (after 10 secs but before 60 secs) (claim should fail)
+    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    // check claim status
+    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
+    expect(claimResult).to.equal(2); // claim got Failed (before D-Day)
+
+    // mine a new block after 50 seconds
+    mineNewBlock = new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve(provider.send('evm_mine'));
+      }, 50000);
+    });
+    const result2 = await mineNewBlock;
+
+    // create a claim - after D-Day (after 60 secs) (claim should pass)
+    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    // check claim status
+    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
+    expect(claimResult).to.equal(1); // claim got Passed (after D-Day)
   });
 
-  describe('Beneficiary data recovery', async () => {
-    it('Data is recovered by the beneficiary', async () => {
-      const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id);
-      expect(data.data.data.data.softwareWallet).to.equal('Instruction for software wallet');
-    });
+  it('Should update the stage on threadDB', async () => {
+    const result = await beneficiarySc.syncStage(safeId);
+    expect(result).to.equal(true);
   });
 
-  describe('Guardian incentivisation', async () => {
-    it('Should submit proofs for the guardians', async () => {
-      const result = await guardianOneSc.incentiviseGuardians(safeId);
-      expect(result).to.not.equal(false);
-    });
+  it('Should initiate recovery by guardian 1', async () => {
+    const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.idx.id);
+    expect(data).to.equal(true);
+  });
 
-    it('Should get the guardians reward balance', async () => {
-      guardianOneRewardBalance = await guardianOneSc.getRewardBalance(guardianOneAddress);
-      // const newBalance = await guardianOneSigner.getBalance();
-      // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-    });
+  it('Should initiate recovery by guardian 2', async () => {
+    const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.idx.id);
+    expect(data).to.equal(true);
+  });
+
+  it('Should recover data for the beneficiary', async () => {
+    const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id);
+    expect(data.data.data.data.hardwareWallet).to.equal('Instruction for hardware wallet');
+  });
+
+  it('Should submit proofs for the guardians', async () => {
+    const result = await guardianOneSc.incentiviseGuardians(safeId);
+    expect(result).to.not.equal(false);
+  });
+
+  it('Should get the guardians reward balance', async () => {
+    guardianOneRewardBalance = await guardianOneSc.getRewardBalance(guardianOneAddress);
+    // const newBalance = await guardianOneSigner.getBalance();
+    // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
   });
 });

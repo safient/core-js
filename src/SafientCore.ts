@@ -499,45 +499,69 @@ export class SafientCore {
       let disputeId: number = 0;
       let txReceipt: any;
       let createSafetx: TransactionResponse;
-      let createSafetxReceipt: TransactionReceipt;
+      let createSafetxReceipt: any;
       let dispute: any;
 
       let safeData: SafeResponse = await this.getSafe(safeId);
       const safe = safeData.data!;
       let creatorUser: User[] = await queryUserDid(safe.creator);
 
-      if (safe.onChain === true && safe.stage === SafeStages.ACTIVE) {
+      if (safe.onChain === true) {
         if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
-          tx = await this.contract.createClaim(safe._id, evidenceUri);
-          txReceipt = await tx.wait();
-        } else if (safe.claimType === Types.ClaimType.SignalBased || safe.claimType === Types.ClaimType.DDayBased) {
+          if (safe.stage === SafeStages.ACTIVE) {
+            evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+            tx = await this.contract.createClaim(safe._id, evidenceUri);
+            txReceipt = await tx.wait();
+          }
+        } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          if (safe.stage === SafeStages.ACTIVE) {
+            tx = await this.contract.createClaim(safe._id, '');
+            txReceipt = await tx.wait();
+          }
+        } else if (safe.claimType === Types.ClaimType.DDayBased) {
           tx = await this.contract.createClaim(safe._id, '');
           txReceipt = await tx.wait();
         }
       }
 
-      if (safe.onChain === false && safe.stage === SafeStages.ACTIVE) {
+      if (safe.onChain === false) {
         const metaDataEvidenceUri: string = await createMetaData(
           '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
           creatorUser[0].userAddress
         );
 
         if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-          const guardianFee: number = 0.1;
-          const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
-          createSafetx = await this.contract.syncSafe(
-            creatorUser[0].userAddress,
-            safeId,
-            safe.claimType,
-            safe.signalingPeriod,
-            safe.dDay,
-            metaDataEvidenceUri,
-            totalFee
-          );
-          createSafetxReceipt = await createSafetx.wait();
-        } else {
+          if (safe.stage === SafeStages.ACTIVE) {
+            const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+            const guardianFee: number = 0.1;
+            const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
+            createSafetx = await this.contract.syncSafe(
+              creatorUser[0].userAddress,
+              safeId,
+              safe.claimType,
+              safe.signalingPeriod,
+              safe.dDay,
+              metaDataEvidenceUri,
+              totalFee
+            );
+            createSafetxReceipt = await createSafetx.wait();
+          }
+        } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          if (safe.stage === SafeStages.ACTIVE) {
+            const guardianFee: number = 0.1;
+            const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
+            createSafetx = await this.contract.syncSafe(
+              creatorUser[0].userAddress,
+              safeId,
+              safe.claimType,
+              safe.signalingPeriod,
+              safe.dDay,
+              '',
+              totalFee
+            ); //Note update time here
+            createSafetxReceipt = await createSafetx.wait();
+          }
+        } else if (safe.claimType === Types.ClaimType.DDayBased) {
           const guardianFee: number = 0.1;
           const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
           createSafetx = await this.contract.syncSafe(
@@ -563,11 +587,18 @@ export class SafientCore {
         }
       }
 
-      if (txReceipt.status === 1 && safe.stage === SafeStages.ACTIVE) {
+      if (txReceipt.status === 1) {
         if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          dispute = txReceipt.events[2].args[2];
-          disputeId = parseInt(dispute._hex);
-        } else if (safe.claimType === Types.ClaimType.SignalBased || safe.claimType === Types.ClaimType.DDayBased) {
+          if (safe.stage === SafeStages.ACTIVE) {
+            dispute = txReceipt.events[2].args[2];
+            disputeId = parseInt(dispute._hex);
+          }
+        } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          if (safe.stage === SafeStages.ACTIVE) {
+            dispute = txReceipt.events[0].args[2];
+            disputeId = parseInt(dispute._hex);
+          }
+        } else if (safe.claimType === Types.ClaimType.DDayBased) {
           dispute = txReceipt.events[0].args[2];
           disputeId = parseInt(dispute._hex);
         }
@@ -593,7 +624,7 @@ export class SafientCore {
       }
       return disputeId;
     } catch (err) {
-      throw new Error(`Error while creating a claim`);
+      throw new Error(`Error while creating a claim ${err}`);
     }
   };
 
