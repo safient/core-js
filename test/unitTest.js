@@ -14,7 +14,7 @@ const { JsonRpcProvider } = require('@ethersproject/providers');
 const { SignatureKind } = require('typescript');
 
 describe('Unit test', async () => {
- 
+
   let admin;
   let creator;
   let beneficiary;
@@ -30,27 +30,29 @@ describe('Unit test', async () => {
   let guardianOneRewardBalance
   const apiKey = process.env.USER_API_KEY
   const secret = process.env.USER_API_SECRET
-  
+
 
   const ClaimType = {
     SignalBased: 0,
-    ArbitrationBased: 1
+    ArbitrationBased: 1,
+    DDayBased: 2
   }
 
   before(async() => {
     provider = new JsonRpcProvider('http://localhost:8545');
     const network = await provider.getNetwork();
     chainId = network.chainId;
-    
+
     admin = await provider.getSigner(0)
     creatorSigner = await provider.getSigner(1);
-    
+
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6)
   })
+
   //Step 1: Register all users
   it('Should register a Creator', async () => {
     creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
@@ -73,7 +75,7 @@ describe('Unit test', async () => {
 });
 
 it('Should register a beneficiary', async () => {
-  
+
     beneficiarySc = new SafientCore(beneficiarySigner, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
     beneficiary = await beneficiarySc.loginUser();
     // SUCCESS : create user A
@@ -174,13 +176,13 @@ it('Should register a Guardian 3', async () => {
     const safeData = {
       data: cryptoSafe
     }
-      const safeid= await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.ArbitrationBased, 0)
+      const safeid= await creatorSc.createSafe(creator.idx.id, beneficiary.idx.id, safeData, true, ClaimType.ArbitrationBased, 0, 0)
       safeId = safeid.safeId
       const safe = await creatorSc.getSafe(safeId);
       expect(safe.data.creator).to.equal(creator.idx.id);
   });
 
-  
+
 
   //Step 3: Create a claim
   it('Should create a claim', async () => {
@@ -193,33 +195,33 @@ it('Should register a Guardian 3', async () => {
 
 
   it('Should give Ruling for the dispute', async () => {
-   
+
       const sc = new SafientCore(admin, Enums.NetworkType.localhost, 'threadDB', apiKey, secret, null);
 
       const result = await sc.giveRuling(disputeId, 1) //Passing a claim
       expect(result).to.equal(true);
-    
+
   });
 
 
   it('Should update the stage on threadDB', async () => {
-      
+
       const result = await beneficiarySc.syncStage(safeId)
       expect(result).to.equal(true);
-   
+
   });
 
   // //Step 4: Recover Safes
 
 
-  it('Should initiate recovery by guardian 1', async () => {   
+  it('Should initiate recovery by guardian 1', async () => {
       const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.idx.id)
       expect(data).to.equal(true);
 
   });
 
   it('Should initiate recovery by guardian 2', async () => {
-      
+
       const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.idx.id)
       expect(data).to.equal(true);
   });
@@ -228,34 +230,34 @@ it('Should register a Guardian 3', async () => {
   it('Should recover data for the beneficiary', async () => {
 
       const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id)
-      
+
       expect(data.data.data.data.seedPhrase).to.equal('index negative film salon crumble wish rebuild seed betray meadow next ability');
 
   });
 
   it('Should submit proofs for the guardians', async () => {
-   
+
     const result = await guardianOneSc.incentiviseGuardians(safeId);
     expect(result).to.not.equal(false)
-    
-   
+
+
   });
 
   it('Should get the guardians reward balance', async () => {
-   
+
    guardianOneRewardBalance = await guardianOneSc.getRewardBalance(guardianOneAddress);
     // const newBalance = await guardianOneSigner.getBalance();
     // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-   
+
   });
 
   it('Should claim rewards for the guardian One', async () => {
-   
+
     const prevBalance = await guardianOneSigner.getBalance();
     const result = await guardianOneSc.claimRewards(guardianOneRewardBalance);
      const newBalance = await guardianOneSigner.getBalance();
      expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-    
+
    });
 
 });

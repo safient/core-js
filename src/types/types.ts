@@ -62,7 +62,8 @@ export interface Safe {
   claims: Claim[];
   onChain: boolean;
   claimType: number;
-  signalingPeriod: ClaimType
+  signalingPeriod: ClaimType,
+  dDay: number
 };
 
 export type SafeCreation = {
@@ -76,7 +77,8 @@ export type SafeCreation = {
   claims: Claim[];
   onChain: boolean;
   claimType: ClaimType;
-  signalingPeriod: number
+  signalingPeriod: number,
+  dDay: number
 };
 
 
