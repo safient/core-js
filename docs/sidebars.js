@@ -35,6 +35,7 @@ module.exports = {
               items: ['api/classes/SafientCore'],
             },
             'api/namespaces/Types',
+            'api/namespaces/Enums',
           ],
         },
         {

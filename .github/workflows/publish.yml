@@ -1,7 +1,7 @@
 name: Safient Core CD
 
 on:
-  # Trigger only for the master branch and on release
+  # Trigger only on release
   release:
     types: [created]
 

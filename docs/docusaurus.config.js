@@ -62,7 +62,7 @@ module.exports = {
             },
             {
               label: 'Twitter',
-              href: 'https://twitter.com/safient',
+              href: 'https://twitter.com/safientio',
             },
           ],
         },
