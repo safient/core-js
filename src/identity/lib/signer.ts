@@ -1,4 +1,4 @@
-import { Signer } from "../../types/types"
+import { Signer } from "../../lib/types"
 import {generateSignature} from "../utils/signerUtils"
 
 export class Signature {

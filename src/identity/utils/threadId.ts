@@ -12,6 +12,7 @@ export const thread = async(seed: any, apiKey:string, secret: string, threadID: 
       const threadId = ThreadID.fromBytes(Uint8Array.from(threadID));
       return {client, threadId}
  }catch(err){
+   console.log(err)
     throw new Error("Error while creating threadData")
  }
 }

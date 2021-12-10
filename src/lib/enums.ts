@@ -20,3 +20,8 @@ export const ClaimStages = {
     testnet
   }
  
+  export enum DatabaseType {
+    threadDB,
+    mongoDB
+  }
+  

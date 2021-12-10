@@ -1,8 +1,9 @@
 import { Crypto } from "../crypto"
 import {Database} from "../database"
 import {Storage} from "../storage/index"
+import {DatabaseType} from "../lib/enums"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils } from "../types/types";
+import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils } from "../lib/types";
 
 var environment = require("browser-or-node");
 
@@ -20,7 +21,7 @@ let safientAgreementURI: string = '/ipfs/QmPMdGmenYuh9kzhU6WkEvRsWpr1B8T7nVWA52u
  * @param connectionObject - Connection object of the database selected
  * @returns 
  */
-export const init = (databaseType: string, connectionObject: Connection): Utils => {
+export const init = (databaseType: DatabaseType, connectionObject: Connection): Utils => {
     database = new Database(databaseType, connectionObject);
     crypto = new Crypto();
     connection = connectionObject;

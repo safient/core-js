@@ -1,22 +1,23 @@
-import { Connection, Safe, User } from '../../types/types';
+import { Connection, Safe, User } from '../../lib/types';
+import { DatabaseType } from '../../lib/enums';
 import { ThreadDB } from '../utils/threadDB';
 
 export class Database {
     
   public db : ThreadDB
   private connection: Connection
-  private dbName: string
+  private dbName: DatabaseType
   
   /**
    * 
    * @param dbName - Database which should be used
    * @param connection - Connection Object of the chosen database
    */
-  constructor(dbName: string, connection: Connection) {
+  constructor(dbName: DatabaseType, connection: Connection) {
       this.dbName = dbName;
       this.connection = connection;
 
-    if(dbName === 'threadDB'){
+    if(dbName === DatabaseType.threadDB){
         this.db= new ThreadDB(connection);
     }else {
         this.db = new ThreadDB(connection);
@@ -32,7 +33,7 @@ export class Database {
   create = async(data: any, collection: string): Promise<string[]> => {
     try{
         let result: string[] = []
-        if(this.dbName === "threadDB"){
+        if(this.dbName === DatabaseType.threadDB){
             result = await this.db.threadCreate(data, collection)
         }
         return result
@@ -44,7 +45,7 @@ export class Database {
 
   save = async(data: any, collection: string): Promise<boolean> => {
     try{
-        if(this.dbName === 'threadDB'){
+        if(this.dbName === DatabaseType.threadDB){
             await this.db.threadSave(data, collection)
         }
         return true
@@ -56,7 +57,7 @@ export class Database {
 
   delete = async(data: any, collection: string): Promise<boolean> => {
     try{
-        if(this.dbName === 'threadDB'){
+        if(this.dbName === DatabaseType.threadDB){
             await this.db.threadDelete(data, collection);
         }
         return true
@@ -69,7 +70,7 @@ export class Database {
   read = async<T extends User | Safe>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
     try{
         let result: T[]=[] 
-        if(this.dbName === 'threadDB'){
+        if(this.dbName === DatabaseType.threadDB){
             result = await this.db.threadRead<T>(queryVariable, queryValue, collection)
         }
 

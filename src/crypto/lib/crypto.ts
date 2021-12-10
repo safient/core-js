@@ -1,4 +1,4 @@
-import { Connection, SafeEncrypted, GuardianSecrets, RecoveryMessage, Shard, Share, User, SafeStore } from "../../types/types"
+import { Connection, SafeEncrypted, GuardianSecrets, RecoveryMessage, Shard, Share, User, SafeStore } from "../../lib/types"
 import {_decryptData, _encryptData, _generateCipherKey, _shamirCombine, _shamirSplit} from "../utils/encryption"
 import {randomBytes, JWE, utils} from "../utils/helpers"
 

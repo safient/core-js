@@ -19,7 +19,7 @@ import {
   SafeResponse,
   SafeCreationResponse,
   SafeStore,
-} from './types/types';
+} from './lib/types';
 import { definitions } from './utils/config.json';
 import {
   createClaimEvidenceUri,
@@ -37,7 +37,7 @@ import {
 import { Database } from './database';
 import { Crypto } from './crypto';
 import { Auth, Signature } from './identity';
-import { ClaimStages, SafeStages, NetworkType } from './lib/enums';
+import { ClaimStages, DatabaseType, NetworkType, SafeStages } from './lib/enums';
 import { Networks } from './utils/networks';
 
 require('dotenv').config();
@@ -58,7 +58,7 @@ export class SafientCore {
   /** @ignore */
   private database: Database;
   /** @ignore */
-  private databaseType: string;
+  private databaseType: DatabaseType;
   /** @ignore */
   private Utils: Utils;
   /** @ignore */
@@ -86,15 +86,16 @@ export class SafientCore {
   constructor(
     signer: Signer,
     network: NetworkType,
-    databaseType: string,
+    databaseType: DatabaseType,
     databaseAPIKey: any,
     databaseAPISecret: any,
-    threadId: number[] | null
+    threadId?: number[]
   ) {
+
     this.signer = signer;
     this.provider = this.provider;
     this.chainId = Networks[network].chainId;
-    if (threadId === null) {
+    if (threadId === undefined) {
       this.threadId = Networks[network].threadId;
     } else {
       this.threadId = threadId!;

@@ -1,6 +1,6 @@
 const { Where } = require('@textile/hub');
 
-import { Connection, Safe, User} from "../../types/types";
+import { Connection, Safe, User} from "../../lib/types";
 
 
 
