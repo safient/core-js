@@ -1,4 +1,4 @@
-import { CeramicIdx } from "../../types/types";
+import { CeramicIdx } from "../../lib/types";
 import {generateIDX} from "../utils/ceramic"
 import { thread } from "../utils/threadId";
 

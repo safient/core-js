@@ -2,7 +2,7 @@ import { IDX } from '@ceramicstudio/idx';
 import { Client, ThreadID } from '@textile/hub';
 import { JsonRpcSigner } from '@ethersproject/providers';
 import { JWE } from 'did-jwt';
-import {ClaimType} from '@safient/contracts/dist/types/Types'
+import {Types} from '@safient/contracts'
 import { Database } from '../database';
 import { Crypto } from '../crypto';
 import { Wallet } from 'ethers';
@@ -61,8 +61,9 @@ export interface Safe {
   encSafeKeyShards: Shard[];
   claims: Claim[];
   onChain: boolean;
-  claimType: number;
-  signalingPeriod: ClaimType
+  claimType: Types.ClaimType;
+  signalingPeriod: number,
+  dDay: number
 };
 
 export type SafeCreation = {
@@ -75,8 +76,9 @@ export type SafeCreation = {
   encSafeKeyShards: Shard[];
   claims: Claim[];
   onChain: boolean;
-  claimType: ClaimType;
-  signalingPeriod: number
+  claimType: Types.ClaimType;
+  signalingPeriod: number,
+  dDay: number
 };
 
 

@@ -1,6 +1,6 @@
 import {BigNumber, utils} from 'ethers'
 
-import {Signer} from "../../types/types"
+import {Signer} from "../../lib/types"
 
 const generateMessageForEntropy = (ethereum_address: string, application_name: string): string => {
   return (
