@@ -74,19 +74,17 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
         status: false,
         data: null,
         idx: null,
-        error: null
       }
       const userStatus: RegisterStatus = await checkUser(userData.email);
 
       if (userStatus.status === true) {
 
         const userData: User | null = await getUser({did: did});
-
+        
         response = {
           status: true,
           data: userData!,
           idx: null,
-          error: new Error("User already exists")
         }
 
       }else if(userStatus.status === false){
@@ -97,7 +95,6 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
           status: false,
           data: user!,
           idx: null, 
-          error: null
         }
 
       }

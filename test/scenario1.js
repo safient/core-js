@@ -47,21 +47,22 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     pseudoAccount = await provider.getSigner(6);
   });
 
-  //Step 1: Register all users
   it('Should register a Creator', async () => {
     creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
     creator = await creatorSc.loginUser();
     const userAddress = await creatorSigner.getAddress();
-    if (creator.status === false) {
+    if (creator.data === undefined) {
       const res = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
-    } else if (creator.status === true) {
+    } else if (creator.data !== undefined) {
       expect(creator.data.email).to.equal('creator@test.com');
     }
+    try{
+      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+    }catch(err){
+      expect(err.error.code).to.equal(11);
+    }
 
-    const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
-    expect(result.error.message).to.equal(`creator@test.com already registered.`);
-
-    const loginUser = await creatorSc.getUser({ did: creator.idx.id });
+    const loginUser = await creatorSc.getUser({ did: creator.data.did });
     expect(loginUser.data.name).to.equal('Creator');
     expect(loginUser.data.email).to.equal('creator@test.com');
   });
@@ -72,17 +73,21 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     // SUCCESS : create user A
 
     const userAddress = await beneficiarySigner.getAddress();
-    if (beneficiary.status === false) {
+    if (beneficiary.data === undefined) {
       await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
-    } else if (beneficiary.status === true) {
+    } else if (beneficiary.data !== undefined) {
       expect(beneficiary.data.email).to.equal('beneficiary@test.com');
     }
 
-    const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
-    expect(result.error.message).to.equal(`beneficiary@test.com already registered.`);
+    try{
+      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+    }catch(err){
+      expect(err.error.code).to.equal(11);
+    }
+
 
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await beneficiarySc.getUser({ did: beneficiary.idx.id });
+    const loginUser = await beneficiarySc.getUser({ did: beneficiary.data.did });
     expect(loginUser.data.name).to.equal('beneficiary');
     expect(loginUser.data.email).to.equal('beneficiary@test.com');
   });
@@ -94,14 +99,17 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const userAddress = await guardianOneSigner.getAddress();
     guardianOneAddress = userAddress;
 
-    if (guardianOne.status === false) {
+    if (guardianOne.data === undefined) {
       await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
     } else {
       expect(guardianOne.data.email).to.equal('guardianOne@test.com');
     }
 
-    const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
-    expect(result.error.message).to.equal(`guardianOne@test.com already registered.`);
+    try{
+      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+    }catch(err){
+      expect(err.error.code).to.equal(11);
+    }
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await guardianOneSc.getUser({ email: `guardianOne@test.com` });
@@ -115,14 +123,17 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     // SUCCESS : create user A
     const userAddress = await guardianTwoSigner.getAddress();
 
-    if (guardianTwo.status === false) {
+    if (guardianTwo.data === undefined) {
       await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
     } else {
       expect(guardianTwo.data.email).to.equal('guardianTwo@test.com');
     }
 
-    const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
-    expect(result.error.message).to.equal(`guardianTwo@test.com already registered.`);
+    try{
+      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+    }catch(err){
+      expect(err.error.code).to.equal(11);
+    }
 
     // SUCCESS : get all users (check if the user A was created)
     const loginUser = await guardianTwoSc.getUser({ email: `guardianTwo@test.com` });
@@ -139,22 +150,26 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       secret
     );
     guardianThree = await guardianThreeSc.loginUser();
-
+    
     const userAddress = await guardianThreeSigner.getAddress();
-    if (guardianThree.status === false) {
+    if (guardianThree.data === undefined) {
       await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
     } else {
       expect(guardianThree.data.email).to.equal('guardianThree@test.com');
     }
 
-    const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
-    expect(result.error.message).to.equal(`guardianThree@test.com already registered.`);
+    try{
+      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+    }catch(err){
+      expect(err.error.code).to.equal(11);
+    }
 
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await guardianThreeSc.getUser({ did: guardianThree.idx.id });
+    const loginUser = await guardianThreeSc.getUser({ did: guardianThree.data.did });
     expect(loginUser.data.name).to.equal('Guardian 3');
     expect(loginUser.data.email).to.equal('guardianThree@test.com');
   });
+
 
   //should create a safe onChain and offChain
   it('Should create Crypto safe with private key as data offchain', async () => {
@@ -170,17 +185,17 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
-      creator.idx.id,
-      beneficiary.idx.id,
+      creator.data.did,
+      beneficiary.data.did,
       safeData,
       false,
       ClaimType.ArbitrationBased,
       0,
       0
     );
-    safeId = safeid.safeId;
+    safeId = safeid.data;
     const safe = await creatorSc.getSafe(safeId);
-    expect(safe.data.creator).to.equal(creator.idx.id);
+    expect(safe.data.creator).to.equal(creator.data.did);
   });
 
   //Step 3: Create a claim
@@ -189,38 +204,38 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       name: 'signature.jpg',
     };
     disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId).to.be.a('number');
+    expect(disputeId.data).to.be.a('number');
   });
 
   it('Should PASS the dispute', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    const result = await sc.giveRuling(disputeId, 1); //Passing a claim
-    expect(result).to.equal(true);
+    const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+    expect(result.data).to.equal(true);
   });
 
   it('Should update the stage on threadDB', async () => {
     const result = await beneficiarySc.syncStage(safeId);
-    expect(result).to.equal(true);
+    expect(result.data).to.equal(true);
   });
 
   it('Should initiate recovery by guardian 1', async () => {
-    const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.idx.id);
-    expect(data).to.equal(true);
+    const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
+    expect(data.data).to.equal(true);
   });
 
   it('Should initiate recovery by guardian 2', async () => {
-    const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.idx.id);
-    expect(data).to.equal(true);
+    const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.data.did);
+    expect(data.data).to.equal(true);
   });
 
   it('Should recover data for the beneficiary', async () => {
-    const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.idx.id);
+    const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
     expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
   it('Should submit proofs for the guardians', async () => {
     const result = await guardianOneSc.incentiviseGuardians(safeId);
-    expect(result).to.not.equal(false);
+    expect(result.data).to.not.equal(false);
   });
 
   it('Should get the guardians reward balance', async () => {

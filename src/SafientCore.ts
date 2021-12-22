@@ -19,6 +19,7 @@ import {
   SafeResponse,
   SafeCreationResponse,
   SafeStore,
+  GenericError,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -39,7 +40,8 @@ import { Crypto } from './crypto';
 import { Auth, Signature } from './identity';
 import { ClaimStages, DatabaseType, NetworkType, SafeStages } from './lib/enums';
 import { Networks } from './utils/networks';
-
+import {SafientResponse} from './lib/services'
+import {Errors} from "./lib/errors"
 require('dotenv').config();
 
 export class SafientCore {
@@ -113,14 +115,9 @@ export class SafientCore {
    * This API generates user ceramic and database connection object
    * @returns Connection datatype
    */
-  loginUser = async (): Promise<UserResponse> => {
+  loginUser = async (): Promise<SafientResponse<User>> => {
     try {
-      let response: UserResponse = {
-        status: false,
-        data: null,
-        idx: null,
-        error: null,
-      };
+
 
       const seed = await this.signature.sign();
       const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed));
@@ -130,25 +127,19 @@ export class SafientCore {
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto;
       this.database = this.Utils.database;
-      const userData: UserResponse = await this.getUser({ did: idx?.id });
-      if (userData.status === false) {
-        response = {
-          status: false,
-          data: null,
-          idx: idx!,
-          error: new Error("User doesn't exist"),
-        };
+      const userData: SafientResponse<User> = await this.getUser({ did: idx?.id });
+      if (userData.data !== undefined) {
+       return userData
       } else {
-        response = {
-          status: true,
-          data: userData.data,
-          idx: idx!,
-          error: null,
-        };
+         throw new SafientResponse({error: Errors.UserNotFound})
       }
-      return response;
     } catch (err) {
-      throw new Error(`Error, while connecting the user, ${err}`);
+      if(err instanceof SafientResponse){
+        throw new SafientResponse({error: err.error});
+      }else{
+        const {message} = err as Error
+        throw new SafientResponse({error: {code: 0 , message: message}});
+      }
     }
   };
 
@@ -160,17 +151,13 @@ export class SafientCore {
    * @param userAddress Metamask address of the user
    * @returns User registration ID
    */
-  createUser = async (name: string, email: string, signUpMode: number, userAddress: string): Promise<UserResponse> => {
+  createUser = async (name: string, email: string, signUpMode: number, userAddress: string): Promise<SafientResponse<User>> => {
     try {
-      let response: UserResponse = {
-        status: false,
-        data: null,
-        idx: null,
-        error: null,
-      };
+     
 
       let idx: IDX | null = this.connection.idx;
       let did: string = idx?.id || '';
+
       const data: UserSchema = {
         did,
         name,
@@ -186,23 +173,18 @@ export class SafientCore {
           name: name,
           email: email,
         });
-        response = {
-          status: true,
-          data: result.data,
-          idx: null,
-          error: null,
-        };
-      } else if (result.status === true) {
-        response = {
-          status: false,
-          data: result.data,
-          idx: null,
-          error: new Error(`${email} already registered.`),
-        };
+        return new SafientResponse({data: result.data!}) 
+      } else {
+        throw new SafientResponse({error: Errors.UserAlreadyExists}) 
       }
-      return response;
+
     } catch (err) {
-      throw new Error(`Error while registering user ${err}`);
+      if(err instanceof SafientResponse){
+        throw new SafientResponse({error: err.error});
+      }else{
+        const {message} = err as Error
+        throw new SafientResponse({error: {code: 0 , message: message}});
+      }
     }
   };
 
@@ -211,14 +193,9 @@ export class SafientCore {
    * @param obj Takes email or did as parameter to get the user information
    * @returns User or null based on user information present
    */
-  getUser = async (obj: { email?: string; did?: string }): Promise<UserResponse> => {
+  getUser = async (obj: { email?: string; did?: string }): Promise<SafientResponse<User>> => {
     try {
-      let result: UserResponse = {
-        status: false,
-        data: null,
-        idx: null,
-        error: null,
-      };
+      
       let user: User | null = null;
       if (obj.did) {
         user = await getUser({ did: obj.did });
@@ -226,24 +203,17 @@ export class SafientCore {
         user = await getUser({ email: obj.email });
       }
       if (user !== null) {
-        result = {
-          status: true,
-          data: user,
-          idx: null,
-          error: null,
-        };
+       return new SafientResponse({data: user})
       } else {
-        result = {
-          status: false,
-          data: user,
-          idx: null,
-          error: null,
-        };
+        throw new SafientResponse({error: Errors.UserNotFound})
       }
-
-      return result;
     } catch (err) {
-      throw new Error(`User not registered`);
+      if(err instanceof SafientResponse){
+        throw new SafientResponse({error: err.error});
+      }else{
+        const {message} = err as Error
+        throw new SafientResponse({error: {code: 0 , message: message}});
+      }
     }
   };
 
@@ -251,12 +221,13 @@ export class SafientCore {
    * This API is used to get all the user basic information on the platform
    * @returns Array of users on the platform
    */
-  getUsers = async (): Promise<UserMeta[]> => {
+  getUsers = async (): Promise<SafientResponse<UserMeta[]>> => {
     try {
       const users: UserMeta[] = await getUsers();
-      return users;
+      return new SafientResponse({data: users});
     } catch (err) {
-      throw new Error('Error while getting new users');
+        const {message} = err as Error
+        throw new SafientResponse({error: {code: 0 , message: message}});
     }
   };
 
@@ -295,7 +266,7 @@ export class SafientCore {
     claimType: number,
     signalingPeriod: number,
     dDay: number
-  ): Promise<SafeCreationResponse> => {
+  ): Promise<SafientResponse<string>> => {
     try {
       let response: SafeCreationResponse = {
         status: false,
@@ -312,8 +283,16 @@ export class SafientCore {
 
       if (guardiansDid.length > 1) {
         for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-          let guardianData: UserResponse = await this.getUser({ did: guardiansDid[guardianIndex] });
-          guardians.push(guardianData.data!);
+          try{  
+            let guardianData: SafientResponse<User> = await this.getUser({ did: guardiansDid[guardianIndex] });
+            guardians.push(guardianData.data!);
+          }catch(err){
+            if(err instanceof SafientResponse){
+              if(err.error?.code === Errors.UserNotFound.code)
+              throw new SafientResponse({error: Errors.GuardianNotFound});
+            }
+          }
+         
         }
 
         const secretsData = this.crypto.generateSecrets(guardians);
@@ -345,6 +324,7 @@ export class SafientCore {
           claimType: claimType,
           signalingPeriod: signalingPeriod,
           dDay: dDay,
+          timeStamp: Date.now()
         };
 
         const safe: string[] = await createSafe(data);
@@ -441,23 +421,21 @@ export class SafientCore {
         if (txReceipt?.status === 0) {
           await this.database.delete(safe[0], 'Users');
           console.log('Transaction Failed!');
+          throw new SafientResponse({error: Errors.TransactionFailure})
         }
-        response = {
-          status: true,
-          safeId: safe[0],
-          error: null,
-        };
+        
+        return new SafientResponse({data: safe[0]})
       } else {
-        response = {
-          status: false,
-          safeId: null,
-          error: new Error('No guardians available to create a safe'),
-        };
+       throw new SafientResponse({error: Errors.SafeNotCreated})
       }
 
-      return response;
     } catch (err) {
-      throw new Error(`Error while creating a safe. ${err}`);
+      if(err instanceof SafientResponse){
+        throw new SafientResponse({error: err.error});
+      }else{
+        const {message} = err as Error
+        throw new SafientResponse({error: {code: 0 , message: message}});
+      }
     }
   };
 
@@ -466,22 +444,12 @@ export class SafientCore {
    * @param safeId ID of the safe being queried
    * @returns Encrypted Safe Data
    */
-  getSafe = async (safeId: string): Promise<SafeResponse> => {
-    try {
-      let response: SafeResponse = {
-        status: false,
-        data: null,
-        error: null,
-      };
+  getSafe = async (safeId: string): Promise<SafientResponse<Safe>> => {
+    try {  
       const result: Safe = await getSafeData(safeId);
-      response = {
-        status: true,
-        data: result,
-        error: null,
-      };
-      return response;
+      return new SafientResponse({data: result});
     } catch (err) {
-      throw new Error('Error while fetching safe data');
+      throw new SafientResponse({error: Errors.SafeNotFound})
     }
   };
 
@@ -493,7 +461,7 @@ export class SafientCore {
    * @param description Decscription of the evidence and claim being submitted
    * @returns Dispute Number generated for the claim
    */
-  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<number> => {
+  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<number>> => {
     try {
       let evidenceUri: string = '';
       let tx: TransactionResponse;
@@ -503,7 +471,7 @@ export class SafientCore {
       let createSafetxReceipt: any;
       let dispute: any;
 
-      let safeData: SafeResponse = await this.getSafe(safeId);
+      let safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       let creatorUser: User[] = await queryUserDid(safe.creator);
 
@@ -623,9 +591,9 @@ export class SafientCore {
         }
         await this.database.save(safe, 'Safes');
       }
-      return disputeId;
+      return new SafientResponse({data: disputeId});
     } catch (err) {
-      throw new Error(`Error while creating a claim ${err}`);
+      throw new SafientResponse({error: Errors.ClaimNotCreated})
     }
   };
 
@@ -635,9 +603,9 @@ export class SafientCore {
    * @param did DID of the guardian
    * @returns True of False based on the recovery process
    */
-  reconstructSafe = async (safeId: string, did: string): Promise<boolean> => {
+  reconstructSafe = async (safeId: string, did: string): Promise<SafientResponse<boolean>> => {
     try {
-      const safeData: SafeResponse = await this.getSafe(safeId);
+      const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       const indexValue = safe.guardians.indexOf(did);
       let recoveryCount: number = 0;
@@ -667,9 +635,9 @@ export class SafientCore {
         recoveryStatus = false;
       }
 
-      return recoveryStatus;
+      return new SafientResponse({data: recoveryStatus});
     } catch (err) {
-      throw new Error(`Error while guardian Recovery, ${err}`);
+      throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
     }
   };
 
@@ -678,13 +646,13 @@ export class SafientCore {
    * @param safeId ID of the safe being recovered
    * @returns Decrypted Safe Data
    */
-  recoverSafeByCreator = async (safeId: string): Promise<any> => {
+  recoverSafeByCreator = async (safeId: string): Promise<SafientResponse<any>> => {
     try {
       let recoveredData: SafeRecovered = {
         status: false,
         data: null,
       };
-      const safeData: SafeResponse = await this.getSafe(safeId);
+      const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const encSafeData = safeData.data!.encSafeData;
       const data = await this.crypto.decryptSafeData(safeData.data!.encSafeKey, this.connection, encSafeData);
       const reconstructedData = JSON.parse(data.toString());
@@ -692,9 +660,9 @@ export class SafientCore {
         status: true,
         data: reconstructedData,
       };
-      return reconstructedData;
+      return new SafientResponse({data: reconstructedData});
     } catch (err) {
-      throw new Error(`Error whole decrypting data, ${err}`);
+      throw new SafientResponse({error: Errors.CreatorRecoveryFailure})
     }
   };
 
@@ -706,10 +674,10 @@ export class SafientCore {
    * @param safeStage The stage of the safe
    * @returns True or False based on update process
    */
-  private updateStage = async (safeId: string, claimStage: number, safeStage: number): Promise<boolean> => {
+  private updateStage = async (safeId: string, claimStage: number, safeStage: number): Promise<SafientResponse<boolean>> => {
     try {
       const result: boolean = await updateStage(safeId, claimStage, safeStage);
-      return result;
+      return new SafientResponse({data: result});
     } catch (err) {
       throw new Error(`Error while updating a stage ${err}`);
     }
@@ -721,7 +689,7 @@ export class SafientCore {
    * @param did DID of the beneficiary
    * @returns Decrypted Safe Data
    */
-  recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<SafeRecovered> => {
+  recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<any> => {
     try {
       let recoveredData: SafeRecovered = {
         status: false,
@@ -731,7 +699,7 @@ export class SafientCore {
       let reconstructedSafeData: any;
       let safeData: any;
       let result: any;
-      const safeResponse: SafeResponse = await this.getSafe(safeId);
+      const safeResponse: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeResponse.data!;
 
       if (safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED) {
@@ -749,21 +717,19 @@ export class SafientCore {
         if (safeData !== undefined && safe.stage === SafeStages.RECOVERED) {
           await this.updateStage(safeId, ClaimStages.PASSED, SafeStages.CLAIMED);
           result = JSON.parse(safeData.toString());
-          recoveredData = {
-            status: true,
-            data: result.data,
-          };
+          return new SafientResponse({data: result.data})
         } else {
-          recoveredData = {
-            status: false,
-            data: null,
-          };
+          throw new SafientResponse({error: Errors.StageNotUpdated})
         }
       }
-
-      return recoveredData;
     } catch (err) {
-      throw new Error(`Error while recovering data for Beneficiary, ${err}`);
+      if(err instanceof SafientResponse){
+        if(err.error?.code === Errors.StageNotUpdated.code){
+          throw new SafientResponse({error: Errors.StageNotUpdated})
+        }else{
+          throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
+        }
+      }
     }
   };
 
@@ -777,7 +743,7 @@ export class SafientCore {
       const data = await this.contract.getSafeBySafeId(safeId);
       return data;
     } catch (err) {
-      throw new Error('Error while getting onChain data');
+      throw new SafientResponse({error: Errors.OnChainSafeNotFound})
     }
   };
 
@@ -791,7 +757,7 @@ export class SafientCore {
       const data = await this.contract.getClaimByClaimId(claimId);
       return data;
     } catch (err) {
-      throw new Error(`Error while getting onChain claim data ${err}`);
+      throw new SafientResponse({error: Errors.OnChainSafeNotFound})
     }
   };
 
@@ -806,7 +772,7 @@ export class SafientCore {
       const claimStage = await this.contract.getClaimStatus(safeId, claimId);
       return claimStage;
     } catch (err) {
-      throw new Error(`Error while getting onChain claim data ${err}`);
+      throw new SafientResponse({error: Errors.OnChainClaimStatus})
     }
   };
 
@@ -816,11 +782,11 @@ export class SafientCore {
    * @param safeId ID of the safe.
    * @returns True or False based on the sync process
    */
-  syncStage = async (safeId: string): Promise<boolean> => {
+  syncStage = async (safeId: string): Promise<SafientResponse<boolean>> => {
     try {
       let disputeId: number = 0;
       let claimIndex: number = 0;
-      const safeData: SafeResponse = await this.getSafe(safeId);
+      const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       const claims = safe.claims;
 
@@ -841,9 +807,9 @@ export class SafientCore {
       }
 
       await this.database.save(safe, 'Safes');
-      return true;
+      return new SafientResponse({data: true});
     } catch (err) {
-      throw new Error(`Error while syncing stage data, ${err}`);
+      throw new SafientResponse({error: Errors.SyncStageFailure})
     }
   };
 
@@ -853,12 +819,12 @@ export class SafientCore {
    * Use at your loss
    * If you reading this code and come across this, be warned not to use this at all
    *  */
-  giveRuling = async (disputeId: number, ruling: number): Promise<boolean> => {
+  giveRuling = async (disputeId: number, ruling: number): Promise<SafientResponse<boolean>> => {
     try {
       const result: boolean = await this.arbitrator.giveRulingCall(disputeId, ruling);
-      return result;
+      return new SafientResponse({data: result});
     } catch (err) {
-      throw new Error('Error while giving a ruling for dispute');
+      throw new SafientResponse({error: Errors.RulingFailure})
     }
   };
 
@@ -867,16 +833,16 @@ export class SafientCore {
    * @param safeId ID of the safe
    * @returns Transaction details of the signal
    */
-  createSignal = async (safeId: string): Promise<TransactionReceipt> => {
+  createSignal = async (safeId: string): Promise<SafientResponse<TransactionReceipt>> => {
     try {
       const tx: TransactionResponse = await this.contract.sendSignal(safeId);
       const txReceipt: TransactionReceipt = await tx.wait();
       if (txReceipt.status === 1) {
         await this.updateStage(safeId, ClaimStages.ACTIVE, SafeStages.ACTIVE);
       }
-      return txReceipt;
+      return new SafientResponse({data: txReceipt});
     } catch (err) {
-      throw new Error(`Error while sending a signal, ${err}`);
+      throw new SafientResponse({error: Errors.SignalCreateFailure})
     }
   };
 
@@ -885,14 +851,14 @@ export class SafientCore {
    * @param safeId ID of the safe
    * @returns True or false based on the incentivisation process
    */
-  incentiviseGuardians = async (safeId: string): Promise<boolean> => {
+  incentiviseGuardians = async (safeId: string): Promise<SafientResponse<boolean>> => {
     try {
       let shards: any = [];
       let guardianArray: any = [];
       let guardianSecret: string[] = [];
       let result: boolean = false;
 
-      const safeData: SafeResponse = await this.getSafe(safeId);
+      const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
 
       if (safe.stage === SafeStages.CLAIMED) {
@@ -923,9 +889,9 @@ export class SafientCore {
           );
         }
       }
-      return result;
+      return new SafientResponse({data: result});
     } catch (e) {
-      throw new Error(`Error while incentiving the guardians ${e}`);
+      throw new SafientResponse({error: Errors.IncentivizationFailure})
     }
   };
 
@@ -934,12 +900,12 @@ export class SafientCore {
    * @param address The address of the guardian
    * @returns The total guardian reward balance in ETH
    */
-  getRewardBalance = async (address: string): Promise<Number> => {
+  getRewardBalance = async (address: string): Promise<SafientResponse<Number>> => {
     try {
       const result: Number = await this.contract.getGuardianRewards(address);
-      return result;
+      return new SafientResponse({data: result});
     } catch (e) {
-      throw new Error(`Error while get the guardian's rewards balance ${e}`);
+      throw new SafientResponse({error: Errors.RewardsAccessFailure})
     }
   };
 
@@ -953,7 +919,7 @@ export class SafientCore {
       const result: TransactionResponse = await this.contract.claimRewards(funds);
       return result;
     } catch (e) {
-      throw new Error(`Error while claiming rewards for the guardians ${e}`);
+      throw new SafientResponse({error: Errors.RewardsClaimFailure})
     }
   };
 
@@ -968,7 +934,7 @@ export class SafientCore {
       const result: TransactionResponse = await this.contract.updateDDay(safeId, dDay);
       return result;
     } catch (e) {
-      throw new Error(`Error while updating the D-Day ${e}`);
+      throw new SafientResponse({error: Errors.DDayUpdateFailure})
     }
   };
 }
