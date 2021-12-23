@@ -8,6 +8,7 @@ const {DID} = require("dids")
 const fromString = require('uint8arrays/from-string')
 
 const CERAMIC_URL = 'https://ceramic.safient.io/'
+const CERAMIC_URL_TESTNET = 'http://0.0.0.0:7007' 
 
 const ProfileSchema = {
     "type": "object",
@@ -56,7 +57,7 @@ async function run() {
   const seed = new Uint8Array(randomBytes(32))
   console.log("Created seed", seed)
   // Connect to the local Ceramic node
-  const ceramic = new Ceramic(CERAMIC_URL)
+  const ceramic = new Ceramic(CERAMIC_URL_TESTNET)
   // Authenticate the Ceramic instance with the provider
   const resolver = { ...KeyDidResolver.getResolver()}
   const did = new DID({ resolver })

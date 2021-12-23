@@ -63,7 +63,8 @@ export interface Safe {
   onChain: boolean;
   claimType: Types.ClaimType;
   signalingPeriod: number,
-  dDay: number
+  dDay: number,
+  timeStamp: number
 };
 
 export type SafeCreation = {
@@ -78,7 +79,8 @@ export type SafeCreation = {
   onChain: boolean;
   claimType: Types.ClaimType;
   signalingPeriod: number,
-  dDay: number
+  dDay: number,
+  timeStamp: number
 };
 
 
@@ -147,14 +149,8 @@ export type UserResponse = {
   status: boolean;
   data: User | null;
   idx: IDX | null;
-  error: Error | null
 }
 
-export type SafeResponse = {
-  status: boolean;
-  data: Safe | null;
-  error: Error | null
-}
 
 export type SafeRecovered = {
   status: boolean;
@@ -187,4 +183,9 @@ export interface GenericSafe {
 
 export type SafeStore = {
   safe: CryptoSafe | GenericSafe
+}
+
+export type GenericError = {
+  code: number,
+  message: string
 }
