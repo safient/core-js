@@ -51,13 +51,15 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
   //Step 1: Register all users
   it('Should register a Creator', async () => {
     creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    creator = await creatorSc.loginUser();
     const userAddress = await creatorSigner.getAddress();
-    if (creator.data === undefined) {
-      const res = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
-    } else if (creator.data !== undefined) {
-      expect(creator.data.email).to.equal('creator@test.com');
+    try{
+      creator = await creatorSc.loginUser();
+    }catch(err){
+      if(err.error.code === Errors.Errors.UserNotFound.code){
+        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+      }
     }
+    
     try{
       const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
     }catch(err){
@@ -71,15 +73,20 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
 
   it('Should register a beneficiary', async () => {
     beneficiarySc = new SafientCore(beneficiarySigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    beneficiary = await beneficiarySc.loginUser();
+   
     // SUCCESS : create user A
 
     const userAddress = await beneficiarySigner.getAddress();
-    if (beneficiary.data === undefined) {
-      await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
-    } else if (beneficiary.data !== undefined) {
-      expect(beneficiary.data.email).to.equal('beneficiary@test.com');
+
+    try{
+      beneficiary = await beneficiarySc.loginUser();
+    }catch(err){
+      if(err.error.code === Errors.Errors.UserNotFound.code){
+        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+
+      }
     }
+
 
     try{
       const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
@@ -96,15 +103,16 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
 
   it('Should register a Guardian 1', async () => {
     guardianOneSc = new SafientCore(guardianOneSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    guardianOne = await guardianOneSc.loginUser();
     // SUCCESS : create user A
     const userAddress = await guardianOneSigner.getAddress();
     guardianOneAddress = userAddress;
 
-    if (guardianOne.data === undefined) {
-      await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
-    } else {
-      expect(guardianOne.data.email).to.equal('guardianOne@test.com');
+    try{
+      guardianOne = await guardianOneSc.loginUser();
+    }catch(err){
+      if(err.error.code === Errors.Errors.UserNotFound.code){
+        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+      }
     }
 
     try{
@@ -121,14 +129,16 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
 
   it('Should register a Guardian 2', async () => {
     guardianTwoSc = new SafientCore(guardianTwoSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    guardianTwo = await guardianTwoSc.loginUser();
     // SUCCESS : create user A
     const userAddress = await guardianTwoSigner.getAddress();
 
-    if (guardianTwo.data === undefined) {
-      await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
-    } else {
-      expect(guardianTwo.data.email).to.equal('guardianTwo@test.com');
+    try{
+      guardianTwo = await guardianTwoSc.loginUser();
+    }catch(err){
+      if(err.error.code === Errors.Errors.UserNotFound.code){
+        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+
+      }
     }
 
     try{
@@ -151,14 +161,16 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       apiKey,
       secret
     );
-    guardianThree = await guardianThreeSc.loginUser();
     
     const userAddress = await guardianThreeSigner.getAddress();
-    if (guardianThree.data === undefined) {
-      await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
-    } else {
-      expect(guardianThree.data.email).to.equal('guardianThree@test.com');
+    try{
+      guardianThree = await guardianThreeSc.loginUser();
+    }catch(err){
+      if(err.error.code === Errors.Errors.UserNotFound.code){
+        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+      }
     }
+
 
     try{
       const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);

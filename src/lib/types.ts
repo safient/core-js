@@ -151,11 +151,6 @@ export type UserResponse = {
   idx: IDX | null;
 }
 
-export type SafeResponse = {
-  status: boolean;
-  data: Safe | null;
-  error: Error | null
-}
 
 export type SafeRecovered = {
   status: boolean;

@@ -16,7 +16,6 @@ import {
   Signer,
   UserResponse,
   SafeRecovered,
-  SafeResponse,
   SafeCreationResponse,
   SafeStore,
   GenericError,
