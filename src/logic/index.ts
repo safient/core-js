@@ -270,7 +270,11 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
   export const getSafeData = async (safeId: string): Promise<Safe> => {
     try {
       const result: Safe[] = await database.read<Safe>('', safeId, 'Safes')
-      return result[0];
+      if(result.length !== 0){
+        return result[0];
+      }else{
+        throw new Error("Safe does not exist")
+      }
     } catch (err) {
       throw new Error("Error while fetching safe data");
     }
