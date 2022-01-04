@@ -64,7 +64,8 @@ export interface Safe {
   claimType: Types.ClaimType;
   signalingPeriod: number,
   dDay: number,
-  timeStamp: number
+  timeStamp: number,
+  cid: string
 };
 
 export type SafeCreation = {
@@ -80,7 +81,8 @@ export type SafeCreation = {
   claimType: Types.ClaimType;
   signalingPeriod: number,
   dDay: number,
-  timeStamp: number
+  timeStamp: number,
+  cid: string
 };
 
 
@@ -188,4 +190,18 @@ export type SafeStore = {
 export type GenericError = {
   code: number,
   message: string
+}
+
+export type SafeLink = {
+  creator: string;
+  guardians: string[];
+  beneficiary: string;
+  encSafeKey: JWE;
+  encSafeData: Buffer;
+  encSafeKeyShards: Shard[];
+  onChain: boolean;
+  claimType: Types.ClaimType;
+  signalingPeriod: number,
+  dDay: number,
+  timeStamp: number
 }

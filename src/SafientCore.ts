@@ -19,6 +19,7 @@ import {
   SafeCreationResponse,
   SafeStore,
   GenericError,
+  SafeLink,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -33,6 +34,7 @@ import {
   queryUserDid,
   updateStage,
   createUser,
+  createIpfsSafeLink,
 } from './logic/index';
 import { Database } from './database';
 import { Crypto } from './crypto';
@@ -310,6 +312,22 @@ export class SafientCore {
           secretsData.secrets
         );
 
+        const safeLinkData: SafeLink = {
+          creator: this.connection.idx?.id!,
+          guardians: guardiansDid,
+          beneficiary: beneficiaryDID,
+          encSafeKey: encryptedSafeData.creatorEncKey,
+          encSafeData: encryptedSafeData.encryptedData,
+          encSafeKeyShards: encryptedSafeData.shardData,
+          onChain: onChain,
+          claimType: claimType,
+          signalingPeriod: signalingPeriod,
+          dDay: dDay,
+          timeStamp: Date.now()
+        }
+
+        const safeLink = await createIpfsSafeLink(safeLinkData);
+
         const data: SafeCreation = {
           creator: this.connection.idx?.id,
           guardians: guardiansDid,
@@ -323,7 +341,8 @@ export class SafientCore {
           claimType: claimType,
           signalingPeriod: signalingPeriod,
           dDay: dDay,
-          timeStamp: Date.now()
+          timeStamp: Date.now(),
+          cid: safeLink
         };
 
         const safe: string[] = await createSafe(data);

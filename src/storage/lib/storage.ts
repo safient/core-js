@@ -1,5 +1,5 @@
 import e from "cors";
-import {ipfsPublish} from "../utils/ipfs"
+import {ipfsAdd, ipfsGet, ipfsPublish} from "../utils/ipfs"
 
 
 export class Storage {
@@ -11,7 +11,7 @@ export class Storage {
     }
 
 
-    add = async(fileName: string, data:any): Promise<any> => {
+    add = async(data:any, fileName: string, ): Promise<any> => {
         try{
             if(this.storageType === 'IPFS'){
                 const result: any = await ipfsPublish(fileName, data);
@@ -22,5 +22,25 @@ export class Storage {
         } 
     }
 
+    create = async(data:any): Promise<any> => {
+        try{
+            if(this.storageType === 'IPFS'){
+                const result: any = await ipfsAdd(data);
+                return result;
+            }
+        }catch(err){
+            throw new Error("Error while publishing data")
+        } 
+    }
 
+    get = async(cidHash:string): Promise<any> => {
+        try{
+            if(this.storageType === 'IPFS'){
+                const result: any = await ipfsGet(cidHash);
+                return result;
+            }
+        }catch(err){
+            throw new Error("Error while publishing data")
+        } 
+    }
 }
