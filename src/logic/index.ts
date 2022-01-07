@@ -3,7 +3,7 @@ import {Database} from "../database"
 import {Storage} from "../storage/index"
 import {DatabaseType} from "../lib/enums"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils } from "../lib/types";
+import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils, DecShard } from "../lib/types";
 
 var environment = require("browser-or-node");
 
@@ -383,6 +383,44 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
     }
 
   }
+
+  export const updateDecShard = async(did: string, safeId: string, decShard: DecShard): Promise<boolean> => {
+    try{
+      const user: User | null = await getUser({ did: did });
+      if(user){
+        user.safes.map((safe, index) => {
+          if(safe.safeId === safeId){
+            user.safes[index].decShard = decShard
+          }
+        })
+      }
+      await database.save(user, 'Users')
+      return true
+      
+    }catch(err){
+      throw new Error(`Error while updating a decShard for user ${err}`)
+    }
+  }
+
+  export const getDecShards = async (guardianDid: string[], safeId: string): Promise<DecShard[]> => {
+    try{
+      let shards: DecShard[] = []
+
+      for(let guardianIndex = 0; guardianIndex < guardianDid.length; guardianIndex++){
+        const gurdian = await getUser({did: guardianDid[guardianIndex]});
+        gurdian?.safes.map(safe => {
+          if(safe.safeId === safeId && safe.decShard){
+            shards.push(safe.decShard)
+          }
+        })
+      }
+      return shards
+    }catch(err){
+     throw new Error(`${err}`)
+    }
+   
+  }
+
 
   
 

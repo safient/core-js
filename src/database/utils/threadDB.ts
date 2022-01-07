@@ -26,7 +26,7 @@ export class ThreadDB {
               await this.connection.client.save(this.connection.threadId, collection,[data])
               return true
       }catch(err){
-          throw new Error("Error while saving data")
+          throw new Error(`Error while saving data, ${err}`)
       }
     }
 

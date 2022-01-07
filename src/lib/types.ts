@@ -48,12 +48,13 @@ export type UserMeta = {
 export type SafeMeta = {
   safeId: string;
   type: string;
+  decShard: DecShard | null
 };
 
 export interface Safe {
   _id: string;
   creator: string;
-  guardians: string[];
+  guardians: string[]; 
   beneficiary: string;
   encSafeKey: JWE;
   encSafeData: Buffer;
@@ -91,9 +92,7 @@ export type Claim = {
 }
 
 export type Shard = {
-  status: number;
-  encShard: any;
-  decData: any;
+  data: any;
 };
 
 export type GuardianSecrets = {
@@ -188,4 +187,9 @@ export type SafeStore = {
 export type GenericError = {
   code: number,
   message: string
+}
+
+export type DecShard = {
+  share: Buffer,
+  secret: string
 }

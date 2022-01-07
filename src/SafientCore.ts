@@ -19,6 +19,7 @@ import {
   SafeCreationResponse,
   SafeStore,
   GenericError,
+  DecShard,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -33,6 +34,8 @@ import {
   queryUserDid,
   updateStage,
   createUser,
+  updateDecShard,
+  getDecShards,
 } from './logic/index';
 import { Database } from './database';
 import { Crypto } from './crypto';
@@ -370,12 +373,14 @@ export class SafientCore {
               {
                 safeId: safe[0],
                 type: 'creator',
+                decShard: null
               },
             ];
           } else {
             creatorUser[0].safes.push({
               safeId: safe[0],
               type: 'creator',
+              decShard: null
             });
           }
 
@@ -384,12 +389,14 @@ export class SafientCore {
               {
                 safeId: safe[0],
                 type: 'beneficiary',
+                decShard: null
               },
             ];
           } else {
             beneficiaryUser[0].safes.push({
               safeId: safe[0],
               type: 'beneficiary',
+              decShard: null
             });
           }
 
@@ -399,12 +406,14 @@ export class SafientCore {
                 {
                   safeId: safe[0],
                   type: 'guardian',
+                  decShard: null
                 },
               ];
             } else {
               guardians[guardianIndex].safes.push({
                 safeId: safe[0],
                 type: 'guardian',
+                decShard: null
               });
             }
           }
@@ -446,6 +455,10 @@ export class SafientCore {
   getSafe = async (safeId: string): Promise<SafientResponse<Safe>> => {
     try {  
       const result: Safe = await getSafeData(safeId);
+      // TODO: Need to move the different function
+      // if(result.decSafeKeyShards.length >=2 && result.stage !== SafeStages.CLAIMED){
+      //    result.stage = SafeStages.RECOVERED
+      // }
       return new SafientResponse({data: result});
     } catch (err) {
       throw new SafientResponse({error: Errors.SafeNotFound})
@@ -596,6 +609,8 @@ export class SafientCore {
     }
   };
 
+
+
   /**
    * This API is called by guardians when they have to recover the safe they are part of
    * @param safeId ID of the safe being recovered
@@ -607,23 +622,17 @@ export class SafientCore {
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       const indexValue = safe.guardians.indexOf(did);
-      let recoveryCount: number = 0;
       let recoveryStatus: boolean = false;
-
+      // internal function 
       if (safe.stage === SafeStages.RECOVERING) {
-        const decShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
-          safe.encSafeKeyShards[indexValue].encShard
-        );
-        safe.encSafeKeyShards[indexValue].status = 1;
-        safe.encSafeKeyShards[indexValue].decData = decShard;
+        const decShard: DecShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
+          safe.encSafeKeyShards[indexValue].data
+        ) as DecShard;
 
-        safe.encSafeKeyShards.map((safeShard) => {
-          if (safeShard.status === 1) {
-            recoveryCount = recoveryCount + 1;
-          }
-        });
-
-        if (recoveryCount >= 2) {
+        await updateDecShard(did, safeId, decShard)
+        
+        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        if (decShards.length >= 2) {
           safe.stage = SafeStages.RECOVERED;
         } else {
           safe.stage = SafeStages.RECOVERING;
@@ -702,8 +711,9 @@ export class SafientCore {
       const safe = safeResponse.data!;
 
       if (safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED) {
-        safe.encSafeKeyShards.map((share) => {
-          share.status === 1 ? shards.push(share.decData.share) : null;
+        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        decShards.map((shard) => {
+          shards.push(shard.share);
         });
 
         reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
@@ -726,7 +736,7 @@ export class SafientCore {
         if(err.error?.code === Errors.StageNotUpdated.code){
           throw new SafientResponse({error: Errors.StageNotUpdated})
         }else{
-          throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
+          throw new SafientResponse({error: Errors.BeneficiaryRecoveryFailure})
         }
       }
     }
@@ -859,13 +869,11 @@ export class SafientCore {
 
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
-
       if (safe.stage === SafeStages.CLAIMED) {
-        safe.encSafeKeyShards.map((share) => {
-          if (share.status === 1) {
-            shards.push(share.decData.share);
-            guardianSecret.push(share.decData.secret);
-          }
+        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        decShards.map((shard) => {
+            shards.push(shard.share);
+            guardianSecret.push(shard.secret);
         });
 
         if (shards.length !== 0) {
