@@ -60,6 +60,7 @@ export interface Safe {
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
+  decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
   claimType: Types.ClaimType;

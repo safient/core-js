@@ -34,6 +34,7 @@ import {
   queryUserDid,
   updateStage,
   createUser,
+  deleteDecShard,
   updateDecShard,
   getDecShards,
 } from './logic/index';
@@ -634,6 +635,9 @@ export class SafientCore {
         const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
         if (decShards.length >= 2) {
           safe.stage = SafeStages.RECOVERED;
+          safe.decSafeKeyShards = decShards
+          await deleteDecShard(safe.guardians, safeId)
+
         } else {
           safe.stage = SafeStages.RECOVERING;
         }
@@ -711,7 +715,7 @@ export class SafientCore {
       const safe = safeResponse.data!;
 
       if (safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED) {
-        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        const decShards: DecShard[] =  safe.decSafeKeyShards
         decShards.map((shard) => {
           shards.push(shard.share);
         });
@@ -870,7 +874,7 @@ export class SafientCore {
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       if (safe.stage === SafeStages.CLAIMED) {
-        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        const decShards: DecShard[] = safe.decSafeKeyShards
         decShards.map((shard) => {
             shards.push(shard.share);
             guardianSecret.push(shard.secret);

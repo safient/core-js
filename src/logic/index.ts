@@ -388,14 +388,44 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
     try{
       const user: User | null = await getUser({ did: did });
       if(user){
-        user.safes.map((safe, index) => {
-          if(safe.safeId === safeId){
-            user.safes[index].decShard = decShard
-          }
-        })
+        for(let safeIndex = 0; safeIndex < user.safes.length; safeIndex++){
+
+          if(user.safes[safeIndex].safeId === safeId){
+            user.safes[safeIndex].decShard = decShard
+            await database.save(user, 'Users')
+        }
+        
+      
       }
-      await database.save(user, 'Users')
-      return true
+    }
+
+   
+    return true
+      
+    }catch(err){
+      throw new Error(`Error while updating a decShard for user ${err}`)
+    }
+  }
+
+  export const deleteDecShard = async(guardianDid: string[], safeId: string): Promise<boolean> => {
+    try{
+      for(let guardianIndex = 0; guardianIndex < guardianDid.length; guardianIndex++){
+        const gurdian = await getUser({did: guardianDid[guardianIndex]});
+      if(gurdian){
+        for(let safeIndex = 0; safeIndex < gurdian.safes.length; safeIndex++){
+
+          if(gurdian.safes[safeIndex].safeId === safeId){
+            gurdian.safes[safeIndex].decShard = null
+            await database.save(gurdian, 'Users')
+        }
+        
+      
+      }
+    }
+  }
+
+   
+    return true
       
     }catch(err){
       throw new Error(`Error while updating a decShard for user ${err}`)
