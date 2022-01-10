@@ -196,3 +196,16 @@ export type DecShard = {
   share: Buffer,
   secret: string
 }
+
+export type CeramicDefintions = {
+  definitions: {
+    profile: string,
+    portfolio:string,
+    encryptionKey: string
+  },
+  schemas: {
+    profile: string,
+    portfolio: string,
+    encryptionKey: string
+  }
+}

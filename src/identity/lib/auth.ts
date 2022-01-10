@@ -1,12 +1,12 @@
-import { CeramicIdx } from "../../lib/types";
+import { CeramicDefintions, CeramicIdx } from "../../lib/types";
 import {generateIDX} from "../utils/ceramic"
 import { thread } from "../utils/threadId";
 
 export class Auth {
 
-    generateIdentity = async(seed: any) => {
+    generateIdentity = async(seed: any, ceramicURL: string, ceramicDefintions: CeramicDefintions) => {
         try{
-            const result = await generateIDX(seed);
+            const result = await generateIDX(seed, ceramicURL, ceramicDefintions);
             return result
         }catch(err){
             throw new Error(`${err}`)

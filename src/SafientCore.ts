@@ -20,6 +20,7 @@ import {
   SafeStore,
   GenericError,
   DecShard,
+  CeramicDefintions,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -78,6 +79,11 @@ export class SafientCore {
   private threadId: number[];
   /**@ignore */
   private chainId: number;
+  /**@ignore */
+  private CERAMIC_URL: string
+  /**@ignore */
+  private ceramicDefintions: CeramicDefintions
+  
 
   /**
    * Constructor to initilize the Core SDK
@@ -100,6 +106,8 @@ export class SafientCore {
     this.signer = signer;
     this.provider = this.provider;
     this.chainId = Networks[network].chainId;
+    this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL
+    this.ceramicDefintions = Networks[network].ceramic.config
     if (threadId === undefined) {
       this.threadId = Networks[network].threadId;
     } else {
@@ -121,9 +129,8 @@ export class SafientCore {
   loginUser = async (): Promise<SafientResponse<User>> => {
     try {
 
-
       const seed = await this.signature.sign();
-      const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed));
+      const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed), this.CERAMIC_URL, this.ceramicDefintions);
       const { client, threadId } = await this.auth.generateThread(seed, this.apiKey, this.apiSecret, this.threadId);
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
@@ -173,7 +180,7 @@ export class SafientCore {
 
       const result: UserResponse = await createUser(data, this.connection.idx?.id!);
       if (result.status === false) {
-        const ceramicResult = await idx?.set(definitions.profile, {
+        const ceramicResult = await idx?.set(this.ceramicDefintions.definitions.profile, {
           name: name,
           email: email,
         });
