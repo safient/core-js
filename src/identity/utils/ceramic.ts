@@ -6,7 +6,7 @@ import KeyDidResolver from 'key-did-resolver'
 import { DID } from 'dids'
 
 
-const CERAMIC_URL: string = 'http://0.0.0.0:7007'
+const CERAMIC_URL: string = 'https://ceramic-clay.safient.io/'
 
     export const generateIDX = async(seed: any) => {
         try{
