@@ -77,8 +77,8 @@ export const Networks = [
       "name":"testnet",
       "chainId": 42,
       "addresses": {
-        "safientMain": "",
-        "arbitrator": ""
+        "safientMain": "0x8C2FA3dE952f5A1c463af0Fb42a9A812D3Ffe9e3",
+        "arbitrator": "0x823E2b7623aD287819674548f43F8965F38B2626"
       },
       "threadId": [1,85,209,145,42,64,136,227,136,30,98,69,226,14,124,80,33,111,165,26,65,115,154,155,0,79,226,123,146,70,216,68,174,149],
       "ceramic": {
