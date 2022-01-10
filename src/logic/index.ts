@@ -233,6 +233,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
         if (
           creatorDID !== randomGuardian.did &&
           beneficiaryDID !== randomGuardian.did &&
+          randomGuardian.guardian === true && 
           !guardians.includes(randomGuardian.did)
         ) {
           guardians.push(randomGuardian.did);

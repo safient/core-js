@@ -154,7 +154,7 @@ export class SafientCore {
    * @param userAddress Metamask address of the user
    * @returns User registration ID
    */
-  createUser = async (name: string, email: string, signUpMode: number, userAddress: string): Promise<SafientResponse<User>> => {
+  createUser = async (name: string, email: string, signUpMode: number, userAddress: string, guardian: boolean): Promise<SafientResponse<User>> => {
     try {
      
 
@@ -168,6 +168,7 @@ export class SafientCore {
         safes: [],
         signUpMode,
         userAddress,
+        guardian
       };
 
       const result: UserResponse = await createUser(data, this.connection.idx?.id!);

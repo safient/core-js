@@ -24,6 +24,7 @@ export type UserSchema = {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 export interface User {
@@ -35,6 +36,7 @@ export interface User {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 
