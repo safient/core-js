@@ -24,6 +24,7 @@ export type UserSchema = {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 export interface User {
@@ -35,6 +36,7 @@ export interface User {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 
@@ -48,17 +50,19 @@ export type UserMeta = {
 export type SafeMeta = {
   safeId: string;
   type: string;
+  decShard: DecShard | null
 };
 
 export interface Safe {
   _id: string;
   creator: string;
-  guardians: string[];
+  guardians: string[]; 
   beneficiary: string;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
+  decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
   claimType: Types.ClaimType;
@@ -91,9 +95,7 @@ export type Claim = {
 }
 
 export type Shard = {
-  status: number;
-  encShard: any;
-  decData: any;
+  data: any;
 };
 
 export type GuardianSecrets = {
@@ -188,4 +190,22 @@ export type SafeStore = {
 export type GenericError = {
   code: number,
   message: string
+}
+
+export type DecShard = {
+  share: Buffer,
+  secret: string
+}
+
+export type CeramicDefintions = {
+  definitions: {
+    profile: string,
+    portfolio:string,
+    encryptionKey: string
+  },
+  schemas: {
+    profile: string,
+    portfolio: string,
+    encryptionKey: string
+  }
 }

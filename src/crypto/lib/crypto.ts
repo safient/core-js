@@ -57,14 +57,12 @@ export class Crypto {
 
             const shards: Buffer[] = _shamirSplit(ShareData, 3, 2);
 
-            for (let index = 0; index < shards.length; index++){
+            for (let shardIndex = 0; shardIndex < shards.length; shardIndex++){
                 shardData.push({
-                    status: 0,
-                    encShard: await creator.idx?.ceramic.did?.createDagJWE({
-                        share: shards[index],
-                        secret: secrets[index]
-                    }, [guardians[index]]),
-                    decData: null 
+                    data: await creator.idx?.ceramic.did?.createDagJWE({
+                        share: shards[shardIndex],
+                        secret: secrets[shardIndex]
+                    }, [guardians[shardIndex]]),
                 })
             }
 

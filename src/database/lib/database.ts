@@ -51,7 +51,7 @@ export class Database {
         return true
 
     }catch(err){
-        throw new Error("Error while saving data")
+        throw new Error(`Error while saving data, ${err}`)
     }
   }
 
