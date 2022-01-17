@@ -231,12 +231,12 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     });
   });
 
-  describe('Sync safe stage', async () => {
-    it('Updates the safe stage on threadDB according to the ruling', async () => {
-      const result = await beneficiarySc.syncStage(safeId);
-      expect(result.data).to.equal(true);
-    });
-  });
+  // describe('Sync safe stage', async () => {
+  //   it('Updates the safe stage on threadDB according to the ruling', async () => {
+  //     const result = await beneficiarySc.syncStage(safeId);
+  //     expect(result.data).to.equal(true);
+  //   });
+  // });
 
   describe('Guardian recovery', async () => {
     it('Recovery done by guardian 1', async () => {

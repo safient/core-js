@@ -231,10 +231,10 @@ describe('Unit test', async () => {
     expect(result.data).to.equal(true);
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
+  // it('Should update the stage on threadDB', async () => {
+  //   const result = await beneficiarySc.syncStage(safeId);
+  //   expect(result.data).to.equal(true);
+  // });
 
   // //Step 4: Recover Safes
 

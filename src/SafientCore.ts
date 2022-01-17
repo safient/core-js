@@ -465,9 +465,15 @@ export class SafientCore {
     try {  
       const result: Safe = await getSafeData(safeId);
       // TODO: Need to move the different function
-      // if(result.decSafeKeyShards.length >=2 && result.stage !== SafeStages.CLAIMED){
-      //    result.stage = SafeStages.RECOVERED
-      // }
+      if(result.stage === SafeStages.CLAIMING){
+        const claimStatus = await this.getClaimStatus(safeId, result.claims[result.claims.length - 1].disputeId)
+        result.claims[result.claims.length - 1].claimStatus = claimStatus
+        if(claimStatus === ClaimStages.PASSED){
+          result.stage = SafeStages.RECOVERING
+        }else{
+          result.stage = SafeStages.ACTIVE
+        }
+      }
       return new SafientResponse({data: result});
     } catch (err) {
       throw new SafientResponse({error: Errors.SafeNotFound})
@@ -633,7 +639,9 @@ export class SafientCore {
       const indexValue = safe.guardians.indexOf(did);
       let recoveryStatus: boolean = false;
       // internal function 
-      if (safe.stage === SafeStages.RECOVERING) {
+      const res = await this.syncStage(safeId)
+
+      if (res.data === true && safe.stage === SafeStages.RECOVERING) {
         const decShard: DecShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
           safe.encSafeKeyShards[indexValue].data
         ) as DecShard;
