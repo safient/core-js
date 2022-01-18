@@ -747,7 +747,11 @@ export class SafientCore {
           await this.updateStage(safeId, ClaimStages.PASSED, SafeStages.CLAIMED);
           result = JSON.parse(safeData.toString());
           return new SafientResponse({data: result.data})
-        } else {
+        }else if(safeData !== undefined && safe.stage === SafeStages.CLAIMED){
+          result = JSON.parse(safeData.toString());
+          return new SafientResponse({data: result.data})
+        } 
+        else {
           throw new SafientResponse({error: Errors.StageNotUpdated})
         }
       }
