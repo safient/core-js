@@ -224,10 +224,10 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     expect(result.data).to.equal(true);
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
+  // it('Should update the stage on threadDB', async () => {
+  //   const result = await beneficiarySc.syncStage(safeId);
+  //   expect(result.data).to.equal(true);
+  // });
 
   it('Should initiate recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);

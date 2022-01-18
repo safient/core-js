@@ -221,10 +221,10 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
     expect(result.data.status).to.equal(1);
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
+  // it('Should update the stage on threadDB', async () => {
+  //   const result = await beneficiarySc.syncStage(safeId);
+  //   expect(result.data).to.equal(true);
+  // });
 
   it('Should try recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);

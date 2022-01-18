@@ -313,10 +313,10 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     expect(claimResult).to.equal(1); // claim got Passed (after D-Day)
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
+  // it('Should update the stage on threadDB', async () => {
+  //   const result = await beneficiarySc.syncStage(safeId);
+  //   expect(result.data).to.equal(true);
+  // });
 
   it('Should initiate recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
