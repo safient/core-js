@@ -1,4 +1,3 @@
-import e from "cors";
 import {ipfsPublish} from "../utils/ipfs"
 
 
