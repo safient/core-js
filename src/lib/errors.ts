@@ -37,7 +37,7 @@ export const Errors = {
     },
     StageNotUpdated: {
         code: 207,
-        message: "Safe stage not updated"
+        message: "Safe cannot be claimed. No claims or guardian recovery found for this safe!"
     },
     OnChainSafeNotFound: {
         code: 208,
@@ -75,9 +75,17 @@ export const Errors = {
         code: 216,
         message: "Error while updating the D-Day"
     },
+    SelfSafeCreation:{
+        code: 217,
+        message: "Cannot create self safe."
+    },
     TransactionFailure: {
         code: 31,
         message: "Transaction Failed"
+    },
+    WalletBalance: {
+        code: 32,
+        message: "Transaction cannot be created due to low Wallet Balance."
     },
     CommonError: {
         code: 2,
