@@ -83,6 +83,8 @@ export class SafientCore {
   private CERAMIC_URL: string
   /**@ignore */
   private ceramicDefintions: CeramicDefintions
+  /**@ignore */
+  private guardianFee: number = 0.1;
   
 
   /**
@@ -347,10 +349,10 @@ export class SafientCore {
             );
   
             const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-            const guardianFee: number = 0.1;
+      
   
             if (claimType === Types.ClaimType.ArbitrationBased) {
-              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
+              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
               const tx: TransactionResponse = await this.contract.createSafe(
                 beneficiaryUser[0].userAddress,
                 safe[0],
@@ -362,7 +364,7 @@ export class SafientCore {
               );
               txReceipt = await tx.wait();
             } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
-              const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
+              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
               const tx: TransactionResponse = await this.contract.createSafe(
                 beneficiaryUser[0].userAddress,
                 safe[0],
@@ -535,8 +537,7 @@ export class SafientCore {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-              const guardianFee: number = 0.1;
-              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
+              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
@@ -550,8 +551,7 @@ export class SafientCore {
             }
           } else if (safe.claimType === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              const guardianFee: number = 0.1;
-              const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
+              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
@@ -564,8 +564,7 @@ export class SafientCore {
               createSafetxReceipt = await createSafetx.wait();
             }
           } else if (safe.claimType === Types.ClaimType.DDayBased) {
-            const guardianFee: number = 0.1;
-            const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
+            const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
             createSafetx = await this.contract.syncSafe(
               creatorUser[0].userAddress,
               safeId,
