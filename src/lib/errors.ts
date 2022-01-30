@@ -79,6 +79,10 @@ export const Errors = {
         code: 217,
         message: "Cannot create self safe."
     },
+    IncentivizationComplete:{
+        code: 218,
+        message: "Incentivization already submitted."
+    },
     TransactionFailure: {
         code: 31,
         message: "Transaction Failed"

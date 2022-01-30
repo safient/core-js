@@ -24,4 +24,7 @@ export const ClaimStages = {
     threadDB,
     mongoDB
   }
-  
+   export enum ProofSubmission{
+     Not_Submitted,
+     Submitted
+   }

@@ -68,7 +68,8 @@ export interface Safe {
   claimType: Types.ClaimType;
   signalingPeriod: number,
   dDay: number,
-  timeStamp: number
+  timeStamp: number,
+  proofSubmission: boolean
 };
 
 export type SafeCreation = {
@@ -84,7 +85,8 @@ export type SafeCreation = {
   claimType: Types.ClaimType;
   signalingPeriod: number,
   dDay: number,
-  timeStamp: number
+  timeStamp: number,
+  proofSubmission: boolean
 };
 
 

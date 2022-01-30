@@ -335,7 +335,8 @@ export class SafientCore {
             claimType: claimType,
             signalingPeriod: signalingPeriod,
             dDay: dDay,
-            timeStamp: Date.now()
+            timeStamp: Date.now(),
+            proofSubmission: false
           };
   
           const safe: string[] = await createSafe(data);
@@ -905,7 +906,7 @@ export class SafientCore {
 
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
-      if (safe.stage === SafeStages.CLAIMED) {
+      if (safe.proofSubmission === false && safe.decSafeKeyShards.length >= 2) {
         const decShards: DecShard[] = safe.decSafeKeyShards
         decShards.map((shard) => {
             shards.push(shard.share);
@@ -931,9 +932,22 @@ export class SafientCore {
             safeId
           );
         }
+        if(result){
+          safe.proofSubmission = result
+          await this.database.save(safe, "Safes")
+          return new SafientResponse({data: result});
+        }else{
+          throw new SafientResponse({error: Errors.IncentivizationFailure})
+        }
+      }else{
+        throw new SafientResponse({error: Errors.IncentivizationComplete})
       }
-      return new SafientResponse({data: result});
-    } catch (e) {
+    } catch (err) {
+      if(err instanceof SafientResponse){
+        if(err.error?.code === Errors.IncentivizationComplete.code){
+          throw new SafientResponse({error: Errors.IncentivizationComplete})
+        }
+      }
       throw new SafientResponse({error: Errors.IncentivizationFailure})
     }
   };
