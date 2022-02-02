@@ -901,11 +901,12 @@ export class SafientCore {
       let shards: any = [];
       let guardianArray: any = [];
       let guardianSecret: string[] = [];
-      let result: boolean = false;
+      let txResponse: TransactionResponse
+      let txReceipt: TransactionReceipt | undefined
 
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
-      if (safe.proofSubmission === false && safe.decSafeKeyShards.length >= 2) {
+      if (!safe.proofSubmission && safe.decSafeKeyShards.length >= 2) {
         const decShards: DecShard[] = safe.decSafeKeyShards
         decShards.map((shard) => {
             shards.push(shard.share);
@@ -923,18 +924,19 @@ export class SafientCore {
             guardianArray.push(guardianTuple);
           });
 
-          result = await this.contract.guardianProof(
+          txResponse = await this.contract.guardianProof(
             JSON.stringify(message),
             reconstructedData.signature,
             guardianArray,
             guardianSecret,
             safeId
           );
+          txReceipt = await txResponse.wait();
         }
-        if(result){
-          safe.proofSubmission = result
+        if(txReceipt?.status){
+          safe.proofSubmission = true
           await this.database.save(safe, "Safes")
-          return new SafientResponse({data: result});
+          return new SafientResponse({data: true});
         }else{
           throw new SafientResponse({error: Errors.IncentivizationFailure})
         }
@@ -951,6 +953,7 @@ export class SafientCore {
     }
   };
 
+ 
   /**
    * This function returns the total guardian reward balance of a guardian
    * @param address The address of the guardian
