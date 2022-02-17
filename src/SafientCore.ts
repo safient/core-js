@@ -16,11 +16,12 @@ import {
   Signer,
   UserResponse,
   SafeRecovered,
-  SafeCreationResponse,
   SafeStore,
   GenericError,
   DecShard,
   CeramicDefintions,
+  ClaimResponse,
+  EventResponse,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -279,13 +280,9 @@ export class SafientCore {
     claimType: number,
     signalingPeriod: number,
     dDay: number
-  ): Promise<SafientResponse<string>> => {
+  ): Promise<SafientResponse<EventResponse>> => {
     try {
-      let response: SafeCreationResponse = {
-        status: false,
-        safeId: null,
-        error: null,
-      };
+      
       let guardians: User[] = [];
       let txReceipt: TransactionReceipt | undefined;
 
@@ -443,8 +440,15 @@ export class SafientCore {
             console.log('Transaction Failed!');
             throw new SafientResponse({error: Errors.TransactionFailure})
           }
-          
-          return new SafientResponse({data: safe[0]})
+          const result: EventResponse = {
+            id: safe[0],
+            recepient: {
+                name: beneficiaryUser[0].name,
+                email: beneficiaryUser[0].email,
+                phone: '917892276291',
+              }
+          }
+          return new SafientResponse({data: result})
         } else {
          throw new SafientResponse({error: Errors.SafeNotCreated})
         }
@@ -494,7 +498,7 @@ export class SafientCore {
    * @param description Decscription of the evidence and claim being submitted
    * @returns Dispute Number generated for the claim
    */
-  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<number>> => {
+  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<EventResponse>> => {
     try {
       let evidenceUri: string = '';
       let tx: TransactionResponse;
@@ -613,6 +617,7 @@ export class SafientCore {
                 createdBy: this.connection.idx?.id,
                 claimStatus: ClaimStages.ACTIVE,
                 disputeId: disputeId,
+                timeStamp: Date.now()
               },
             ];
           } else {
@@ -620,11 +625,21 @@ export class SafientCore {
               createdBy: this.connection.idx?.id,
               claimStatus: ClaimStages.ACTIVE,
               disputeId: disputeId,
+              timeStamp: Date.now()
             });
           }
           await this.database.save(safe, 'Safes');
         }
-        return new SafientResponse({data: disputeId});
+
+        const claimResponse: EventResponse = {
+         id: dispute.toString(),
+         recepient: {
+           name: creatorUser[0].name,
+           email: creatorUser[0].email,
+           phone: '+917892276291'
+         }
+        }
+        return new SafientResponse({data: claimResponse});
       }else{
         throw new SafientResponse({error: Errors.WalletBalance})
       }
@@ -885,6 +900,7 @@ export class SafientCore {
       if (txReceipt.status === 1) {
         await this.updateStage(safeId, ClaimStages.ACTIVE, SafeStages.ACTIVE);
       }
+
       return new SafientResponse({data: txReceipt});
     } catch (err) {
       throw new SafientResponse({error: Errors.SignalCreateFailure})

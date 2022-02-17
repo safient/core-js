@@ -93,7 +93,8 @@ export type SafeCreation = {
 export type Claim = {
   createdBy: string | undefined;
   claimStatus: number;
-  disputeId: number
+  disputeId: number;
+  timeStamp: number;
 }
 
 export type Shard = {
@@ -162,9 +163,27 @@ export type SafeRecovered = {
 }
 
 export type SafeCreationResponse = {
-  status: boolean;
-  safeId: string | null;
-  error: Error | null
+  safeId: string;
+  creatorEmail: string;
+  beneficiaryEmail: string;
+  phoneNo: string;
+}
+
+export type ClaimResponse = {
+  disputeId: string;
+  creatorEmail: string;
+  phoneNo: string;
+}
+
+export type EventResponse = {
+  id: string;
+  recepient: Recepient
+}
+
+export type Recepient = {
+  name: string,
+  email: string,
+  phone: string,
 }
 
 export type SecretSafe = {
