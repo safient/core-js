@@ -39,7 +39,6 @@ export const checkUser = async(email: string): Promise<RegisterStatus> =>{
     try{
         let registerStatus: RegisterStatus
         const result: User[] = await database.read<User>('email', email, 'Users')
-
         if(result.length === 1){
             registerStatus = {
                 status: true,

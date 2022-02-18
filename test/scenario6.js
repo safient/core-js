@@ -211,14 +211,15 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
       0,
       now + 120 // 2 mins after the safe creation
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
 
   it('Should create a claim - Before D-Day (claim should FAIL)', async () => {
       try{
-        disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+        const res = await beneficiarySc.createClaim(safeId, {}, '', '');
+        disputeId = parseInt(res.data.id)
       }catch(err){
         expect(err.error.code).to.eql(209)
       }
@@ -235,10 +236,11 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     });
     const result = await mineNewBlock;
 
-    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    const res = await beneficiarySc.createClaim(safeId, {}, '', '');
+    disputeId = parseInt(res.data.id)
 
     // check claim status
-    const claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId.data);
+    const claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
     expect(claimResult).to.equal(1); // claim got Passed (after D-Day)
   });
 
@@ -268,14 +270,15 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
       0,
       now + 120 // 2 mins after the safe creation
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
 
     // create a claim - before D-Day (2 mins) (claim should fail)
-    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    const res = await beneficiarySc.createClaim(safeId, {}, '', '');
+    disputeId = parseInt(res.data.id)
     // check claim status
-    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId.data);
+    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
     expect(claimResult).to.equal(2); // claim got Failed (before D-Day)
 
     // update the D-Day to 60 secs from the time of updating
@@ -293,9 +296,10 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     const result1 = await mineNewBlock;
 
     // create a claim - before D-Day (after 10 secs but before 60 secs) (claim should fail)
-    disputeId = await beneficiarySc.createClaim(safeId, {}, '', '');
+    const newRes = await beneficiarySc.createClaim(safeId, {}, '', '');
+    disputeId = parseInt(newRes.data.id);
     // check claim status
-    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId.data);
+    claimResult = await beneficiarySc.getClaimStatus(safeId, disputeId);
     expect(claimResult).to.equal(2); // claim got Failed (before D-Day)
 
     // mine a new block after 50 seconds

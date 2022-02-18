@@ -207,7 +207,7 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       6,
       0
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
@@ -217,8 +217,9 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
+    expect(disputeId).to.be.a('number');
   });
 
   it('Should send signal after claim', async () => {
@@ -230,20 +231,17 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
     const mineNewBlock = new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve(provider.send('evm_mine'));
       }, 7000);
     });
     const result = await mineNewBlock;
-    expect(disputeId.data).to.be.a('number');
+    expect(disputeId).to.be.a('number');
   });
 
-  // it('Should update the stage on threadDB', async () => {
-  //   const result = await beneficiarySc.syncStage(safeId);
-  //   expect(result.data).to.equal(true);
-  // });
 
   it('Should initiate recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
