@@ -445,7 +445,7 @@ export class SafientCore {
             recepient: {
                 name: beneficiaryUser[0].name,
                 email: beneficiaryUser[0].email,
-                phone: '917892276291',
+                phone: '',
               }
           }
           return new SafientResponse({data: result})
@@ -636,7 +636,7 @@ export class SafientCore {
          recepient: {
            name: creatorUser[0].name,
            email: creatorUser[0].email,
-           phone: '+917892276291'
+           phone: ''
          }
         }
         return new SafientResponse({data: claimResponse});
