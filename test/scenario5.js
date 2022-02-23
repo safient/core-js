@@ -194,6 +194,8 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
       data: generic,
     };
     const safeid = await creatorSc.createSafe(
+      "Signal based",
+      "generic safe i.e Signal based",
       creator.data.did,
       beneficiary.data.did,
       safeData,

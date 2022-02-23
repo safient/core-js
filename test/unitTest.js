@@ -59,7 +59,6 @@ describe('Unit test', async () => {
     const userAddress = await creatorSigner.getAddress();
     try{
       creator = await creatorSc.loginUser();
-      console.log(creator)
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
         creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
@@ -203,6 +202,8 @@ describe('Unit test', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
+      "On Chain Unit test",
+      "Crytpo safe with seed phrase",
       creator.data.did,
       beneficiary.data.did,
       safeData,

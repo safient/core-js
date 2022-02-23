@@ -199,6 +199,8 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     };
 
     const safeid = await creatorSc.createSafe(
+      "On Chain Wallet - signal based",
+      "Hardware wallet instructions",
       creator.data.did,
       beneficiary.data.did,
       safeData,

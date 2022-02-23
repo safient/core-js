@@ -199,6 +199,8 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         };
 
         const safeid = await creatorSc.createSafe(
+          "On chain safe",
+          "Software Wallet",
           creator.data.did,
           beneficiary.data.did,
           safeData,

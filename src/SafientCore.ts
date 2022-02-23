@@ -273,6 +273,8 @@ export class SafientCore {
    * @returns ID generated for the Safe
    */
   createSafe = async (
+    safeName: string,
+    description: string,
     creatorDID: string,
     beneficiaryDID: string,
     safeData: SafeStore,
@@ -322,6 +324,8 @@ export class SafientCore {
           );
   
           const data: SafeCreation = {
+            safeName: safeName,
+            description: description,
             creator: this.connection.idx?.id,
             guardians: guardiansDid,
             beneficiary: beneficiaryDID,
@@ -507,6 +511,7 @@ export class SafientCore {
       let createSafetx: TransactionResponse;
       let createSafetxReceipt: any;
       let dispute: any;
+      let timeStamp: number = 0;
       const userBalance: BigNumber = await this.signer.getBalance()
       let etherBalance = ethers.utils.formatEther(userBalance)
 
@@ -596,16 +601,19 @@ export class SafientCore {
         if (txReceipt.status === 1) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              dispute = txReceipt.events[2].args[2];
+              dispute = txReceipt.events[2].args[1];
+              timeStamp = parseInt(txReceipt.events[2].args[2]._hex)
               disputeId = parseInt(dispute._hex);
             }
           } else if (safe.claimType === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              dispute = txReceipt.events[0].args[2];
+              dispute = txReceipt.events[0].args[1];
+              timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
               disputeId = parseInt(dispute._hex);
             }
           } else if (safe.claimType === Types.ClaimType.DDayBased) {
-            dispute = txReceipt.events[0].args[2];
+            dispute = txReceipt.events[0].args[1];
+            timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
             disputeId = parseInt(dispute._hex);
           }
   
@@ -617,7 +625,7 @@ export class SafientCore {
                 createdBy: this.connection.idx?.id,
                 claimStatus: ClaimStages.ACTIVE,
                 disputeId: disputeId,
-                timeStamp: Date.now()
+                timeStamp: timeStamp
               },
             ];
           } else {
@@ -625,7 +633,7 @@ export class SafientCore {
               createdBy: this.connection.idx?.id,
               claimStatus: ClaimStages.ACTIVE,
               disputeId: disputeId,
-              timeStamp: Date.now()
+              timeStamp: timeStamp
             });
           }
           await this.database.save(safe, 'Safes');

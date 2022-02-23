@@ -196,6 +196,8 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
+      "Off Chain",
+      "this safe creates offchain private key safe",
       creator.data.did,
       beneficiary.data.did,
       safeData,
