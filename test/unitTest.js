@@ -202,6 +202,8 @@ describe('Unit test', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
+      "On Chain Unit test",
+      "Crytpo safe with seed phrase",
       creator.data.did,
       beneficiary.data.did,
       safeData,
@@ -210,9 +212,10 @@ describe('Unit test', async () => {
       0,
       0
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
+    expect(safe.data.safeName).to.equal("On Chain Unit test")
   });
 
   //Step 3: Create a claim
@@ -220,14 +223,15 @@ describe('Unit test', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const result = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = result.data.id
+    expect(disputeId).to.be.a('string');
   });
 
   it('Should give Ruling for the dispute', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
 
-    const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+    const result = await sc.giveRuling(parseInt(disputeId), 1); //Passing a claim
     expect(result.data).to.equal(true);
   });
 

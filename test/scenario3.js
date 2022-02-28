@@ -199,6 +199,8 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         };
 
         const safeid = await creatorSc.createSafe(
+          "On chain safe",
+          "Software Wallet",
           creator.data.did,
           beneficiary.data.did,
           safeData,
@@ -207,7 +209,7 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
           0,
           0
         );
-        safeId = safeid.data;
+        safeId = safeid.data.id;
         const safe = await creatorSc.getSafe(safeId);
         expect(safe.data.creator).to.equal(creator.data.did);
       });
@@ -216,8 +218,9 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         const file = {
           name: 'signature.jpg',
         };
-        disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-        expect(disputeId.data).to.be.a('number');
+        const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+        disputeId = parseInt(res.data.id)
+        expect(disputeId).to.be.a('number');
       });
     });
   });
@@ -226,17 +229,10 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     it('Should PASS ruling on the dispute', async () => {
       const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret, null);
 
-      const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+      const result = await sc.giveRuling(disputeId, 1); //Passing a claim
       expect(result.data).to.equal(true);
     });
   });
-
-  // describe('Sync safe stage', async () => {
-  //   it('Updates the safe stage on threadDB according to the ruling', async () => {
-  //     const result = await beneficiarySc.syncStage(safeId);
-  //     expect(result.data).to.equal(true);
-  //   });
-  // });
 
   describe('Guardian recovery', async () => {
     it('Recovery done by guardian 1', async () => {

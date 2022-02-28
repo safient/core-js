@@ -196,6 +196,8 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
+      "Off Chain",
+      "this safe creates offchain private key safe",
       creator.data.did,
       beneficiary.data.did,
       safeData,
@@ -204,7 +206,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       0,
       0
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
@@ -214,13 +216,14 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const result = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(result.data.id)
+    expect(disputeId).to.be.a('number');
   });
 
   it('Should PASS the dispute', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+    const result = await sc.giveRuling(disputeId, 1); //Passing a claim
     expect(result.data).to.equal(true);
   });
 

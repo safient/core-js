@@ -200,6 +200,8 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     };
 
     const safeid = await creatorSc.createSafe(
+      "On Chain",
+      "This creates onChain keystore safe",
       creator.data.did,
       beneficiary.data.did,
       safeData,
@@ -208,7 +210,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
       0,
       0
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
@@ -218,8 +220,9 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
+    expect(disputeId).to.be.a('number');
   });
 
   it('Should try to create another claim', async () => {
@@ -240,34 +243,27 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
   it('Should FAIL the dispute on Claim 1', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
 
-    const result = await sc.giveRuling(disputeId.data, 2); //Passing a claim
+    const result = await sc.giveRuling(disputeId, 2); //Passing a claim
     expect(result.data).to.equal(true);
   });
 
-  // it('Should update the stage on threadDB', async () => {
-  //   const result = await beneficiarySc.syncStage(safeId);
-  //   expect(result.data).to.equal(true);
-  // });
 
   it('Should try to create Claim 2', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
+    expect(disputeId).to.be.a('number');
   });
 
   it('Should PASS the dispute on Claim 2', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
 
-    const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+    const result = await sc.giveRuling(disputeId, 1); //Passing a claim
     expect(result.data).to.equal(true);
   });
 
-  // it('Should update the stage on threadDB', async () => {
-  //   const result = await beneficiarySc.syncStage(safeId);
-  //   expect(result.data).to.equal(true);
-  // });
 
   it('Should initiate recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
