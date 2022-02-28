@@ -215,6 +215,7 @@ describe('Unit test', async () => {
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
+    expect(safe.data.safeName).to.equal("On Chain Unit test")
   });
 
   //Step 3: Create a claim
