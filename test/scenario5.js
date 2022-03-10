@@ -197,12 +197,12 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
       "Signal based",
       "generic safe i.e Signal based",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.SignalBased,
       10,
-      0
+      0,
+      {did: beneficiary.data.did}
     );
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
@@ -220,16 +220,17 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
   });
 
   it('Should send signal after claim', async () => {
-    const result = await creatorSc.createSignal(safeId); //Passing a claim
+    const result = await creatorSc.createSignal(safeId); 
+    console.log(result)//Passing a claim
     expect(result.data.status).to.equal(1);
   });
 
-  it('Should try recovery by guardian 1', async () => {
+  it('Should try recovery by guardian 1 and fail', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
     expect(data.data).to.equal(false);
   });
 
-  it('Should try recovery by guardian 2', async () => {
+  it('Should try recovery by guardian 2 and fail', async () => {
     const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.data.did);
     expect(data.data).to.equal(false);
   });
@@ -237,8 +238,9 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
   it('Should try recovering data for the beneficiary', async () => {
     try{
         const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
+        console.log(data)
     }catch(err){
-        expect(err.error.code).to.eql(203)
+        expect(err.error.code).to.eql(207)
     }
   });
 });

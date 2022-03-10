@@ -202,12 +202,12 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       "On Chain Wallet - signal based",
       "Hardware wallet instructions",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.SignalBased,
       6,
-      0
+      0,
+      {did:beneficiary.data.did}
     );
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);

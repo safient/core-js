@@ -205,12 +205,12 @@ describe('Unit test', async () => {
       "On Chain Unit test",
       "Crytpo safe with seed phrase",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.ArbitrationBased,
       0,
-      0
+      0,
+      {email: 'beneficiary@test.com'}
     );
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
