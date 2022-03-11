@@ -202,12 +202,12 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
           "On chain safe",
           "Software Wallet",
           creator.data.did,
-          beneficiary.data.did,
           safeData,
           true,
           ClaimType.ArbitrationBased,
           0,
-          0
+          0,
+          {did:beneficiary.data.did}
         );
         safeId = safeid.data.id;
         const safe = await creatorSc.getSafe(safeId);

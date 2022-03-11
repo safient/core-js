@@ -276,23 +276,26 @@ export class SafientCore {
     safeName: string,
     description: string,
     creatorDID: string,
-    beneficiaryDID: string,
     safeData: SafeStore,
     onChain: boolean,
     claimType: number,
     signalingPeriod: number,
-    dDay: number
+    dDay: number,
+    beneficiary: { email?: string, did?: string}
   ): Promise<SafientResponse<EventResponse>> => {
     try {
       
       let guardians: User[] = [];
+      let beneficiaryUser: User | null = null;
       let txReceipt: TransactionReceipt | undefined;
 
       //userQueryDid function
       const creatorUser: User[] = await queryUserDid(creatorDID);
-      const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID);
-      const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
-      if(creatorDID !== beneficiaryDID){
+      const beneficiaryResult: SafientResponse<User> = await this.getUser(beneficiary)
+      beneficiaryUser = beneficiaryResult.data!
+   
+      const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryUser.did);
+      if(creatorDID !== beneficiaryUser._id){
         if (guardiansDid.length > 1) {
           for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
             try{  
@@ -314,7 +317,7 @@ export class SafientCore {
   
           const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
             safeData,
-            beneficiaryDID,
+            beneficiaryUser!.did,
             this.connection.idx?.id,
             this.connection,
             guardiansDid,
@@ -328,7 +331,7 @@ export class SafientCore {
             description: description,
             creator: this.connection.idx?.id,
             guardians: guardiansDid,
-            beneficiary: beneficiaryDID,
+            beneficiary: beneficiaryUser?.did,
             encSafeKey: encryptedSafeData.creatorEncKey,
             encSafeData: encryptedSafeData.encryptedData,
             stage: SafeStages.ACTIVE,
@@ -356,7 +359,7 @@ export class SafientCore {
             if (claimType === Types.ClaimType.ArbitrationBased) {
               const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
               const tx: TransactionResponse = await this.contract.createSafe(
-                beneficiaryUser[0].userAddress,
+                beneficiaryUser!.userAddress,
                 safe[0],
                 claimType,
                 signalingPeriod,
@@ -368,7 +371,7 @@ export class SafientCore {
             } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
               const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
               const tx: TransactionResponse = await this.contract.createSafe(
-                beneficiaryUser[0].userAddress,
+                beneficiaryUser!.userAddress,
                 safe[0],
                 claimType,
                 signalingPeriod,
@@ -384,6 +387,7 @@ export class SafientCore {
             if (creatorUser[0].safes.length === 0) {
               creatorUser[0].safes = [
                 {
+                  safeName: safeName,
                   safeId: safe[0],
                   type: 'creator',
                   decShard: null
@@ -391,22 +395,25 @@ export class SafientCore {
               ];
             } else {
               creatorUser[0].safes.push({
+                safeName: safeName,
                 safeId: safe[0],
                 type: 'creator',
                 decShard: null
               });
             }
   
-            if (beneficiaryUser[0].safes.length === 0) {
-              beneficiaryUser[0].safes = [
+            if (beneficiaryUser!.safes.length === 0) {
+              beneficiaryUser!.safes = [
                 {
+                  safeName: safeName,
                   safeId: safe[0],
                   type: 'beneficiary',
                   decShard: null
                 },
               ];
             } else {
-              beneficiaryUser[0].safes.push({
+              beneficiaryUser!.safes.push({
+                safeName: safeName,
                 safeId: safe[0],
                 type: 'beneficiary',
                 decShard: null
@@ -417,6 +424,7 @@ export class SafientCore {
               if (guardians[guardianIndex].safes.length === 0) {
                 guardians[guardianIndex].safes = [
                   {
+                    safeName: safeName,
                     safeId: safe[0],
                     type: 'guardian',
                     decShard: null
@@ -424,6 +432,7 @@ export class SafientCore {
                 ];
               } else {
                 guardians[guardianIndex].safes.push({
+                  safeName: safeName,
                   safeId: safe[0],
                   type: 'guardian',
                   decShard: null
@@ -432,7 +441,7 @@ export class SafientCore {
             }
   
             await this.database.save(creatorUser[0], 'Users');
-            await this.database.save(beneficiaryUser[0], 'Users');
+            await this.database.save(beneficiaryUser, 'Users');
   
             for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
               await this.database.save(guardians[guardianIndex], 'Users');
@@ -447,8 +456,8 @@ export class SafientCore {
           const result: EventResponse = {
             id: safe[0],
             recepient: {
-                name: beneficiaryUser[0].name,
-                email: beneficiaryUser[0].email,
+                name: beneficiaryUser!.name,
+                email: beneficiaryUser!.email,
                 phone: '',
               }
           }

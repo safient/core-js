@@ -198,13 +198,13 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const safeid = await creatorSc.createSafe(
       "Off Chain",
       "this safe creates offchain private key safe",
-      creator.data.did,
-      beneficiary.data.did,
+      creator.data.did,    
       safeData,
       false,
       ClaimType.ArbitrationBased,
       0,
-      0
+      0,
+      {did:beneficiary.data.did}
     );
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
@@ -246,6 +246,12 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
     expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
+
+  it('Should recover data for the creator', async () => {
+    const data = await creatorSc.recoverSafeByCreator(safeId);
+    expect(data.data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
+  });
+
 
   it('Should submit proofs for the guardians', async () => {
     const result = await guardianOneSc.incentiviseGuardians(safeId);

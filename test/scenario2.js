@@ -203,12 +203,12 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
       "On Chain",
       "This creates onChain keystore safe",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.ArbitrationBased,
       0,
-      0
+      0,
+      {did:beneficiary.data.did}
     );
     safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);

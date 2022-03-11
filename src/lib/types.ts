@@ -48,6 +48,7 @@ export type UserMeta = {
 
 
 export type SafeMeta = {
+  safeName: string
   safeId: string;
   type: string;
   decShard: DecShard | null
