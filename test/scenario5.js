@@ -221,7 +221,6 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
 
   it('Should send signal after claim', async () => {
     const result = await creatorSc.createSignal(safeId); 
-    console.log(result)//Passing a claim
     expect(result.data.status).to.equal(1);
   });
 

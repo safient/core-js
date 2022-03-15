@@ -493,7 +493,7 @@ export class SafientCore {
         result.claims[result.claims.length - 1].claimStatus = claimStatus
         if(claimStatus === ClaimStages.PASSED){
           result.stage = SafeStages.RECOVERING
-        }else{
+        }else if(claimStatus === ClaimStages.FAILED || claimStatus ===  ClaimStages.REJECTED){
           result.stage = SafeStages.ACTIVE
         }
       }
@@ -597,8 +597,8 @@ export class SafientCore {
           }
   
           if (createSafetxReceipt.status === 1) {
-            evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
             if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+              evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
               tx = await this.contract.createClaim(safe._id, evidenceUri);
             } else {
               tx = await this.contract.createClaim(safe._id, '');
