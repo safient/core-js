@@ -528,7 +528,7 @@ export class SafientCore {
       const safe = safeData.data!;
       let creatorUser: User[] = await queryUserDid(safe.creator);
       
-      if(parseInt(etherBalance) >= 0.1){
+      if(parseFloat(etherBalance) >= 0.1){
         if (safe.onChain === true ) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
