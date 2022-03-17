@@ -18,6 +18,7 @@ import {
   SafeRecovered,
   SafeStore,
   GenericError,
+  SafeLink,
   DecShard,
   CeramicDefintions,
   ClaimResponse,
@@ -36,6 +37,7 @@ import {
   queryUserDid,
   updateStage,
   createUser,
+  createIpfsSafeLink,
   deleteDecShard,
   updateDecShard,
   getDecShards,
@@ -325,6 +327,22 @@ export class SafientCore {
             secretsData.recoveryMessage,
             secretsData.secrets
           );
+
+          const safeLinkData: SafeLink = {
+            creator: this.connection.idx?.id!,
+            guardians: guardiansDid,
+            beneficiary: beneficiaryUser.did,
+            encSafeKey: encryptedSafeData.creatorEncKey,
+            encSafeData: encryptedSafeData.encryptedData,
+            encSafeKeyShards: encryptedSafeData.shardData,
+            onChain: onChain,
+            claimType: claimType,
+            signalingPeriod: signalingPeriod,
+            dDay: dDay,
+            timeStamp: Date.now()
+          }
+  
+          const safeLink = await createIpfsSafeLink(safeLinkData);
   
           const data: SafeCreation = {
             safeName: safeName,
@@ -342,7 +360,8 @@ export class SafientCore {
             signalingPeriod: signalingPeriod,
             dDay: dDay,
             timeStamp: Date.now(),
-            proofSubmission: false
+            proofSubmission: false,
+            cid: safeLink
           };
   
           const safe: string[] = await createSafe(data);

@@ -1,5 +1,8 @@
 const fetch = require("node-fetch");
 const encoder = new TextEncoder();
+const {create} = require('ipfs-http-client')
+
+const client = create(`https://ipfs.safient.io/api/v0`)
 
 export const ipfsPublish = async (fileName, data) => {
     const encodedData = encoder.encode(data)
@@ -19,4 +22,19 @@ export const ipfsPublish = async (fileName, data) => {
         .then((success) => resolve(success.data))
         .catch((err) => reject(err));
     });
+  };
+
+  export const ipfsAdd = async (data) => {
+    try{
+      const result = await client.add(data)
+      return result
+    }catch(e){
+      throw new Error(`Error while adding data to IPFS, ${e}`)
+    }
+  };
+
+  export const ipfsGet = async (cid) => {
+    const result = await client.cat(cid);
+    return result
+
   };

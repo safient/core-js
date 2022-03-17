@@ -3,7 +3,7 @@ import {Database} from "../database"
 import {Storage} from "../storage/index"
 import {DatabaseType} from "../lib/enums"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils, DecShard } from "../lib/types";
+import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils, SafeLink, DecShard } from "../lib/types";
 
 var environment = require("browser-or-node");
 
@@ -322,7 +322,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
             descriptions: ['The claimer is qualified for inheritence', 'The claimer is not qualified for inheritence'],
           },
         };
-        const cid: any = await storage.add('metaEvidence.json', JSON.stringify(metaevidenceObj));
+        const cid: any = await storage.add(JSON.stringify(metaevidenceObj), 'metaEvidence.json');
         const metaevidenceURI: string = `/ipfs/${cid[1].hash}${cid[0].path}`;
         return metaevidenceURI
   }catch(err){
@@ -346,7 +346,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
             reader.onloadend = () => {
                 buffer = Buffer.from(reader.result);
             };
-            const fileCid = await storage.add(fileName, buffer);
+            const fileCid = await storage.add(buffer, fileName);
             const fileURI = `/ipfs/${fileCid[1].hash}${fileCid[0].path}`;
             evidenceObj = {
               fileURI,
@@ -355,7 +355,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
               name: evidenceName,
               description: description,
             };
-         cid = await storage.add('evidence.json', JSON.stringify(evidenceObj));
+         cid = await storage.add(JSON.stringify(evidenceObj), 'evidence.json');
          evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
 
         }
@@ -368,7 +368,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
                 description: description,
               };
               //evidenceURI = `ipfs/QmXK5Arf1jWtox5gwVLX2jvoiJvdwiVsqAA2rTu7MUGBDF/signature.jpg`
-              cid = await storage.add('evidence.json', JSON.stringify(evidenceObj));
+              cid = await storage.add(JSON.stringify(evidenceObj), 'evidence.json');
               evidenceURI = `/ipfs/${cid[1].hash}${cid[0].path}`;
         }
         }
@@ -384,6 +384,16 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
 
   }
 
+  export const createIpfsSafeLink = async (safeData: SafeLink): Promise<string> => {
+    try{
+      
+        const cid: any = await storage.create(JSON.stringify(safeData));
+        const safeLink: string = `https://ipfs.safient.io/ipfs/${cid.path}`;
+        return safeLink
+  }catch(err){
+      throw new Error(`Error while creating IPFS Safe Link, ${err}`)
+  }
+  }
   export const updateDecShard = async(did: string, safeId: string, decShard: DecShard): Promise<boolean> => {
     try{
       const user: User | null = await getUser({ did: did });
