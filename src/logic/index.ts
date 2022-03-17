@@ -388,7 +388,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
     try{
       
         const cid: any = await storage.create(JSON.stringify(safeData));
-        const safeLink: string = `https://ipfs.io/ipfs/${cid.path}`;
+        const safeLink: string = `https://ipfs.safient.io/ipfs/${cid.path}`;
         return safeLink
   }catch(err){
       throw new Error(`Error while creating IPFS Safe Link, ${err}`)
