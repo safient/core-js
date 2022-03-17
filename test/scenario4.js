@@ -49,6 +49,7 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
   });
 
   //Step 1: Register all users
+  
   it('Should register a Creator', async () => {
     creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
     const userAddress = await creatorSigner.getAddress();
@@ -56,12 +57,12 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       creator = await creatorSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
       }
     }
     
     try{
-      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -82,14 +83,14 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       beneficiary = await beneficiarySc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
 
       }
     }
 
 
     try{
-      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -111,12 +112,12 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       guardianOne = await guardianOneSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
       }
     }
 
     try{
-      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -136,13 +137,13 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       guardianTwo = await guardianTwoSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
 
       }
     }
 
     try{
-      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -167,13 +168,13 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       guardianThree = await guardianThreeSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
       }
     }
 
 
     try{
-      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -198,15 +199,17 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     };
 
     const safeid = await creatorSc.createSafe(
+      "On Chain Wallet - signal based",
+      "Hardware wallet instructions",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.SignalBased,
       6,
-      0
+      0,
+      {did:beneficiary.data.did}
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
@@ -216,8 +219,9 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
+    expect(disputeId).to.be.a('number');
   });
 
   it('Should send signal after claim', async () => {
@@ -229,20 +233,17 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = parseInt(res.data.id)
     const mineNewBlock = new Promise((resolve, reject) => {
       setTimeout(() => {
         resolve(provider.send('evm_mine'));
       }, 7000);
     });
     const result = await mineNewBlock;
-    expect(disputeId.data).to.be.a('number');
+    expect(disputeId).to.be.a('number');
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
 
   it('Should initiate recovery by guardian 1', async () => {
     const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);

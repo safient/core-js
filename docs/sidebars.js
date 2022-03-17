@@ -51,6 +51,15 @@ module.exports = {
             },
           ],
         },
+        {
+          type: 'category',
+          label: 'Safient CLI',
+          collapsible: true,
+          collapsed: true,
+          items: [
+            'cli-getting-started',
+          ],
+        },
       ],
     },
     'roadmap',

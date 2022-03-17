@@ -25,8 +25,12 @@ export const ipfsPublish = async (fileName, data) => {
   };
 
   export const ipfsAdd = async (data) => {
-    const result = await client.add(data)
-    return result
+    try{
+      const result = await client.add(data)
+      return result
+    }catch(e){
+      throw new Error(`Error while adding data to IPFS, ${e}`)
+    }
   };
 
   export const ipfsGet = async (cid) => {

@@ -29,7 +29,7 @@ export class Storage {
                 return result;
             }
         }catch(err){
-            throw new Error("Error while publishing data")
+            throw new Error(`Error while publishing data, ${err}`)
         } 
     }
 

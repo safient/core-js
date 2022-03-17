@@ -1,1 +1,12 @@
-{"definitions":{"profile":"kjzl6cwe1jw14b5uhgh5l21fshwsks6jz4mq69n3byfzzr2xqcaadokddpw00m4","portfolio":"kjzl6cwe1jw14awwcwdsl9dwfp62rckmqggfe1l0cth056mvvwateygt7bbhm3g","encryptionKey":"kjzl6cwe1jw145c9o5t292vmxp9rskmg176uf2i2ypkvoiug3q2qj0r2zofx2i4"},"schemas":{"profile":"ceramic://k3y52l7qbv1fryn7chxeaw4m8obyy41cn98qzxpdvu43bqy869v7v7yqsdk9ip91c","portfolio":"ceramic://k3y52l7qbv1frykvvtnbjjwordq8c69heilczhbt6pfo3pskgo5f5gcdrogwrf6rk","encryptionKey":"ceramic://k3y52l7qbv1fryc7hcfmioftj30yb2w7ilbhl2ug58odvmaf8wegh1dllx1we9udc"}}
+{
+  "definitions": {
+    "profile": "kjzl6cwe1jw14bg00pp2o45fczfeeg1ewyh62wm5okfvuyw6dw6kdsbm4v7y7pk",
+    "portfolio": "kjzl6cwe1jw14897mo6aqujqgib6txzap9z1uhs59rh0r0eb3z4pdzusxkq6rlq",
+    "encryptionKey": "kjzl6cwe1jw147q78vcekjld9ynbpkedeaubspq1gp40da9xfkqswt1ioj7ausq"
+  },
+  "schemas": {
+    "profile": "ceramic://k3y52l7qbv1frxzbyopzgl2wb915wv2auo9c28s13xp2gajjfrme4vaac526lxmgw",
+    "portfolio": "ceramic://k3y52l7qbv1frxqp3vqgnohk3zsgrkt7bw4bqde3qcph9p5v2lm29min4dufaaby8",
+    "encryptionKey": "ceramic://k3y52l7qbv1frxsi6ea7qmnshpvxh68lx35t9nkwqgnhgwn3i4n648u0x6eo2ga9s"
+  }
+}

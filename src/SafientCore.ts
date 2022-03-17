@@ -1,7 +1,7 @@
 import { IDX } from '@ceramicstudio/idx';
 import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import { SafientMain, Arbitrator, Types } from '@safient/contracts';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 
 import {
   Connection,
@@ -16,10 +16,13 @@ import {
   Signer,
   UserResponse,
   SafeRecovered,
-  SafeCreationResponse,
   SafeStore,
   GenericError,
   SafeLink,
+  DecShard,
+  CeramicDefintions,
+  ClaimResponse,
+  EventResponse,
 } from './lib/types';
 import { definitions } from './utils/config.json';
 import {
@@ -35,6 +38,9 @@ import {
   updateStage,
   createUser,
   createIpfsSafeLink,
+  deleteDecShard,
+  updateDecShard,
+  getDecShards,
 } from './logic/index';
 import { Database } from './database';
 import { Crypto } from './crypto';
@@ -76,6 +82,13 @@ export class SafientCore {
   private threadId: number[];
   /**@ignore */
   private chainId: number;
+  /**@ignore */
+  private CERAMIC_URL: string
+  /**@ignore */
+  private ceramicDefintions: CeramicDefintions
+  /**@ignore */
+  private guardianFee: number = 0.1;
+  
 
   /**
    * Constructor to initilize the Core SDK
@@ -98,7 +111,9 @@ export class SafientCore {
     this.signer = signer;
     this.provider = this.provider;
     this.chainId = Networks[network].chainId;
-    if (threadId === undefined) {
+    this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL
+    this.ceramicDefintions = Networks[network].ceramic.config
+    if (!threadId) {
       this.threadId = Networks[network].threadId;
     } else {
       this.threadId = threadId!;
@@ -119,9 +134,8 @@ export class SafientCore {
   loginUser = async (): Promise<SafientResponse<User>> => {
     try {
 
-
       const seed = await this.signature.sign();
-      const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed));
+      const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed), this.CERAMIC_URL, this.ceramicDefintions);
       const { client, threadId } = await this.auth.generateThread(seed, this.apiKey, this.apiSecret, this.threadId);
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
@@ -129,7 +143,7 @@ export class SafientCore {
       this.crypto = this.Utils.crypto;
       this.database = this.Utils.database;
       const userData: SafientResponse<User> = await this.getUser({ did: idx?.id });
-      if (userData.data !== undefined) {
+      if (userData.data) {
        return userData
       } else {
          throw new SafientResponse({error: Errors.UserNotFound})
@@ -152,7 +166,7 @@ export class SafientCore {
    * @param userAddress Metamask address of the user
    * @returns User registration ID
    */
-  createUser = async (name: string, email: string, signUpMode: number, userAddress: string): Promise<SafientResponse<User>> => {
+  createUser = async (name: string, email: string, signUpMode: number, userAddress: string, guardian: boolean): Promise<SafientResponse<User>> => {
     try {
      
 
@@ -166,11 +180,12 @@ export class SafientCore {
         safes: [],
         signUpMode,
         userAddress,
+        guardian
       };
 
       const result: UserResponse = await createUser(data, this.connection.idx?.id!);
       if (result.status === false) {
-        const ceramicResult = await idx?.set(definitions.profile, {
+        const ceramicResult = await idx?.set(this.ceramicDefintions.definitions.profile, {
           name: name,
           email: email,
         });
@@ -203,7 +218,7 @@ export class SafientCore {
       } else if (obj.email) {
         user = await getUser({ email: obj.email });
       }
-      if (user !== null) {
+      if (user) {
        return new SafientResponse({data: user})
       } else {
         throw new SafientResponse({error: Errors.UserNotFound})
@@ -260,193 +275,219 @@ export class SafientCore {
    * @returns ID generated for the Safe
    */
   createSafe = async (
+    safeName: string,
+    description: string,
     creatorDID: string,
-    beneficiaryDID: string,
     safeData: SafeStore,
     onChain: boolean,
     claimType: number,
     signalingPeriod: number,
-    dDay: number
-  ): Promise<SafientResponse<string>> => {
+    dDay: number,
+    beneficiary: { email?: string, did?: string}
+  ): Promise<SafientResponse<EventResponse>> => {
     try {
-      let response: SafeCreationResponse = {
-        status: false,
-        safeId: null,
-        error: null,
-      };
+      
       let guardians: User[] = [];
+      let beneficiaryUser: User | null = null;
       let txReceipt: TransactionReceipt | undefined;
 
       //userQueryDid function
       const creatorUser: User[] = await queryUserDid(creatorDID);
-      const beneficiaryUser: User[] = await queryUserDid(beneficiaryDID);
-      const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryDID);
-
-      if (guardiansDid.length > 1) {
-        for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-          try{  
-            let guardianData: SafientResponse<User> = await this.getUser({ did: guardiansDid[guardianIndex] });
-            guardians.push(guardianData.data!);
-          }catch(err){
-            if(err instanceof SafientResponse){
-              if(err.error?.code === Errors.UserNotFound.code)
-              throw new SafientResponse({error: Errors.GuardianNotFound});
+      const beneficiaryResult: SafientResponse<User> = await this.getUser(beneficiary)
+      beneficiaryUser = beneficiaryResult.data!
+   
+      const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryUser.did);
+      if(creatorDID !== beneficiaryUser._id){
+        if (guardiansDid.length > 1) {
+          for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
+            try{  
+              let guardianData: SafientResponse<User> = await this.getUser({ did: guardiansDid[guardianIndex] });
+              guardians.push(guardianData.data!);
+            }catch(err){
+              if(err instanceof SafientResponse){
+                if(err.error?.code === Errors.UserNotFound.code)
+                throw new SafientResponse({error: Errors.GuardianNotFound});
+              }
             }
+           
           }
-         
-        }
-
-        const secretsData = this.crypto.generateSecrets(guardians);
-
-        //note 1: Change here
-        const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
-
-        const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
-          safeData,
-          beneficiaryDID,
-          this.connection.idx?.id,
-          this.connection,
-          guardiansDid,
-          signature,
-          secretsData.recoveryMessage,
-          secretsData.secrets
-        );
-
-        const safeLinkData: SafeLink = {
-          creator: this.connection.idx?.id!,
-          guardians: guardiansDid,
-          beneficiary: beneficiaryDID,
-          encSafeKey: encryptedSafeData.creatorEncKey,
-          encSafeData: encryptedSafeData.encryptedData,
-          encSafeKeyShards: encryptedSafeData.shardData,
-          onChain: onChain,
-          claimType: claimType,
-          signalingPeriod: signalingPeriod,
-          dDay: dDay,
-          timeStamp: Date.now()
-        }
-
-        const safeLink = await createIpfsSafeLink(safeLinkData);
-
-        const data: SafeCreation = {
-          creator: this.connection.idx?.id,
-          guardians: guardiansDid,
-          beneficiary: beneficiaryDID,
-          encSafeKey: encryptedSafeData.creatorEncKey,
-          encSafeData: encryptedSafeData.encryptedData,
-          stage: SafeStages.ACTIVE,
-          encSafeKeyShards: encryptedSafeData.shardData,
-          claims: [],
-          onChain: onChain,
-          claimType: claimType,
-          signalingPeriod: signalingPeriod,
-          dDay: dDay,
-          timeStamp: Date.now(),
-          cid: safeLink
-        };
-
-        const safe: string[] = await createSafe(data);
-
-        if (onChain === true) {
-          const metaDataEvidenceUri: string = await createMetaData(
-            '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-            creatorUser[0].userAddress
+  
+          const secretsData = this.crypto.generateSecrets(guardians);
+  
+          //note 1: Change here
+          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
+  
+          const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
+            safeData,
+            beneficiaryUser!.did,
+            this.connection.idx?.id,
+            this.connection,
+            guardiansDid,
+            signature,
+            secretsData.recoveryMessage,
+            secretsData.secrets
           );
 
-          const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-          const guardianFee: number = 0.1;
-
-          if (claimType === Types.ClaimType.ArbitrationBased) {
-            const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
-            const tx: TransactionResponse = await this.contract.createSafe(
-              beneficiaryUser[0].userAddress,
-              safe[0],
-              claimType,
-              signalingPeriod,
-              dDay,
-              metaDataEvidenceUri,
-              totalFee
+          const safeLinkData: SafeLink = {
+            creator: this.connection.idx?.id!,
+            guardians: guardiansDid,
+            beneficiary: beneficiaryUser.did,
+            encSafeKey: encryptedSafeData.creatorEncKey,
+            encSafeData: encryptedSafeData.encryptedData,
+            encSafeKeyShards: encryptedSafeData.shardData,
+            onChain: onChain,
+            claimType: claimType,
+            signalingPeriod: signalingPeriod,
+            dDay: dDay,
+            timeStamp: Date.now()
+          }
+  
+          const safeLink = await createIpfsSafeLink(safeLinkData);
+  
+          const data: SafeCreation = {
+            safeName: safeName,
+            description: description,
+            creator: this.connection.idx?.id,
+            guardians: guardiansDid,
+            beneficiary: beneficiaryUser?.did,
+            encSafeKey: encryptedSafeData.creatorEncKey,
+            encSafeData: encryptedSafeData.encryptedData,
+            stage: SafeStages.ACTIVE,
+            encSafeKeyShards: encryptedSafeData.shardData,
+            claims: [],
+            onChain: onChain,
+            claimType: claimType,
+            signalingPeriod: signalingPeriod,
+            dDay: dDay,
+            timeStamp: Date.now(),
+            proofSubmission: false,
+            cid: safeLink
+          };
+  
+          const safe: string[] = await createSafe(data);
+  
+          if (onChain === true) {
+            const metaDataEvidenceUri: string = await createMetaData(
+              '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+              creatorUser[0].userAddress
             );
-            txReceipt = await tx.wait();
-          } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
-            const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
-            const tx: TransactionResponse = await this.contract.createSafe(
-              beneficiaryUser[0].userAddress,
-              safe[0],
-              claimType,
-              signalingPeriod,
-              dDay,
-              '',
-              totalFee
-            ); //NOTE: Change the time from 1 to required period here
-            txReceipt = await tx.wait();
+  
+            const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+      
+  
+            if (claimType === Types.ClaimType.ArbitrationBased) {
+              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
+              const tx: TransactionResponse = await this.contract.createSafe(
+                beneficiaryUser!.userAddress,
+                safe[0],
+                claimType,
+                signalingPeriod,
+                dDay,
+                metaDataEvidenceUri,
+                totalFee
+              );
+              txReceipt = await tx.wait();
+            } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
+              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
+              const tx: TransactionResponse = await this.contract.createSafe(
+                beneficiaryUser!.userAddress,
+                safe[0],
+                claimType,
+                signalingPeriod,
+                dDay,
+                '',
+                totalFee
+              ); //NOTE: Change the time from 1 to required period here
+              txReceipt = await tx.wait();
+            }
           }
-        }
-
-        if (txReceipt?.status === 1 || onChain === false) {
-          if (creatorUser[0].safes.length === 0) {
-            creatorUser[0].safes = [
-              {
-                safeId: safe[0],
-                type: 'creator',
-              },
-            ];
-          } else {
-            creatorUser[0].safes.push({
-              safeId: safe[0],
-              type: 'creator',
-            });
-          }
-
-          if (beneficiaryUser[0].safes.length === 0) {
-            beneficiaryUser[0].safes = [
-              {
-                safeId: safe[0],
-                type: 'beneficiary',
-              },
-            ];
-          } else {
-            beneficiaryUser[0].safes.push({
-              safeId: safe[0],
-              type: 'beneficiary',
-            });
-          }
-
-          for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-            if (guardians[guardianIndex].safes.length === 0) {
-              guardians[guardianIndex].safes = [
+  
+          if (txReceipt?.status === 1 || onChain === false) {
+            if (creatorUser[0].safes.length === 0) {
+              creatorUser[0].safes = [
                 {
+                  safeName: safeName,
                   safeId: safe[0],
-                  type: 'guardian',
+                  type: 'creator',
+                  decShard: null
                 },
               ];
             } else {
-              guardians[guardianIndex].safes.push({
+              creatorUser[0].safes.push({
+                safeName: safeName,
                 safeId: safe[0],
-                type: 'guardian',
+                type: 'creator',
+                decShard: null
               });
             }
+  
+            if (beneficiaryUser!.safes.length === 0) {
+              beneficiaryUser!.safes = [
+                {
+                  safeName: safeName,
+                  safeId: safe[0],
+                  type: 'beneficiary',
+                  decShard: null
+                },
+              ];
+            } else {
+              beneficiaryUser!.safes.push({
+                safeName: safeName,
+                safeId: safe[0],
+                type: 'beneficiary',
+                decShard: null
+              });
+            }
+  
+            for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
+              if (guardians[guardianIndex].safes.length === 0) {
+                guardians[guardianIndex].safes = [
+                  {
+                    safeName: safeName,
+                    safeId: safe[0],
+                    type: 'guardian',
+                    decShard: null
+                  },
+                ];
+              } else {
+                guardians[guardianIndex].safes.push({
+                  safeName: safeName,
+                  safeId: safe[0],
+                  type: 'guardian',
+                  decShard: null
+                });
+              }
+            }
+  
+            await this.database.save(creatorUser[0], 'Users');
+            await this.database.save(beneficiaryUser, 'Users');
+  
+            for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
+              await this.database.save(guardians[guardianIndex], 'Users');
+            }
           }
-
-          await this.database.save(creatorUser[0], 'Users');
-          await this.database.save(beneficiaryUser[0], 'Users');
-
-          for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-            await this.database.save(guardians[guardianIndex], 'Users');
+  
+          if (txReceipt?.status === 0) {
+            await this.database.delete(safe[0], 'Users');
+            console.log('Transaction Failed!');
+            throw new SafientResponse({error: Errors.TransactionFailure})
           }
+          const result: EventResponse = {
+            id: safe[0],
+            recepient: {
+                name: beneficiaryUser!.name,
+                email: beneficiaryUser!.email,
+                phone: '',
+              }
+          }
+          return new SafientResponse({data: result})
+        } else {
+         throw new SafientResponse({error: Errors.SafeNotCreated})
         }
-
-        if (txReceipt?.status === 0) {
-          await this.database.delete(safe[0], 'Users');
-          console.log('Transaction Failed!');
-          throw new SafientResponse({error: Errors.TransactionFailure})
-        }
-        
-        return new SafientResponse({data: safe[0]})
-      } else {
-       throw new SafientResponse({error: Errors.SafeNotCreated})
+      }else{
+        throw new SafientResponse({error: Errors.SelfSafeCreation})
       }
-
+     
     } catch (err) {
       if(err instanceof SafientResponse){
         throw new SafientResponse({error: err.error});
@@ -465,6 +506,16 @@ export class SafientCore {
   getSafe = async (safeId: string): Promise<SafientResponse<Safe>> => {
     try {  
       const result: Safe = await getSafeData(safeId);
+      // TODO: Need to move the different function
+      if(result.stage === SafeStages.CLAIMING){
+        const claimStatus = await this.getClaimStatus(safeId, result.claims[result.claims.length - 1].disputeId)
+        result.claims[result.claims.length - 1].claimStatus = claimStatus
+        if(claimStatus === ClaimStages.PASSED){
+          result.stage = SafeStages.RECOVERING
+        }else if(claimStatus === ClaimStages.FAILED || claimStatus ===  ClaimStages.REJECTED){
+          result.stage = SafeStages.ACTIVE
+        }
+      }
       return new SafientResponse({data: result});
     } catch (err) {
       throw new SafientResponse({error: Errors.SafeNotFound})
@@ -479,7 +530,7 @@ export class SafientCore {
    * @param description Decscription of the evidence and claim being submitted
    * @returns Dispute Number generated for the claim
    */
-  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<number>> => {
+  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<EventResponse>> => {
     try {
       let evidenceUri: string = '';
       let tx: TransactionResponse;
@@ -488,55 +539,70 @@ export class SafientCore {
       let createSafetx: TransactionResponse;
       let createSafetxReceipt: any;
       let dispute: any;
+      let timeStamp: number = 0;
+      const userBalance: BigNumber = await this.signer.getBalance()
+      let etherBalance = ethers.utils.formatEther(userBalance)
 
       let safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       let creatorUser: User[] = await queryUserDid(safe.creator);
-
-      if (safe.onChain === true) {
-        if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
-            evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
-            tx = await this.contract.createClaim(safe._id, evidenceUri);
-            txReceipt = await tx.wait();
-          }
-        } else if (safe.claimType === Types.ClaimType.SignalBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
+      
+      if(parseFloat(etherBalance) >= 0.1){
+        if (safe.onChain === true ) {
+          if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+            if (safe.stage === SafeStages.ACTIVE) {
+              evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+              tx = await this.contract.createClaim(safe._id, evidenceUri);
+              txReceipt = await tx.wait();
+            }
+          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+            if (safe.stage === SafeStages.ACTIVE) {
+              tx = await this.contract.createClaim(safe._id, '');
+              txReceipt = await tx.wait();
+            }
+          } else if (safe.claimType === Types.ClaimType.DDayBased) {
             tx = await this.contract.createClaim(safe._id, '');
             txReceipt = await tx.wait();
           }
-        } else if (safe.claimType === Types.ClaimType.DDayBased) {
-          tx = await this.contract.createClaim(safe._id, '');
-          txReceipt = await tx.wait();
         }
-      }
-
-      if (safe.onChain === false) {
-        const metaDataEvidenceUri: string = await createMetaData(
-          '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-          creatorUser[0].userAddress
-        );
-
-        if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
-            const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-            const guardianFee: number = 0.1;
-            const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + guardianFee)));
-            createSafetx = await this.contract.syncSafe(
-              creatorUser[0].userAddress,
-              safeId,
-              safe.claimType,
-              safe.signalingPeriod,
-              safe.dDay,
-              metaDataEvidenceUri,
-              totalFee
-            );
-            createSafetxReceipt = await createSafetx.wait();
-          }
-        } else if (safe.claimType === Types.ClaimType.SignalBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
-            const guardianFee: number = 0.1;
-            const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
+  
+        if (safe.onChain === false) {
+          const metaDataEvidenceUri: string = await createMetaData(
+            '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+            creatorUser[0].userAddress
+          );
+  
+          if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+            if (safe.stage === SafeStages.ACTIVE) {
+              const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
+              createSafetx = await this.contract.syncSafe(
+                creatorUser[0].userAddress,
+                safeId,
+                safe.claimType,
+                safe.signalingPeriod,
+                safe.dDay,
+                metaDataEvidenceUri,
+                totalFee
+              );
+              createSafetxReceipt = await createSafetx.wait();
+            }
+          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+            if (safe.stage === SafeStages.ACTIVE) {
+              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
+              createSafetx = await this.contract.syncSafe(
+                creatorUser[0].userAddress,
+                safeId,
+                safe.claimType,
+                safe.signalingPeriod,
+                safe.dDay,
+                '',
+                totalFee
+              ); //Note update time here
+              createSafetxReceipt = await createSafetx.wait();
+            }
+          } else if (safe.claimType === Types.ClaimType.DDayBased) {
+            const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
             createSafetx = await this.contract.syncSafe(
               creatorUser[0].userAddress,
               safeId,
@@ -548,72 +614,78 @@ export class SafientCore {
             ); //Note update time here
             createSafetxReceipt = await createSafetx.wait();
           }
-        } else if (safe.claimType === Types.ClaimType.DDayBased) {
-          const guardianFee: number = 0.1;
-          const totalFee: string = String(ethers.utils.parseEther(String(guardianFee)));
-          createSafetx = await this.contract.syncSafe(
-            creatorUser[0].userAddress,
-            safeId,
-            safe.claimType,
-            safe.signalingPeriod,
-            safe.dDay,
-            '',
-            totalFee
-          ); //Note update time here
-          createSafetxReceipt = await createSafetx.wait();
+  
+          if (createSafetxReceipt.status === 1) {
+            if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+              evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+              tx = await this.contract.createClaim(safe._id, evidenceUri);
+            } else {
+              tx = await this.contract.createClaim(safe._id, '');
+            }
+            txReceipt = await tx.wait();
+          }
         }
-
-        if (createSafetxReceipt.status === 1) {
-          evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+  
+        if (txReceipt.status === 1) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-            tx = await this.contract.createClaim(safe._id, evidenceUri);
+            if (safe.stage === SafeStages.ACTIVE) {
+              dispute = txReceipt.events[2].args[1];
+              timeStamp = parseInt(txReceipt.events[2].args[2]._hex)
+              disputeId = parseInt(dispute._hex);
+            }
+          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+            if (safe.stage === SafeStages.ACTIVE) {
+              dispute = txReceipt.events[0].args[1];
+              timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
+              disputeId = parseInt(dispute._hex);
+            }
+          } else if (safe.claimType === Types.ClaimType.DDayBased) {
+            dispute = txReceipt.events[0].args[1];
+            timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
+            disputeId = parseInt(dispute._hex);
+          }
+  
+          safe.stage = SafeStages.CLAIMING;
+  
+          if (safe.claims.length === 0) {
+            safe.claims = [
+              {
+                createdBy: this.connection.idx?.id,
+                claimStatus: ClaimStages.ACTIVE,
+                disputeId: disputeId,
+                timeStamp: timeStamp
+              },
+            ];
           } else {
-            tx = await this.contract.createClaim(safe._id, '');
-          }
-          txReceipt = await tx.wait();
-        }
-      }
-
-      if (txReceipt.status === 1) {
-        if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
-            dispute = txReceipt.events[2].args[2];
-            disputeId = parseInt(dispute._hex);
-          }
-        } else if (safe.claimType === Types.ClaimType.SignalBased) {
-          if (safe.stage === SafeStages.ACTIVE) {
-            dispute = txReceipt.events[0].args[2];
-            disputeId = parseInt(dispute._hex);
-          }
-        } else if (safe.claimType === Types.ClaimType.DDayBased) {
-          dispute = txReceipt.events[0].args[2];
-          disputeId = parseInt(dispute._hex);
-        }
-
-        safe.stage = SafeStages.CLAIMING;
-
-        if (safe.claims.length === 0) {
-          safe.claims = [
-            {
+            safe.claims.push({
               createdBy: this.connection.idx?.id,
               claimStatus: ClaimStages.ACTIVE,
               disputeId: disputeId,
-            },
-          ];
-        } else {
-          safe.claims.push({
-            createdBy: this.connection.idx?.id,
-            claimStatus: ClaimStages.ACTIVE,
-            disputeId: disputeId,
-          });
+              timeStamp: timeStamp
+            });
+          }
+          await this.database.save(safe, 'Safes');
         }
-        await this.database.save(safe, 'Safes');
+
+        const claimResponse: EventResponse = {
+         id: dispute.toString(),
+         recepient: {
+           name: creatorUser[0].name,
+           email: creatorUser[0].email,
+           phone: ''
+         }
+        }
+        return new SafientResponse({data: claimResponse});
+      }else{
+        throw new SafientResponse({error: Errors.WalletBalance})
       }
-      return new SafientResponse({data: disputeId});
+      
     } catch (err) {
       throw new SafientResponse({error: Errors.ClaimNotCreated})
     }
   };
+
+
 
   /**
    * This API is called by guardians when they have to recover the safe they are part of
@@ -626,24 +698,23 @@ export class SafientCore {
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       const indexValue = safe.guardians.indexOf(did);
-      let recoveryCount: number = 0;
       let recoveryStatus: boolean = false;
+      // internal function 
+      const res = await this.syncStage(safeId)
 
-      if (safe.stage === SafeStages.RECOVERING) {
-        const decShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
-          safe.encSafeKeyShards[indexValue].encShard
-        );
-        safe.encSafeKeyShards[indexValue].status = 1;
-        safe.encSafeKeyShards[indexValue].decData = decShard;
+      if (res.data === true && safe.stage === SafeStages.RECOVERING) {
+        const decShard: DecShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
+          safe.encSafeKeyShards[indexValue].data
+        ) as DecShard;
 
-        safe.encSafeKeyShards.map((safeShard) => {
-          if (safeShard.status === 1) {
-            recoveryCount = recoveryCount + 1;
-          }
-        });
-
-        if (recoveryCount >= 2) {
+        await updateDecShard(did, safeId, decShard)
+        
+        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        if (decShards.length >= 2) {
           safe.stage = SafeStages.RECOVERED;
+          safe.decSafeKeyShards = decShards
+          await deleteDecShard(safe.guardians, safeId)
+
         } else {
           safe.stage = SafeStages.RECOVERING;
         }
@@ -721,8 +792,9 @@ export class SafientCore {
       const safe = safeResponse.data!;
 
       if (safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED) {
-        safe.encSafeKeyShards.map((share) => {
-          share.status === 1 ? shards.push(share.decData.share) : null;
+        const decShards: DecShard[] =  safe.decSafeKeyShards
+        decShards.map((shard) => {
+          shards.push(shard.share);
         });
 
         reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
@@ -732,20 +804,26 @@ export class SafientCore {
           Buffer.from(safe.encSafeData)
         );
 
-        if (safeData !== undefined && safe.stage === SafeStages.RECOVERED) {
+        if (safeData && safe.stage === SafeStages.RECOVERED) {
           await this.updateStage(safeId, ClaimStages.PASSED, SafeStages.CLAIMED);
           result = JSON.parse(safeData.toString());
           return new SafientResponse({data: result.data})
-        } else {
-          throw new SafientResponse({error: Errors.StageNotUpdated})
+        }else if(safeData && safe.stage === SafeStages.CLAIMED){
+          result = JSON.parse(safeData.toString());
+          return new SafientResponse({data: result.data})
+        } 
+        else {
+          throw new SafientResponse({error: Errors.BeneficiaryRecoveryFailure})
         }
+      }else {
+        throw new SafientResponse({error: Errors.StageNotUpdated})
       }
     } catch (err) {
       if(err instanceof SafientResponse){
         if(err.error?.code === Errors.StageNotUpdated.code){
           throw new SafientResponse({error: Errors.StageNotUpdated})
         }else{
-          throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
+          throw new SafientResponse({error: Errors.BeneficiaryRecoveryFailure})
         }
       }
     }
@@ -858,6 +936,7 @@ export class SafientCore {
       if (txReceipt.status === 1) {
         await this.updateStage(safeId, ClaimStages.ACTIVE, SafeStages.ACTIVE);
       }
+
       return new SafientResponse({data: txReceipt});
     } catch (err) {
       throw new SafientResponse({error: Errors.SignalCreateFailure})
@@ -874,17 +953,16 @@ export class SafientCore {
       let shards: any = [];
       let guardianArray: any = [];
       let guardianSecret: string[] = [];
-      let result: boolean = false;
+      let txResponse: TransactionResponse
+      let txReceipt: TransactionReceipt | undefined
 
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
-
-      if (safe.stage === SafeStages.CLAIMED) {
-        safe.encSafeKeyShards.map((share) => {
-          if (share.status === 1) {
-            shards.push(share.decData.share);
-            guardianSecret.push(share.decData.secret);
-          }
+      if (!safe.proofSubmission && safe.decSafeKeyShards.length >= 2) {
+        const decShards: DecShard[] = safe.decSafeKeyShards
+        decShards.map((shard) => {
+            shards.push(shard.share);
+            guardianSecret.push(shard.secret);
         });
 
         if (shards.length !== 0) {
@@ -898,21 +976,36 @@ export class SafientCore {
             guardianArray.push(guardianTuple);
           });
 
-          result = await this.contract.guardianProof(
+          txResponse = await this.contract.guardianProof(
             JSON.stringify(message),
             reconstructedData.signature,
             guardianArray,
             guardianSecret,
             safeId
           );
+          txReceipt = await txResponse.wait();
+        }
+        if(txReceipt?.status){
+          safe.proofSubmission = true
+          await this.database.save(safe, "Safes")
+          return new SafientResponse({data: true});
+        }else{
+          throw new SafientResponse({error: Errors.IncentivizationFailure})
+        }
+      }else{
+        throw new SafientResponse({error: Errors.IncentivizationComplete})
+      }
+    } catch (err) {
+      if(err instanceof SafientResponse){
+        if(err.error?.code === Errors.IncentivizationComplete.code){
+          throw new SafientResponse({error: Errors.IncentivizationComplete})
         }
       }
-      return new SafientResponse({data: result});
-    } catch (e) {
       throw new SafientResponse({error: Errors.IncentivizationFailure})
     }
   };
 
+ 
   /**
    * This function returns the total guardian reward balance of a guardian
    * @param address The address of the guardian

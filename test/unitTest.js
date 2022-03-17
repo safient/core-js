@@ -23,7 +23,7 @@ describe('Unit test', async () => {
   let guardianThree;
   let safeId;
   let provider, chainId;
-  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner, randomUserSigner;
   let disputeId;
   let creatorSc, beneficiarySc, guardianOneSc, guardianTwoSc, guardianThreeSc;
   let guardianOneAddress;
@@ -50,6 +50,7 @@ describe('Unit test', async () => {
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
+    randomUserSigner = await provider.getSigner(7)
   });
 
   //Step 1: Register all users
@@ -60,12 +61,12 @@ describe('Unit test', async () => {
       creator = await creatorSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
       }
     }
     
     try{
-      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -86,14 +87,14 @@ describe('Unit test', async () => {
       beneficiary = await beneficiarySc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
 
       }
     }
 
 
     try{
-      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -115,12 +116,12 @@ describe('Unit test', async () => {
       guardianOne = await guardianOneSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
       }
     }
 
     try{
-      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -140,13 +141,13 @@ describe('Unit test', async () => {
       guardianTwo = await guardianTwoSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
 
       }
     }
 
     try{
-      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -171,13 +172,13 @@ describe('Unit test', async () => {
       guardianThree = await guardianThreeSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
       }
     }
 
 
     try{
-      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -201,17 +202,20 @@ describe('Unit test', async () => {
       data: cryptoSafe,
     };
     const safeid = await creatorSc.createSafe(
+      "On Chain Unit test",
+      "Crytpo safe with seed phrase",
       creator.data.did,
-      beneficiary.data.did,
       safeData,
       true,
       ClaimType.ArbitrationBased,
       0,
-      0
+      0,
+      {email: 'beneficiary@test.com'}
     );
-    safeId = safeid.data;
+    safeId = safeid.data.id;
     const safe = await creatorSc.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
+    expect(safe.data.safeName).to.equal("On Chain Unit test")
   });
 
   //Step 3: Create a claim
@@ -219,21 +223,22 @@ describe('Unit test', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-    expect(disputeId.data).to.be.a('number');
+    const result = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    disputeId = result.data.id
+    expect(disputeId).to.be.a('string');
   });
 
   it('Should give Ruling for the dispute', async () => {
     const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
 
-    const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
+    const result = await sc.giveRuling(parseInt(disputeId), 1); //Passing a claim
     expect(result.data).to.equal(true);
   });
 
-  it('Should update the stage on threadDB', async () => {
-    const result = await beneficiarySc.syncStage(safeId);
-    expect(result.data).to.equal(true);
-  });
+  // it('Should update the stage on threadDB', async () => {
+  //   const result = await beneficiarySc.syncStage(safeId);
+  //   expect(result.data).to.equal(true);
+  // });
 
   // //Step 4: Recover Safes
 

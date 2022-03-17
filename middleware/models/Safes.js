@@ -4,6 +4,8 @@ const Safes = {
   type: 'object',
   properties: {
     _id: { type: 'string' },
+    safeName: {type: 'string'},
+    description: {type: 'string'},
     creator: { type: 'string' },
     guardians: { type: 'array' },
     recipient: { type: 'string' },

@@ -56,12 +56,12 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       creator = await creatorSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
       }
     }
     
     try{
-      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress);
+      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -82,14 +82,14 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       beneficiary = await beneficiarySc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
 
       }
     }
 
 
     try{
-      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress);
+      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -111,12 +111,12 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       guardianOne = await guardianOneSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
       }
     }
 
     try{
-      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress);
+      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -136,13 +136,13 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       guardianTwo = await guardianTwoSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
 
       }
     }
 
     try{
-      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress);
+      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -167,13 +167,13 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
       guardianThree = await guardianThreeSc.loginUser();
     }catch(err){
       if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
       }
     }
 
 
     try{
-      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress);
+      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
     }catch(err){
       expect(err.error.code).to.equal(11);
     }
@@ -199,15 +199,17 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         };
 
         const safeid = await creatorSc.createSafe(
+          "On chain safe",
+          "Software Wallet",
           creator.data.did,
-          beneficiary.data.did,
           safeData,
           true,
           ClaimType.ArbitrationBased,
           0,
-          0
+          0,
+          {did:beneficiary.data.did}
         );
-        safeId = safeid.data;
+        safeId = safeid.data.id;
         const safe = await creatorSc.getSafe(safeId);
         expect(safe.data.creator).to.equal(creator.data.did);
       });
@@ -216,8 +218,9 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         const file = {
           name: 'signature.jpg',
         };
-        disputeId = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
-        expect(disputeId.data).to.be.a('number');
+        const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+        disputeId = parseInt(res.data.id)
+        expect(disputeId).to.be.a('number');
       });
     });
   });
@@ -226,14 +229,7 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     it('Should PASS ruling on the dispute', async () => {
       const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret, null);
 
-      const result = await sc.giveRuling(disputeId.data, 1); //Passing a claim
-      expect(result.data).to.equal(true);
-    });
-  });
-
-  describe('Sync safe stage', async () => {
-    it('Updates the safe stage on threadDB according to the ruling', async () => {
-      const result = await beneficiarySc.syncStage(safeId);
+      const result = await sc.giveRuling(disputeId, 1); //Passing a claim
       expect(result.data).to.equal(true);
     });
   });

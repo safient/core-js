@@ -24,6 +24,7 @@ export type UserSchema = {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 export interface User {
@@ -35,6 +36,7 @@ export interface User {
   safes: SafeMeta[];
   signUpMode: number;
   userAddress: string;
+  guardian: boolean
 };
 
 
@@ -46,29 +48,37 @@ export type UserMeta = {
 
 
 export type SafeMeta = {
+  safeName: string
   safeId: string;
   type: string;
+  decShard: DecShard | null
 };
 
 export interface Safe {
   _id: string;
+  safeName: string,
+  description: string,
   creator: string;
-  guardians: string[];
+  guardians: string[]; 
   beneficiary: string;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
+  decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
   claimType: Types.ClaimType;
   signalingPeriod: number,
   dDay: number,
   timeStamp: number,
+  proofSubmission: boolean,
   cid: string
 };
 
 export type SafeCreation = {
+  safeName: string,
+  description: string,
   creator: string | undefined;
   guardians: string[];
   beneficiary: string | undefined;
@@ -82,6 +92,7 @@ export type SafeCreation = {
   signalingPeriod: number,
   dDay: number,
   timeStamp: number,
+  proofSubmission: boolean,
   cid: string
 };
 
@@ -89,13 +100,12 @@ export type SafeCreation = {
 export type Claim = {
   createdBy: string | undefined;
   claimStatus: number;
-  disputeId: number
+  disputeId: number;
+  timeStamp: number;
 }
 
 export type Shard = {
-  status: number;
-  encShard: any;
-  decData: any;
+  data: any;
 };
 
 export type GuardianSecrets = {
@@ -160,9 +170,27 @@ export type SafeRecovered = {
 }
 
 export type SafeCreationResponse = {
-  status: boolean;
-  safeId: string | null;
-  error: Error | null
+  safeId: string;
+  creatorEmail: string;
+  beneficiaryEmail: string;
+  phoneNo: string;
+}
+
+export type ClaimResponse = {
+  disputeId: string;
+  creatorEmail: string;
+  phoneNo: string;
+}
+
+export type EventResponse = {
+  id: string;
+  recepient: Recepient
+}
+
+export type Recepient = {
+  name: string,
+  email: string,
+  phone: string,
 }
 
 export type SecretSafe = {
@@ -204,4 +232,21 @@ export type SafeLink = {
   signalingPeriod: number,
   dDay: number,
   timeStamp: number
+}
+export type DecShard = {
+  share: Buffer,
+  secret: string
+}
+
+export type CeramicDefintions = {
+  definitions: {
+    profile: string,
+    portfolio:string,
+    encryptionKey: string
+  },
+  schemas: {
+    profile: string,
+    portfolio: string,
+    encryptionKey: string
+  }
 }
