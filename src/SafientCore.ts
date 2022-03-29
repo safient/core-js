@@ -87,7 +87,7 @@ export class SafientCore {
   /**@ignore */
   private ceramicDefintions: CeramicDefintions
   /**@ignore */
-  private guardianFee: number = 0.1;
+  private guardianFee: number = 0.05;
   
 
   /**
@@ -254,9 +254,9 @@ export class SafientCore {
    * @param beneficiaryDID DID of the safe beneficiary
    * @returns Array of guardian DIDs
    */
-  private randomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<string[]> => {
+  private randomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<User[]> => {
     try {
-      const guardians: string[] = await generateRandomGuardians(creatorDID, beneficiaryDID);
+      const guardians: User[] = await generateRandomGuardians(creatorDID, beneficiaryDID);
       return guardians;
     } catch (err) {
       throw new Error(`Couldn't fetch random guardians, ${err}`);
@@ -290,30 +290,17 @@ export class SafientCore {
       let guardians: User[] = [];
       let beneficiaryUser: User | null = null;
       let txReceipt: TransactionReceipt | undefined;
-
+      const guardiansDid: string[] = []
       //userQueryDid function
       const creatorUser: User[] = await queryUserDid(creatorDID);
       const beneficiaryResult: SafientResponse<User> = await this.getUser(beneficiary)
       beneficiaryUser = beneficiaryResult.data!
    
-      const guardiansDid: string[] = await this.randomGuardians(creatorDID, beneficiaryUser.did);
+      guardians = await this.randomGuardians(creatorDID, beneficiaryUser.did);
       if(creatorDID !== beneficiaryUser._id){
-        if (guardiansDid.length > 1) {
-          for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-            try{  
-              let guardianData: SafientResponse<User> = await this.getUser({ did: guardiansDid[guardianIndex] });
-              guardians.push(guardianData.data!);
-            }catch(err){
-              if(err instanceof SafientResponse){
-                if(err.error?.code === Errors.UserNotFound.code)
-                throw new SafientResponse({error: Errors.GuardianNotFound});
-              }
-            }
-           
-          }
-  
+        if (guardians.length === 3) {
           const secretsData = this.crypto.generateSecrets(guardians);
-  
+          guardians.map(guardian => guardiansDid.push(guardian.did) )
           //note 1: Change here
           const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
   
@@ -1030,6 +1017,7 @@ export class SafientCore {
       const result: TransactionResponse = await this.contract.claimRewards(funds);
       return result;
     } catch (e) {
+      console.log(e)
       throw new SafientResponse({error: Errors.RewardsClaimFailure})
     }
   };

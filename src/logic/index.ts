@@ -216,12 +216,13 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param beneficiaryDID - Did of the beneficiary
    * @returns - Array of guardians did
    */
-  export const generateRandomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<string[]> => {
+  export const generateRandomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<User[]> => {
 
     try{
 
       const guardiansUsers: User[] = await database.read<User>('guardian', true, 'Users')
-      let guardians: string[] = [];
+      let guardians: User[] = [];
+      let guardiansDid: string[] = [];
       let guardianIndex = 0;
       
       if(guardiansUsers.length <= 3){
@@ -234,9 +235,10 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
             creatorDID !== randomGuardian.did &&
             beneficiaryDID !== randomGuardian.did &&
             randomGuardian.guardian === true && 
-            !guardians.includes(randomGuardian.did)
+            !guardiansDid.includes(randomGuardian.did)
           ) {
-            guardians.push(randomGuardian.did);
+            guardians.push(randomGuardian);
+            guardiansDid.push(randomGuardian.did)
             guardianIndex = guardianIndex + 1;
           } else {
             guardianIndex = guardians.length;
