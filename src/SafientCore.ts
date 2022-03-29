@@ -1017,7 +1017,6 @@ export class SafientCore {
       const result: TransactionResponse = await this.contract.claimRewards(funds);
       return result;
     } catch (e) {
-      console.log(e)
       throw new SafientResponse({error: Errors.RewardsClaimFailure})
     }
   };
