@@ -67,7 +67,7 @@ export class Database {
     }
   }
 
-  read = async<T extends User | Safe>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
+  read = async<T extends User | Safe>(queryVariable: string, queryValue: string | boolean, collection: string): Promise<T[]> => {
     try{
         let result: T[]=[] 
         if(this.dbName === DatabaseType.threadDB){

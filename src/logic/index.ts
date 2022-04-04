@@ -216,32 +216,39 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param beneficiaryDID - Did of the beneficiary
    * @returns - Array of guardians did
    */
-  export const generateRandomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<string[]> => {
+  export const generateRandomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<User[]> => {
 
     try{
 
-      const users: User[] = await database.read<User>('', '', 'Users')
-      let guardians: string[] = [];
+      const guardiansUsers: User[] = await database.read<User>('guardian', true, 'Users')
+      let guardians: User[] = [];
+      let guardiansDid: string[] = [];
       let guardianIndex = 0;
-
-      while (guardianIndex <= 2) {
-        const index = Math.floor(Math.random() * users.length);
-
-        let randomGuardian = users[index];
-
-        if (
-          creatorDID !== randomGuardian.did &&
-          beneficiaryDID !== randomGuardian.did &&
-          randomGuardian.guardian === true && 
-          !guardians.includes(randomGuardian.did)
-        ) {
-          guardians.push(randomGuardian.did);
-          guardianIndex = guardianIndex + 1;
-        } else {
-          guardianIndex = guardians.length;
+      
+      if(guardiansUsers.length <= 3){
+        while (guardianIndex <= 2) {
+          const index = Math.floor(Math.random() * guardiansUsers.length);
+  
+          let randomGuardian = guardiansUsers[index];
+  
+          if (
+            creatorDID !== randomGuardian.did &&
+            beneficiaryDID !== randomGuardian.did &&
+            randomGuardian.guardian === true && 
+            !guardiansDid.includes(randomGuardian.did)
+          ) {
+            guardians.push(randomGuardian);
+            guardiansDid.push(randomGuardian.did)
+            guardianIndex = guardianIndex + 1;
+          } else {
+            guardianIndex = guardians.length;
+          }
         }
+        return guardians;
+      }else{
+        throw new Error("Not enough guardians on the network")
       }
-      return guardians;
+     
     }catch(err){
       throw new Error(`Couldn't fetch random guardians, ${err}`);
     }

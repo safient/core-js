@@ -40,7 +40,7 @@ export class ThreadDB {
       }
     }
   
-    threadRead = async<T extends User | Safe>(queryVariable: string, queryValue: string, collection: string): Promise<T[]> => {
+    threadRead = async<T extends User | Safe>(queryVariable: string, queryValue: string | boolean, collection: string): Promise<T[]> => {
       try{
         let result: T[] = []
         if(collection === 'Users' && queryValue !== ''){
