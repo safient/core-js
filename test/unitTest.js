@@ -266,7 +266,6 @@ describe('Unit test', async () => {
 
   it('Should get the guardians reward balance', async () => {
     guardianOneRewardBalance = await guardianOneSc.getRewardBalance(guardianOneAddress);
-    console.log(guardianOneRewardBalance)
     // const newBalance = await guardianOneSigner.getBalance();
     // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
   });
