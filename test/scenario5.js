@@ -214,7 +214,7 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    const res = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await beneficiarySc.createClaim(safeId, {}, '', '');
     disputeId = parseInt(res.data.id)
     expect(disputeId).to.be.a('number');
   });
