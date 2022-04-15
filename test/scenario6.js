@@ -198,9 +198,6 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
       data: cryptoSafe,
     };
 
-    const latestBlockNumber = await provider.getBlockNumber();
-    const latestBlock = await provider.getBlock(latestBlockNumber);
-    const now = latestBlock.timestamp;
 
     const safeid = await creatorSc.createSafe(
       "DDay Safe",
@@ -210,7 +207,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
       true,
       ClaimType.DDayBased,
       0,
-      now + 120, // 2 mins after the safe creation
+      120, // 2 mins after the safe creation
       {did:beneficiary.data.did}
     );
     safeId = safeid.data.id;
@@ -260,9 +257,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     const safeData = {
       data: cryptoSafe,
     };
-    latestBlockNumber = await provider.getBlockNumber();
-    latestBlock = await provider.getBlock(latestBlockNumber);
-    now = latestBlock.timestamp;
+    
     const safeid = await creatorSc.createSafe(
       "DDay Safe",
       "Hardware wallet safe",
@@ -271,7 +266,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
       true,
       ClaimType.DDayBased,
       0,
-      now + 120, // 2 mins after the safe creation
+      120, // 2 mins after the safe creation
       {did:beneficiary.data.did}
     );
     safeId = safeid.data.id;

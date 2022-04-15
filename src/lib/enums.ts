@@ -28,3 +28,10 @@ export const ClaimStages = {
      Not_Submitted,
      Submitted
    }
+
+   
+   export enum ClaimType {
+    SignalBased = 0,
+    ArbitrationBased = 1,
+    DDayBased = 2
+   }

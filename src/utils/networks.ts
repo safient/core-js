@@ -2,6 +2,7 @@ export const Networks = [
   {
       "name": "localhost",
       "chainId": 31337,
+      "url": 'http://localhost:8545',
       "addresses": {
         "safientMain": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
         "arbitrator": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
@@ -27,6 +28,7 @@ export const Networks = [
   {
       "name": "mainnet",
       "chainId": 1,
+      "url": 'http://localhost:8545',
       "addresses": {
         "safientMain": "",
         "arbitrator": ""
@@ -52,6 +54,7 @@ export const Networks = [
   {
       "name":"devnet",
       "chainId": 31337,
+      "url": 'http://localhost:8545',
       "addresses": {
         "safientMain": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
         "arbitrator": "0x5FbDB2315678afecb367f032d93F642f64180aa3"
@@ -76,6 +79,7 @@ export const Networks = [
   {
       "name":"testnet",
       "chainId": 42,
+      "url": 'http://localhost:8545',
       "addresses": {
         "safientMain": "0x8C2FA3dE952f5A1c463af0Fb42a9A812D3Ffe9e3",
         "arbitrator": "0x823E2b7623aD287819674548f43F8965F38B2626"

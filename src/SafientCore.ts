@@ -1,7 +1,7 @@
 import { IDX } from '@ceramicstudio/idx';
 import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import { SafientMain, Arbitrator, Types } from '@safient/contracts';
-import { BigNumber, ethers } from 'ethers';
+import { BigNumber, ethers, providers } from 'ethers';
 
 import {
   Connection,
@@ -55,8 +55,6 @@ export class SafientCore {
   /** @ignore */
   private signer: Signer;
   /** @ignore */
-  private provider: JsonRpcProvider;
-  /** @ignore */
   private contract: SafientMain;
   /**@ignore */
   private arbitrator: Arbitrator;
@@ -109,7 +107,6 @@ export class SafientCore {
   ) {
 
     this.signer = signer;
-    this.provider = this.provider;
     this.chainId = Networks[network].chainId;
     this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL
     this.ceramicDefintions = Networks[network].ceramic.config
@@ -375,7 +372,10 @@ export class SafientCore {
               );
               txReceipt = await tx.wait();
             } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
+
               const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
+              
+
               const tx: TransactionResponse = await this.contract.createSafe(
                 beneficiaryUser!.userAddress,
                 safe[0],
