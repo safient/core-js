@@ -97,8 +97,7 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve('./sidebars.js'),
-          // Please change this to your repo.
-          editUrl: 'https://github.com/safient/safient-core-js/edit/master/',
+          editUrl: 'https://github.com/safient/core-js/edit/develop/docs',
           routeBasePath: '/',
         },
         theme: {
