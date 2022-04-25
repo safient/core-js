@@ -41,14 +41,6 @@ Here are a few use cases for Safient integration.
 Wallet solutions provided by services like Coinbase commerce rely on users to backup the secret recovery phrases on Google drive. This is not the best way to secure and recover digital assets.
 Integrating Safient safe to the Coinbase commerce merchants will allow them to safeguard and recover their assets anytime.
 
-**Torus wallet**
-
-![Torus](/img/torus.svg)
-
-Torus is a great tool that lets the user create and access the wallet by authenticating using social logins. This improves the usability of many of the existing wallet applications. But even the Torus application needs you to backup the recovery seed phrases. They send the seed phrases through email. This is again a pretty insecure way to communicate secret information.
-Safient integration will allow Torus to safely back up the user recovery seed phrases and help them claim whenever needed.
-
-Along with these integrations that essentially provides safe creations and claim by the creator themselves, they can also add beneficiaries to inherit those secrets.
 
 ### 📱 Non custodial wallet solutions:
 

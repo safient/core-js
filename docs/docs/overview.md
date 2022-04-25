@@ -18,11 +18,11 @@ npm: https://www.npmjs.com/package/@safient/core
 
 # Overview
 
-Welcome to the Safient protocol documentation.
+Welcome to the Safient protocol documentation 👋
 
 :::note what is Safient?
 
-Safient aims to provide a convenient and safe way of inheriting and safekeeping mechanism for crypto assets without exposing it to any intermediaries.
+Safient is a non custodial recovery and inheritance platform that aims to provide a convenient and secure way of inheriting and safekeeping mechanism for crypto assets without exposing it to any intermediaries.
 
 :::
 
