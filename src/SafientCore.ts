@@ -280,7 +280,8 @@ export class SafientCore {
     claimType: number,
     signalingPeriod: number,
     dDay: number,
-    beneficiary: { email?: string, did?: string}
+    beneficiary: { email?: string, did?: string},
+    persist: boolean = false,
   ): Promise<SafientResponse<EventResponse>> => {
     try {
       
@@ -326,7 +327,8 @@ export class SafientCore {
             timeStamp: Date.now()
           }
   
-          const safeLink = await createIpfsSafeLink(safeLinkData);
+          const safeLink = persist ? await createIpfsSafeLink(safeLinkData) : null;
+          
   
           const data: SafeCreation = {
             safeName: safeName,
@@ -351,15 +353,13 @@ export class SafientCore {
           const safe: string[] = await createSafe(data);
   
           if (onChain === true) {
-            const metaDataEvidenceUri: string = await createMetaData(
-              '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-              creatorUser[0].userAddress
-            );
-  
-            const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-      
-  
+
             if (claimType === Types.ClaimType.ArbitrationBased) {
+              const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+              const metaDataEvidenceUri: string = await createMetaData(
+                '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+                creatorUser[0].userAddress
+              );
               const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
               const tx: TransactionResponse = await this.contract.createSafe(
                 beneficiaryUser!.userAddress,
@@ -554,12 +554,13 @@ export class SafientCore {
         }
   
         if (safe.onChain === false) {
-          const metaDataEvidenceUri: string = await createMetaData(
-            '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-            creatorUser[0].userAddress
-          );
+          
   
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+            const metaDataEvidenceUri: string = await createMetaData(
+              '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+              creatorUser[0].userAddress
+            );
             if (safe.stage === SafeStages.ACTIVE) {
               const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
               const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
