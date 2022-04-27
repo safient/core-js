@@ -93,7 +93,7 @@ export type SafeCreation = {
   dDay: number,
   timeStamp: number,
   proofSubmission: boolean,
-  cid: string
+  cid: string | null
 };
 
 
