@@ -10,22 +10,25 @@ const getAPISig = async (seconds = 300) => {
 };
 
 const newClientDB = async () => {
-  const API = process.env.API || undefined;
+  const API = process.env.API || "http://thread.safient.io:6007";
   const db = await Client.withKeyInfo(
     {
       key: process.env.USER_API_KEY,
       secret: process.env.USER_API_SECRET,
     },
-    API
+    API,
   );
   return db;
 };
 
 const initializeNewThreadDb = async () => {
+  const API = process.env.API || "http://thread.safient.io:6007";
   console.log('Authorizing...');
   const userAuth = await createUserAuth(process.env.USER_API_KEY, process.env.USER_API_SECRET);
   const privateKey = await PrivateKey.fromRandom();
-  const dbClient = await Client.withUserAuth(userAuth);
+  console.log('before')
+  const dbClient = await  Client.withUserAuth(userAuth, API);
+  console.log('after')
   await dbClient.getToken(privateKey);
 
   console.log('Creating db...');
