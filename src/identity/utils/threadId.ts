@@ -7,7 +7,7 @@ export const thread = async(seed: any, apiKey:string, secret: string, threadID: 
       const client = await Client.withKeyInfo({
         key: apiKey,
         secret: secret,
-      },  "http://thread.safient.io:6007");
+      },  "wss://thread.safient.io");
       await client.getToken(identity);
       const threadId = ThreadID.fromBytes(Uint8Array.from(threadID));
       return {client, threadId}
