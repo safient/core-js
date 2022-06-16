@@ -20,19 +20,35 @@ npm: https://www.npmjs.com/package/safient-claims
 
 # Use cases
 
-We focus on delivering Safient services to everyone leveraging decentralization to the fullest. Our primary vision of Safient is to provide better usability, interoperable, secure services with the following edition:
+Safient is for everyone. May it be end-users, 3rd party tools, and services or institutions. Check out the resources or reach out to us. Our primary vision of Safient is to provide better usability, interoperable, secure services for everyone using our protocol.
 
-👯 **Community edition:** Individuals can use our community edition to create safes and inheritance plan right away.
+### 👨🏻‍💻 Developers
 
-🧑‍💻 **Developer edition:** Facilitates developers to integrate their applications to seamlessly connect and interact with the Safient safes via our SDKs.
+Safient maintains resources to help developers integrate their applications to seamlessly interact with safes using our SDKs.
 
-🏭 **Enterprise edition:** We are working on our enterprise version to integrate with the existing crypto exchanges and custodial wallet services.
+**[Safient Developer Docs](https://docs.safient.io/)**
 
-Our initial focus is to deliver a security audited version to the community with great usability, parallelly developing SDKs that could be integrated with other applications. We are also working on an enterprise version that provides better usability, scalable integrations with existing custodial solutions.
 
-Here are a few use cases for Safient integration.
+### 👯 Individuals
 
-### 👮‍♂️ **Custodial wallet solutions:**
+We are working on a variety of non-custodial crypto assets recovery and inheritance services on top of Safient protocol such as Safient Wallet and Safient Safes.
+
+**[Checkout Safient Wallet](https://wallet.safient.io/gm)**
+
+### 🏢 Enterprise edition
+
+We are working on our enterprise edition to integrate with the existing crypto exchanges and custodial wallet services in a much more scalable way.
+
+**[Contact us for Enterprise Edition](https://safient.io/hello@safient.io)**
+
+
+---
+
+Most of our efforts at Safient are to focus on delivering a robust, security-audited protocol that can be used to build applications or integrated with other applications in a secure and convenient manner through our SDKs. We have imagined a number of use cases and application integrations that are possible on the Safient protocol. 
+
+Here are a few use cases that we think can be achieved to make them a better solution by leveraging the Safient protocol.
+
+### 👮‍♂️ **Custodial/ hybrid wallet solutions:**
 
 **Coinbase Commerce**
 

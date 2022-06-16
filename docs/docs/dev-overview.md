@@ -14,14 +14,19 @@ twitter: https://twitter.com/safientio
 npm: https://www.npmjs.com/package/@safient/core
 ---
 
-# Overview
+# Build on Safient
 
-Safient developers guide will help you understand the various implementations.
+This section will help quickly get started if you are looking to build an application using Safient protocol or trying to integrate an existing application.
+
 
 ## Where to begin?
 
-You can start by checking out our applications to understand the implementation.
-If you are looking to integrate with Safient protocol, checkout our SDKs.
+All the required functionalities from creating a user to claiming a created safe can be found in our [Safient Core](./core-getting-started) library.
 
-- [Safient Core](./core-getting-started)
-- [Safient Contracts](https://contracts.safient.io/)
+Get started with [Safient Core here](./core-getting-started)
+
+:::info Safient Contracts
+
+Safient core internally performs onchain interactions using smart contracts via
+[Safient Contracts](https://contracts.safient.io/) library. You can also interact with them direcrtly if you desire but we highly recommend using `[Safient Core](./core-getting-started) directly.
+:::
