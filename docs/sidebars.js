@@ -62,6 +62,7 @@ module.exports = {
         },
       ],
     },
+    'guardian',
     'roadmap',
   ],
 };
