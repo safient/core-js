@@ -15,7 +15,7 @@ module.exports = {
     },
     {
       type: 'category',
-      label: 'Developers',
+      label: 'Getting started',
       collapsible: true,
       collapsed: true,
       items: [
@@ -62,6 +62,7 @@ module.exports = {
         },
       ],
     },
+    'guardian',
     'roadmap',
   ],
 };

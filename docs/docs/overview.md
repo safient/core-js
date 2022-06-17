@@ -22,19 +22,40 @@ Welcome to the Safient protocol documentation 👋
 
 :::note what is Safient?
 
-Safient is a non custodial recovery and inheritance platform that aims to provide a convenient and secure way of inheriting and safekeeping mechanism for crypto assets without exposing it to any intermediaries.
+Safient proposes an intuitive solution to this critical problem with a mechanism to securely manage all the secrets through Safient safes that can be recovered or inherited during claimable events without any intermediaries or custody. Safient is a trustless protocol, meaning that there is no need to necessarily trust any actors while using the solution.
 
 :::
 
-### Where to begin?
+### Get started
 
-This documentation covers all the basic and advanced concepts of Safient protocol.
+This documentation covers all the basic and advanced concepts of Safient protocol for developers and users.
 
-You can checkout the Developers section if you want to understand the Safient implentation or use Safient SDKs.
+You can checkout the developers section if you want to understand the Safient implentation and build on top of the Safient protocol network.
 
 - [Safient basics](./safient-basics/basics)
-- [Safient for developers](getting-started)
+- [Safient for developers](./dev-overview)
 
 ### Other resources
 
 You can checkout the detailed roadmap and resources at [https://resources.safient.io](https://resources.safient.io)
+
+### Get involved 👨‍🏭
+
+🌐 [Website](https://safient.io)
+
+📱 [Try now](https://safient.io/get-started)
+
+[📰 Blog](https://blog.safient.io)
+
+
+### Contact us ✉️
+
+🔊 [Twitter](http://twitter.safient.io)
+
+💬 [Discord](http://discord.safient.io)
+
+✉️ [Mail](mailto:hello@safient.io)
+
+---
+
+
