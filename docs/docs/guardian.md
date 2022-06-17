@@ -28,6 +28,7 @@ Running a Safient guardian node is easy as it gets. All you have to do is instal
 
 Once the Safient CLI is installed all that needs to be done is use `safient` command to run a guardian worker as below.
 If you are building an application using `Safient Core` and testing it locally, you should point the network to `devnet`.
+Check out [Safient for developers](./dev-overview) build on top of Safient.
 
 ```
   safient safien worker --network devnet
@@ -44,9 +45,6 @@ You can also reach out to us on our [Discord server](https://discord.safient.io/
 :::
 
 
-
-
-- [Safient for developers](./dev-overview)
 
 
 
