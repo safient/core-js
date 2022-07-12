@@ -1,5 +1,5 @@
 import { IDX } from '@ceramicstudio/idx';
-import { JsonRpcProvider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
+import { JsonRpcProvider, Provider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
 import { SafientMain, Arbitrator, Types } from '@safient/contracts';
 import { BigNumber, ethers, providers } from 'ethers';
 
@@ -98,15 +98,13 @@ export class SafientCore {
    * @param threadId ThreadDB ID if its available (optional)
    */
   constructor(
-    signer: Signer,
     network: NetworkType,
-    databaseType: DatabaseType,
-    databaseAPIKey: any,
-    databaseAPISecret: any,
+    databaseType: DatabaseType = DatabaseType.threadDB,
+    databaseAPIKey?: any,
+    databaseAPISecret?: any,
     threadId?: number[]
   ) {
 
-    this.signer = signer;
     this.chainId = Networks[network].chainId;
     this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL
     this.ceramicDefintions = Networks[network].ceramic.config
@@ -115,21 +113,25 @@ export class SafientCore {
     } else {
       this.threadId = threadId!;
     }
-    this.contract = new SafientMain(signer, this.chainId);
-    this.arbitrator = new Arbitrator(signer, this.chainId);
+    
     this.apiKey = databaseAPIKey;
     this.apiSecret = databaseAPISecret;
     this.databaseType = databaseType;
     this.auth = new Auth();
-    this.signature = new Signature(signer);
+    
   }
 
   /**
    * This API generates user ceramic and database connection object
    * @returns Connection datatype
    */
-  loginUser = async (): Promise<SafientResponse<User>> => {
+  loginUser = async (signer: Signer): Promise<SafientResponse<User>> => {
     try {
+
+      this.signer = signer;
+      this.signature = new Signature(signer);
+      this.contract = new SafientMain(signer, this.chainId);
+      this.arbitrator = new Arbitrator(signer, this.chainId);
 
       const seed = await this.signature.sign();
       const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed), this.CERAMIC_URL, this.ceramicDefintions);
@@ -143,7 +145,7 @@ export class SafientCore {
       if (userData.data) {
        return userData
       } else {
-         throw new SafientResponse({error: Errors.UserNotFound})
+         throw new SafientResponse({error: Errors.BeneficiaryNotFound})
       }
     } catch (err) {
       if(err instanceof SafientResponse){
@@ -276,11 +278,11 @@ export class SafientCore {
     description: string,
     creatorDID: string,
     safeData: SafeStore,
-    onChain: boolean,
     claimType: number,
     signalingPeriod: number,
     dDay: number,
     beneficiary: { email?: string, did?: string},
+    onChain: boolean = false,
     persist: boolean = false,
   ): Promise<SafientResponse<EventResponse>> => {
     try {
@@ -714,6 +716,7 @@ export class SafientCore {
 
       return new SafientResponse({data: recoveryStatus});
     } catch (err) {
+      console.log(err)
       throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
     }
   };

@@ -9,7 +9,8 @@ chai.use(require('chai-as-promised'));
 // Import package
 const { SafientCore } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
-const { Enums } = require('../dist/index');
+const { Enums, Errors } = require('../dist/index');
+
 
 describe('Scenario 1 - Creating safe offChain', async () => {
   let creator;
@@ -22,7 +23,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
   let disputeId;
   let admin;
-  let creatorSc, beneficiarySc, guardianOneSc, guardianTwoSc, guardianThreeSc;
+  let safient;
 
   const apiKey = process.env.USER_API_KEY;
   const secret = process.env.USER_API_SECRET;
@@ -45,139 +46,104 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
+
+    safient = new SafientCore(Enums.NetworkType.localhost);
   });
 
   it('Should register a Creator', async () => {
-    creatorSc = new SafientCore(creatorSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
+
     const userAddress = await creatorSigner.getAddress();
     try{
-      creator = await creatorSc.loginUser();
+      creator = await safient.loginUser(creatorSigner);
     }catch(err){
-      if(err.error.code === Errors.Errors.UserNotFound.code){
-        creator = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+      if(err.error.code === Errors.UserNotFound.code){
+        creator = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
       }
     }
     
     try{
-      const result = await creatorSc.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+      const result = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
     }catch(err){
-      expect(err.error.code).to.equal(11);
+      expect(err.error.code).to.equal(Errors.UserAlreadyExists.code);
     }
 
-    const loginUser = await creatorSc.getUser({ did: creator.data.did });
+    const loginUser = await safient.getUser({ did: creator.data.did });
     expect(loginUser.data.name).to.equal('Creator');
     expect(loginUser.data.email).to.equal('creator@test.com');
   });
 
   it('Should register a beneficiary', async () => {
-    beneficiarySc = new SafientCore(beneficiarySigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
    
     // SUCCESS : create user A
 
     const userAddress = await beneficiarySigner.getAddress();
 
     try{
-      beneficiary = await beneficiarySc.loginUser();
+      beneficiary = await safient.loginUser(beneficiarySigner);
     }catch(err){
-      if(err.error.code === Errors.Errors.UserNotFound.code){
-        beneficiary = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
+      if(err.error.code === Errors.UserNotFound.code){
+        beneficiary = await safient.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
 
       }
     }
 
-
-    try{
-      const result = await beneficiarySc.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
-    }catch(err){
-      expect(err.error.code).to.equal(11);
-    }
-
-
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await beneficiarySc.getUser({ did: beneficiary.data.did });
+    const loginUser = await safient.getUser({ did: beneficiary.data.did });
     expect(loginUser.data.name).to.equal('beneficiary');
     expect(loginUser.data.email).to.equal('beneficiary@test.com');
   });
 
   it('Should register a Guardian 1', async () => {
-    guardianOneSc = new SafientCore(guardianOneSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    // SUCCESS : create user A
+ 
     const userAddress = await guardianOneSigner.getAddress();
     guardianOneAddress = userAddress;
 
     try{
-      guardianOne = await guardianOneSc.loginUser();
+      guardianOne = await safient.loginUser(guardianOneSigner);
     }catch(err){
-      if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianOne =  await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
+      if(err.error.code === Errors.UserNotFound.code){
+        guardianOne =  await safient.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
       }
     }
 
-    try{
-      const result = await guardianOneSc.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
-    }catch(err){
-      expect(err.error.code).to.equal(11);
-    }
-
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await guardianOneSc.getUser({ email: `guardianOne@test.com` });
+    const loginUser = await safient.getUser({ email: `guardianOne@test.com` });
     expect(loginUser.data.name).to.equal('Guardian 1');
     expect(loginUser.data.email).to.equal('guardianOne@test.com');
   });
 
   it('Should register a Guardian 2', async () => {
-    guardianTwoSc = new SafientCore(guardianTwoSigner, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    // SUCCESS : create user A
+
     const userAddress = await guardianTwoSigner.getAddress();
 
     try{
-      guardianTwo = await guardianTwoSc.loginUser();
+      guardianTwo = await safient.loginUser(guardianTwoSigner);
     }catch(err){
-      if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianTwo = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
+      if(err.error.code === Errors.UserNotFound.code){
+        guardianTwo = await safient.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
 
       }
     }
 
-    try{
-      const result = await guardianTwoSc.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
-    }catch(err){
-      expect(err.error.code).to.equal(11);
-    }
-
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await guardianTwoSc.getUser({ email: `guardianTwo@test.com` });
+    const loginUser = await safient.getUser({ email: `guardianTwo@test.com` });
     expect(loginUser.data.name).to.equal('Guardian 2');
     expect(loginUser.data.email).to.equal('guardianTwo@test.com');
   });
 
   it('Should register a Guardian 3', async () => {
-    guardianThreeSc = new SafientCore(
-      guardianThreeSigner,
-      Enums.NetworkType.localhost,
-      Enums.DatabaseType.threadDB,
-      apiKey,
-      secret
-    );
     
     const userAddress = await guardianThreeSigner.getAddress();
     try{
-      guardianThree = await guardianThreeSc.loginUser();
+      guardianThree = await safient.loginUser(guardianThreeSigner);
     }catch(err){
-      if(err.error.code === Errors.Errors.UserNotFound.code){
-        guardianThree =  await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
+      if(err.error.code === Errors.UserNotFound.code){
+        guardianThree =  await safient.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
       }
     }
 
-
-    try{
-      const result = await guardianThreeSc.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
-    }catch(err){
-      expect(err.error.code).to.equal(11);
-    }
-
     // SUCCESS : get all users (check if the user A was created)
-    const loginUser = await guardianThreeSc.getUser({ did: guardianThree.data.did });
+    const loginUser = await safient.getUser({ did: guardianThree.data.did });
     expect(loginUser.data.name).to.equal('Guardian 3');
     expect(loginUser.data.email).to.equal('guardianThree@test.com');
   });
@@ -195,19 +161,20 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const safeData = {
       data: cryptoSafe,
     };
-    const safeid = await creatorSc.createSafe(
+    creator = await safient.loginUser(creatorSigner);
+
+    const safeid = await safient.createSafe(
       "Off Chain",
       "this safe creates offchain private key safe",
       creator.data.did,    
       safeData,
-      false,
       ClaimType.ArbitrationBased,
       0,
       0,
-      {did:beneficiary.data.did}
+      {did: beneficiary.data.did}
     );
     safeId = safeid.data.id;
-    const safe = await creatorSc.getSafe(safeId);
+    const safe = await safient.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
 
@@ -216,14 +183,22 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    const result = await beneficiarySc.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    await safient.loginUser(beneficiarySigner);
+    const result = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
     disputeId = parseInt(result.data.id)
     expect(disputeId).to.be.a('number');
   });
 
   it('Should PASS the dispute', async () => {
-    const sc = new SafientCore(admin, Enums.NetworkType.localhost, Enums.DatabaseType.threadDB, apiKey, secret);
-    const result = await sc.giveRuling(disputeId, 1); //Passing a claim
+
+    try {
+      await safient.loginUser(admin)
+    }
+    catch {
+      // Exception for admin user
+      
+    }
+    const result = await safient.giveRuling(disputeId, 1); //Passing a claim
     expect(result.data).to.equal(true);
   });
 
@@ -233,33 +208,45 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   // });
 
   it('Should initiate recovery by guardian 1', async () => {
-    const data = await guardianOneSc.reconstructSafe(safeId, guardianOne.data.did);
+
+    await safient.loginUser(guardianOneSigner);
+    const data = await safient.reconstructSafe(safeId, guardianOne.data.did);
     expect(data.data).to.equal(true);
   });
 
   it('Should initiate recovery by guardian 2', async () => {
-    const data = await guardianTwoSc.reconstructSafe(safeId, guardianTwo.data.did);
+
+    await safient.loginUser(guardianTwoSigner);
+    const data = await safient.reconstructSafe(safeId, guardianTwo.data.did);
     expect(data.data).to.equal(true);
   });
 
   it('Should recover data for the beneficiary', async () => {
-    const data = await beneficiarySc.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
+
+    await safient.loginUser(beneficiarySigner);
+    const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
     expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
   it('Should recover data for the creator', async () => {
-    const data = await creatorSc.recoverSafeByCreator(safeId);
+
+    await safient.loginUser(creatorSigner);
+    const data = await safient.recoverSafeByCreator(safeId);
     expect(data.data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
 
   it('Should submit proofs for the guardians', async () => {
-    const result = await guardianOneSc.incentiviseGuardians(safeId);
+
+    await safient.loginUser(guardianTwoSigner);
+    const result = await safient.incentiviseGuardians(safeId);
     expect(result.data).to.not.equal(false);
   });
 
   it('Should get the guardians reward balance', async () => {
-    guardianOneRewardBalance = await guardianOneSc.getRewardBalance(guardianOneAddress);
+
+    await safient.loginUser(guardianTwoSigner);
+    guardianOneRewardBalance = await safient.getRewardBalance(guardianOneAddress);
     // const newBalance = await guardianOneSigner.getBalance();
     // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
   });
