@@ -54,7 +54,7 @@ export const Errors = {
     },
     SyncStageFailure: {
         code: 211,
-        message: "Error while syyncing safes stages"
+        message: "Error while syncing safes stages"
     },
     RulingFailure:{
         code: 212,
