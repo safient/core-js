@@ -161,14 +161,11 @@ describe('Unit test', async () => {
       data: cryptoSafe,
     };
     const safeid = await safient.createSafe(
-      "On Chain Unit test",
-      "Crytpo safe with seed phrase",
-      creator.data.did,
       safeData,
-      ClaimType.ArbitrationBased,
-      0,
-      0,
-      {email: 'beneficiary@test.com'}
+      {email: 'beneficiary@test.com'},
+      {type: ClaimType.ArbitrationBased, period: 0},
+      { name: "On Chain Unit test",
+       description: "Crytpo safe with seed phrase"},
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);

@@ -163,14 +163,11 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
         await safient.loginUser(creatorSigner);
 
         const safeid = await safient.createSafe(
-          "On chain safe",
-          "Software Wallet",
-          creator.data.did,
           safeData,
-          ClaimType.ArbitrationBased,
-          0,
-          0,
-          {did:beneficiary.data.did}
+          {did:beneficiary.data.did},
+          {type: ClaimType.ArbitrationBased},
+          { name: "On chain safe",
+           description:  "Software Wallet"}
         );
         safeId = safeid.data.id;
         const safe = await safient.getSafe(safeId);

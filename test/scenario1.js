@@ -164,14 +164,11 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     creator = await safient.loginUser(creatorSigner);
 
     const safeid = await safient.createSafe(
-      "Off Chain",
-      "this safe creates offchain private key safe",
-      creator.data.did,    
       safeData,
-      ClaimType.ArbitrationBased,
-      0,
-      0,
-      {did: beneficiary.data.did}
+      {did:beneficiary.data.did},
+      {type: ClaimType.ArbitrationBased},
+      { name: "Off Chain",
+       description:  "this safe creates offchain private key safe"}
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);

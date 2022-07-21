@@ -158,16 +158,21 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
     };
 
     await safient.loginUser(creatorSigner);
+    
     const safeid = await safient.createSafe(
-      "Signal based",
-      "generic safe i.e Signal based",
-      creator.data.did,
       safeData,
-      ClaimType.SignalBased,
-      10,
-      0,
-      {did: beneficiary.data.did}
+      {did:beneficiary.data.did},
+      {type: ClaimType.SignalBased, period: 10},
+      { name: "Signal based",
+       description: "generic safe i.e Signal based"}
     );
+
+
+    safeData,
+      {did:beneficiary.data.did},
+      {type: ClaimType.DDayBased, period: 0},
+      { name: "DDay Safe",
+       description: "Hardware wallet safe"}
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);

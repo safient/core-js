@@ -1,7 +1,12 @@
-import { IDX } from '@ceramicstudio/idx';
-import { JsonRpcProvider, Provider, TransactionReceipt, TransactionResponse } from '@ethersproject/providers';
-import { SafientMain, Arbitrator, Types } from '@safient/contracts';
-import { BigNumber, ethers, providers } from 'ethers';
+import { IDX } from "@ceramicstudio/idx";
+import {
+  JsonRpcProvider,
+  Provider,
+  TransactionReceipt,
+  TransactionResponse,
+} from "@ethersproject/providers";
+import { SafientMain, Arbitrator, Types } from "@safient/contracts";
+import { BigNumber, ethers, providers } from "ethers";
 
 import {
   Connection,
@@ -23,8 +28,8 @@ import {
   CeramicDefintions,
   ClaimResponse,
   EventResponse,
-} from './lib/types';
-import { definitions } from './utils/config.json';
+} from "./lib/types";
+import { definitions } from "./utils/config.json";
 import {
   createClaimEvidenceUri,
   createMetaData,
@@ -41,15 +46,20 @@ import {
   deleteDecShard,
   updateDecShard,
   getDecShards,
-} from './logic/index';
-import { Database } from './database';
-import { Crypto } from './crypto';
-import { Auth, Signature } from './identity';
-import { ClaimStages, DatabaseType, NetworkType, SafeStages } from './lib/enums';
-import { Networks } from './utils/networks';
-import {SafientResponse} from './lib/services'
-import {Errors} from "./lib/errors"
-require('dotenv').config();
+} from "./logic/index";
+import { Database } from "./database";
+import { Crypto } from "./crypto";
+import { Auth, Signature } from "./identity";
+import {
+  ClaimStages,
+  DatabaseType,
+  NetworkType,
+  SafeStages,
+} from "./lib/enums";
+import { Networks } from "./utils/networks";
+import { SafientResponse } from "./lib/services";
+import { Errors } from "./lib/errors";
+require("dotenv").config();
 
 export class SafientCore {
   /** @ignore */
@@ -58,6 +68,8 @@ export class SafientCore {
   private contract: SafientMain;
   /**@ignore */
   private arbitrator: Arbitrator;
+  /** @ignore */
+  private userData: User;
   /** @ignore */
   private connection: Connection;
   /** @ignore */
@@ -81,12 +93,11 @@ export class SafientCore {
   /**@ignore */
   private chainId: number;
   /**@ignore */
-  private CERAMIC_URL: string
+  private CERAMIC_URL: string;
   /**@ignore */
-  private ceramicDefintions: CeramicDefintions
+  private ceramicDefintions: CeramicDefintions;
   /**@ignore */
   private guardianFee: number = 0.05;
-  
 
   /**
    * Constructor to initilize the Core SDK
@@ -104,21 +115,19 @@ export class SafientCore {
     databaseAPISecret?: any,
     threadId?: number[]
   ) {
-
     this.chainId = Networks[network].chainId;
-    this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL
-    this.ceramicDefintions = Networks[network].ceramic.config
+    this.CERAMIC_URL = Networks[network].ceramic.CERAMIC_URL;
+    this.ceramicDefintions = Networks[network].ceramic.config;
     if (!threadId) {
       this.threadId = Networks[network].threadId;
     } else {
       this.threadId = threadId!;
     }
-    
+
     this.apiKey = databaseAPIKey;
     this.apiSecret = databaseAPISecret;
     this.databaseType = databaseType;
     this.auth = new Auth();
-    
   }
 
   /**
@@ -127,32 +136,43 @@ export class SafientCore {
    */
   loginUser = async (signer: Signer): Promise<SafientResponse<User>> => {
     try {
-
       this.signer = signer;
       this.signature = new Signature(signer);
       this.contract = new SafientMain(signer, this.chainId);
       this.arbitrator = new Arbitrator(signer, this.chainId);
 
       const seed = await this.signature.sign();
-      const { idx, ceramic } = await this.auth.generateIdentity(Uint8Array.from(seed), this.CERAMIC_URL, this.ceramicDefintions);
-      const { client, threadId } = await this.auth.generateThread(seed, this.apiKey, this.apiSecret, this.threadId);
+      const { idx } = await this.auth.generateIdentity(
+        Uint8Array.from(seed),
+        this.CERAMIC_URL,
+        this.ceramicDefintions
+      );
+      const { client, threadId } = await this.auth.generateThread(
+        seed,
+        this.apiKey,
+        this.apiSecret,
+        this.threadId
+      );
       const connectionData = { client, threadId, idx };
       this.connection = connectionData;
       this.Utils = init(this.databaseType, this.connection);
       this.crypto = this.Utils.crypto;
       this.database = this.Utils.database;
-      const userData: SafientResponse<User> = await this.getUser({ did: idx?.id });
+      const userData: SafientResponse<User> = await this.getUser({
+        did: idx?.id,
+      });
       if (userData.data) {
-       return userData
+        this.userData = userData.data
+        return userData;
       } else {
-         throw new SafientResponse({error: Errors.BeneficiaryNotFound})
+        throw new SafientResponse({ error: Errors.BeneficiaryNotFound });
       }
     } catch (err) {
-      if(err instanceof SafientResponse){
-        throw new SafientResponse({error: err.error});
-      }else{
-        const {message} = err as Error
-        throw new SafientResponse({error: {code: 0 , message: message}});
+      if (err instanceof SafientResponse) {
+        throw new SafientResponse({ error: err.error });
+      } else {
+        const { message } = err as Error;
+        throw new SafientResponse({ error: { code: 0, message: message } });
       }
     }
   };
@@ -165,12 +185,16 @@ export class SafientCore {
    * @param userAddress Metamask address of the user
    * @returns User registration ID
    */
-  createUser = async (name: string, email: string, signUpMode: number, userAddress: string, guardian: boolean): Promise<SafientResponse<User>> => {
+  createUser = async (
+    name: string,
+    email: string,
+    signUpMode: number,
+    userAddress: string,
+    guardian: boolean
+  ): Promise<SafientResponse<User>> => {
     try {
-     
-
       let idx: IDX | null = this.connection.idx;
-      let did: string = idx?.id || '';
+      let did: string = idx?.id || "";
 
       const data: UserSchema = {
         did,
@@ -179,26 +203,31 @@ export class SafientCore {
         safes: [],
         signUpMode,
         userAddress,
-        guardian
+        guardian,
       };
 
-      const result: UserResponse = await createUser(data, this.connection.idx?.id!);
+      const result: UserResponse = await createUser(
+        data,
+        this.connection.idx?.id!
+      );
       if (result.status === false) {
-        const ceramicResult = await idx?.set(this.ceramicDefintions.definitions.profile, {
-          name: name,
-          email: email,
-        });
-        return new SafientResponse({data: result.data!}) 
+        const ceramicResult = await idx?.set(
+          this.ceramicDefintions.definitions.profile,
+          {
+            name: name,
+            email: email,
+          }
+        );
+        return new SafientResponse({ data: result.data! });
       } else {
-        throw new SafientResponse({error: Errors.UserAlreadyExists}) 
+        throw new SafientResponse({ error: Errors.UserAlreadyExists });
       }
-
     } catch (err) {
-      if(err instanceof SafientResponse){
-        throw new SafientResponse({error: err.error});
-      }else{
-        const {message} = err as Error
-        throw new SafientResponse({error: {code: 0 , message: message}});
+      if (err instanceof SafientResponse) {
+        throw new SafientResponse({ error: err.error });
+      } else {
+        const { message } = err as Error;
+        throw new SafientResponse({ error: { code: 0, message: message } });
       }
     }
   };
@@ -208,9 +237,11 @@ export class SafientCore {
    * @param obj Takes email or did as parameter to get the user information
    * @returns User or null based on user information present
    */
-  getUser = async (obj: { email?: string; did?: string }): Promise<SafientResponse<User>> => {
+  getUser = async (obj: {
+    email?: string;
+    did?: string;
+  }): Promise<SafientResponse<User>> => {
     try {
-      
       let user: User | null = null;
       if (obj.did) {
         user = await getUser({ did: obj.did });
@@ -218,16 +249,16 @@ export class SafientCore {
         user = await getUser({ email: obj.email });
       }
       if (user) {
-       return new SafientResponse({data: user})
+        return new SafientResponse({ data: user });
       } else {
-        throw new SafientResponse({error: Errors.UserNotFound})
+        throw new SafientResponse({ error: Errors.UserNotFound });
       }
     } catch (err) {
-      if(err instanceof SafientResponse){
-        throw new SafientResponse({error: err.error});
-      }else{
-        const {message} = err as Error
-        throw new SafientResponse({error: {code: 0 , message: message}});
+      if (err instanceof SafientResponse) {
+        throw new SafientResponse({ error: err.error });
+      } else {
+        const { message } = err as Error;
+        throw new SafientResponse({ error: { code: 0, message: message } });
       }
     }
   };
@@ -239,10 +270,10 @@ export class SafientCore {
   getUsers = async (): Promise<SafientResponse<UserMeta[]>> => {
     try {
       const users: UserMeta[] = await getUsers();
-      return new SafientResponse({data: users});
+      return new SafientResponse({ data: users });
     } catch (err) {
-        const {message} = err as Error
-        throw new SafientResponse({error: {code: 0 , message: message}});
+      const { message } = err as Error;
+      throw new SafientResponse({ error: { code: 0, message: message } });
     }
   };
 
@@ -253,9 +284,15 @@ export class SafientCore {
    * @param beneficiaryDID DID of the safe beneficiary
    * @returns Array of guardian DIDs
    */
-  private randomGuardians = async (creatorDID: string | any, beneficiaryDID: string | any): Promise<User[]> => {
+  private randomGuardians = async (
+    creatorDID: string | any,
+    beneficiaryDID: string | any
+  ): Promise<User[]> => {
     try {
-      const guardians: User[] = await generateRandomGuardians(creatorDID, beneficiaryDID);
+      const guardians: User[] = await generateRandomGuardians(
+        creatorDID,
+        beneficiaryDID
+      );
       return guardians;
     } catch (err) {
       throw new Error(`Couldn't fetch random guardians, ${err}`);
@@ -268,221 +305,218 @@ export class SafientCore {
    * @param beneficiaryDID DID of the user who inherits the safe
    * @param safeData Data being stored in the safe
    * @param onChain The data to be stored onChain or offChain
-   * @param claimType The safe is claimed through either "Arbitration" or "Signal" (Arbitration - 0, Signal - 1)
+   * @param claimType The safe is claimed through either "Arbitration" or "Signal" (Arbitration - 0, Signal - 1, )
    * @param signalingPeriod signalingPeriod The time window in seconds within which the creator wants to signal the safe in response to a claim on the safe
    * @param dDay The timestamp in unix epoch milliseconds after which the beneficiary can directly claim the safe
    * @returns ID generated for the Safe
    */
   createSafe = async (
-    safeName: string,
-    description: string,
-    creatorDID: string,
     safeData: SafeStore,
-    claimType: number,
-    signalingPeriod: number,
-    dDay: number,
-    beneficiary: { email?: string, did?: string},
+    beneficiary: { email?: string; did?: string },
+    claimDetails: { type: number; period: number },
+    safeDetails?: { name?: string; description?: string },
     onChain: boolean = false,
-    persist: boolean = false,
+    persist: boolean = false
   ): Promise<SafientResponse<EventResponse>> => {
     try {
-      
       let guardians: User[] = [];
       let beneficiaryUser: User | null = null;
       let txReceipt: TransactionReceipt | undefined;
-      const guardiansDid: string[] = []
+      const guardiansDid: string[] = [];
       //userQueryDid function
-      const creatorUser: User[] = await queryUserDid(creatorDID);
-      const beneficiaryResult: SafientResponse<User> = await this.getUser(beneficiary)
-      beneficiaryUser = beneficiaryResult.data!
-   
-      guardians = await this.randomGuardians(creatorDID, beneficiaryUser.did);
-      if(creatorDID !== beneficiaryUser._id){
-        if (guardians.length === 3) {
-          const secretsData = this.crypto.generateSecrets(guardians);
-          guardians.map(guardian => guardiansDid.push(guardian.did) )
-          //note 1: Change here
-          const signature: string = await this.signer.signMessage(ethers.utils.arrayify(secretsData.hash));
-  
-          const encryptedSafeData: SafeEncrypted = await this.crypto.encryptSafeData(
-            safeData,
-            beneficiaryUser!.did,
-            this.connection.idx?.id,
-            this.connection,
-            guardiansDid,
-            signature,
-            secretsData.recoveryMessage,
-            secretsData.secrets
-          );
+      // const creatorUser: User[] = await queryUserDid(creatorDID);
+      const beneficiaryResult: SafientResponse<User> = await this.getUser(
+        beneficiary
+      );
+      beneficiaryUser = beneficiaryResult.data!;
+      const signalPeriod = claimDetails.type == 0 ? claimDetails.period : 0;
+      const dDay = claimDetails.type == 2 ? claimDetails.period : 0;
 
-          const safeLinkData: SafeLink = {
-            creator: this.connection.idx?.id!,
-            guardians: guardiansDid,
-            beneficiary: beneficiaryUser.did,
-            encSafeKey: encryptedSafeData.creatorEncKey,
-            encSafeData: encryptedSafeData.encryptedData,
-            encSafeKeyShards: encryptedSafeData.shardData,
-            onChain: onChain,
-            claimType: claimType,
-            signalingPeriod: signalingPeriod,
-            dDay: dDay,
-            timeStamp: Date.now()
-          }
-  
-          const safeLink = persist ? await createIpfsSafeLink(safeLinkData) : null;
-          
-  
-          const data: SafeCreation = {
-            safeName: safeName,
-            description: description,
-            creator: this.connection.idx?.id,
-            guardians: guardiansDid,
-            beneficiary: beneficiaryUser?.did,
-            encSafeKey: encryptedSafeData.creatorEncKey,
-            encSafeData: encryptedSafeData.encryptedData,
-            stage: SafeStages.ACTIVE,
-            encSafeKeyShards: encryptedSafeData.shardData,
-            claims: [],
-            onChain: onChain,
-            claimType: claimType,
-            signalingPeriod: signalingPeriod,
-            dDay: dDay,
-            timeStamp: Date.now(),
-            proofSubmission: false,
-            cid: safeLink
-          };
-  
-          const safe: string[] = await createSafe(data);
-  
-          if (onChain === true) {
-
-            if (claimType === Types.ClaimType.ArbitrationBased) {
-              const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-              const metaDataEvidenceUri: string = await createMetaData(
-                '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
-                creatorUser[0].userAddress
-              );
-              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
-              const tx: TransactionResponse = await this.contract.createSafe(
-                beneficiaryUser!.userAddress,
-                safe[0],
-                claimType,
-                signalingPeriod,
-                dDay,
-                metaDataEvidenceUri,
-                totalFee
-              );
-              txReceipt = await tx.wait();
-            } else if (claimType === Types.ClaimType.SignalBased || claimType === Types.ClaimType.DDayBased) {
-
-              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
-              
-
-              const tx: TransactionResponse = await this.contract.createSafe(
-                beneficiaryUser!.userAddress,
-                safe[0],
-                claimType,
-                signalingPeriod,
-                dDay,
-                '',
-                totalFee
-              ); //NOTE: Change the time from 1 to required period here
-              txReceipt = await tx.wait();
-            }
-          }
-  
-          if (txReceipt?.status === 1 || onChain === false) {
-            if (creatorUser[0].safes.length === 0) {
-              creatorUser[0].safes = [
-                {
-                  safeName: safeName,
-                  safeId: safe[0],
-                  type: 'creator',
-                  decShard: null
-                },
-              ];
-            } else {
-              creatorUser[0].safes.push({
-                safeName: safeName,
-                safeId: safe[0],
-                type: 'creator',
-                decShard: null
-              });
-            }
-  
-            if (beneficiaryUser!.safes.length === 0) {
-              beneficiaryUser!.safes = [
-                {
-                  safeName: safeName,
-                  safeId: safe[0],
-                  type: 'beneficiary',
-                  decShard: null
-                },
-              ];
-            } else {
-              beneficiaryUser!.safes.push({
-                safeName: safeName,
-                safeId: safe[0],
-                type: 'beneficiary',
-                decShard: null
-              });
-            }
-  
-            for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-              if (guardians[guardianIndex].safes.length === 0) {
-                guardians[guardianIndex].safes = [
-                  {
-                    safeName: safeName,
-                    safeId: safe[0],
-                    type: 'guardian',
-                    decShard: null
-                  },
-                ];
-              } else {
-                guardians[guardianIndex].safes.push({
-                  safeName: safeName,
-                  safeId: safe[0],
-                  type: 'guardian',
-                  decShard: null
-                });
-              }
-            }
-  
-            await this.database.save(creatorUser[0], 'Users');
-            await this.database.save(beneficiaryUser, 'Users');
-  
-            for (let guardianIndex = 0; guardianIndex < guardiansDid.length; guardianIndex++) {
-              await this.database.save(guardians[guardianIndex], 'Users');
-            }
-          }
-  
-          if (txReceipt?.status === 0) {
-            await this.database.delete(safe[0], 'Users');
-            console.log('Transaction Failed!');
-            throw new SafientResponse({error: Errors.TransactionFailure})
-          }
-          const result: EventResponse = {
-            id: safe[0],
-            recepient: {
-                name: beneficiaryUser!.name,
-                email: beneficiaryUser!.email,
-                phone: '',
-              }
-          }
-          return new SafientResponse({data: result})
-        } else {
-         throw new SafientResponse({error: Errors.SafeNotCreated})
-        }
-      }else{
-        throw new SafientResponse({error: Errors.SelfSafeCreation})
+      guardians = await this.randomGuardians(this.userData.did, beneficiaryUser.did);
+      if (this.userData.did == beneficiaryUser._id) {
+        throw new SafientResponse({ error: Errors.SelfSafeCreation });
       }
-     
+
+      if (guardians.length !== 3) {
+        throw new SafientResponse({ error: Errors.SafeNotCreated });
+      }
+
+      const secretsData = this.crypto.generateSecrets(guardians);
+      guardians.map((guardian) => guardiansDid.push(guardian.did));
+      //note 1: Change here
+      const signature: string = await this.signer.signMessage(
+        ethers.utils.arrayify(secretsData.hash)
+      );
+
+      const encryptedSafeData: SafeEncrypted =
+        await this.crypto.encryptSafeData(
+          safeData,
+          beneficiaryUser!.did,
+          this.connection.idx?.id,
+          this.connection,
+          guardiansDid,
+          signature,
+          secretsData.recoveryMessage,
+          secretsData.secrets
+        );
+
+      const safeLinkData: SafeLink = {
+        creator: this.connection.idx?.id!,
+        guardians: guardiansDid,
+        beneficiary: beneficiaryUser.did,
+        encSafeKey: encryptedSafeData.creatorEncKey,
+        encSafeData: encryptedSafeData.encryptedData,
+        encSafeKeyShards: encryptedSafeData.shardData,
+        onChain: onChain,
+        claimType: claimDetails.type,
+        signalingPeriod: signalPeriod,
+        dDay: dDay,
+        timeStamp: Date.now(),
+      };
+
+      const safeLink = persist ? await createIpfsSafeLink(safeLinkData) : null;
+
+      const data: SafeCreation = {
+        safeName: safeDetails?.name,
+        description: safeDetails?.description,
+        creator: this.connection.idx?.id,
+        guardians: guardiansDid,
+        beneficiary: beneficiaryUser?.did,
+        encSafeKey: encryptedSafeData.creatorEncKey,
+        encSafeData: encryptedSafeData.encryptedData,
+        stage: SafeStages.ACTIVE,
+        encSafeKeyShards: encryptedSafeData.shardData,
+        claims: [],
+        onChain: onChain,
+        claimType: claimDetails.type,
+        signalingPeriod: signalPeriod,
+        dDay: dDay,
+        timeStamp: Date.now(),
+        proofSubmission: false,
+        cid: safeLink,
+      };
+
+      const safe: string[] = await createSafe(data);
+
+      if (onChain === true) {
+        let totalFee: number = this.guardianFee;
+        let metaDataEvidenceUri: string = "";
+        if (claimDetails.type === Types.ClaimType.ArbitrationBased) {
+          const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+          totalFee = totalFee + arbitrationFee;
+
+          metaDataEvidenceUri = await createMetaData(
+            "",
+            this.userData.userAddress
+          );
+        }
+
+          const tx: TransactionResponse = await this.contract.createSafe(
+            beneficiaryUser!.userAddress,
+            safe[0],
+            claimDetails.type,
+            signalPeriod,
+            dDay,
+            metaDataEvidenceUri,
+            String(
+              ethers.utils.parseEther(String(totalFee)))
+          ); //NOTE: Change the time from 1 to required period here
+          txReceipt = await tx.wait();
+        
+      }
+
+      if (txReceipt?.status === 1 || onChain === false) {
+        if (this.userData.safes.length === 0) {
+          this.userData.safes = [
+            {
+              safeName: safeDetails?.name,
+              safeId: safe[0],
+              type: "creator",
+              decShard: null,
+            },
+          ];
+        } else {
+          this.userData.safes.push({
+            safeName: safeDetails?.name,
+            safeId: safe[0],
+            type: "creator",
+            decShard: null,
+          });
+        }
+
+        if (beneficiaryUser!.safes.length === 0) {
+          beneficiaryUser!.safes = [
+            {
+              safeName: safeDetails?.name,
+              safeId: safe[0],
+              type: "beneficiary",
+              decShard: null,
+            },
+          ];
+        } else {
+          beneficiaryUser!.safes.push({
+            safeName: safeDetails?.name,
+            safeId: safe[0],
+            type: "beneficiary",
+            decShard: null,
+          });
+        }
+
+        for (
+          let guardianIndex = 0;
+          guardianIndex < guardiansDid.length;
+          guardianIndex++
+        ) {
+          if (guardians[guardianIndex].safes.length === 0) {
+            guardians[guardianIndex].safes = [
+              {
+                safeName: safeDetails?.name,
+                safeId: safe[0],
+                type: "guardian",
+                decShard: null,
+              },
+            ];
+          } else {
+            guardians[guardianIndex].safes.push({
+              safeName: safeDetails?.name,
+              safeId: safe[0],
+              type: "guardian",
+              decShard: null,
+            });
+          }
+        }
+
+        await this.database.save(this.userData, "Users");
+        await this.database.save(beneficiaryUser, "Users");
+
+        for (
+          let guardianIndex = 0;
+          guardianIndex < guardiansDid.length;
+          guardianIndex++
+        ) {
+          await this.database.save(guardians[guardianIndex], "Users");
+        }
+      }
+
+      if (txReceipt?.status === 0) {
+        await this.database.delete(safe[0], "Users");
+        throw new SafientResponse({ error: Errors.TransactionFailure });
+      }
+      const result: EventResponse = {
+        id: safe[0],
+        recepient: {
+          name: beneficiaryUser!.name,
+          email: beneficiaryUser!.email,
+          phone: "",
+        },
+      };
+      return new SafientResponse({ data: result });
     } catch (err) {
-      if(err instanceof SafientResponse){
-        throw new SafientResponse({error: err.error});
-      }else{
-        const {message} = err as Error
-        throw new SafientResponse({error: {code: 0 , message: message}});
+      if (err instanceof SafientResponse) {
+        throw new SafientResponse({ error: err.error });
+      } else {
+        const { message } = err as Error;
+        throw new SafientResponse({ error: { code: 0, message: message } });
       }
     }
   };
@@ -493,21 +527,27 @@ export class SafientCore {
    * @returns Encrypted Safe Data
    */
   getSafe = async (safeId: string): Promise<SafientResponse<Safe>> => {
-    try {  
+    try {
       const result: Safe = await getSafeData(safeId);
       // TODO: Need to move the different function
-      if(result.stage === SafeStages.CLAIMING){
-        const claimStatus = await this.getClaimStatus(safeId, result.claims[result.claims.length - 1].disputeId)
-        result.claims[result.claims.length - 1].claimStatus = claimStatus
-        if(claimStatus === ClaimStages.PASSED){
-          result.stage = SafeStages.RECOVERING
-        }else if(claimStatus === ClaimStages.FAILED || claimStatus ===  ClaimStages.REJECTED){
-          result.stage = SafeStages.ACTIVE
+      if (result.stage === SafeStages.CLAIMING) {
+        const claimStatus = await this.getClaimStatus(
+          safeId,
+          result.claims[result.claims.length - 1].disputeId
+        );
+        result.claims[result.claims.length - 1].claimStatus = claimStatus;
+        if (claimStatus === ClaimStages.PASSED) {
+          result.stage = SafeStages.RECOVERING;
+        } else if (
+          claimStatus === ClaimStages.FAILED ||
+          claimStatus === ClaimStages.REJECTED
+        ) {
+          result.stage = SafeStages.ACTIVE;
         }
       }
-      return new SafientResponse({data: result});
+      return new SafientResponse({ data: result });
     } catch (err) {
-      throw new SafientResponse({error: Errors.SafeNotFound})
+      throw new SafientResponse({ error: Errors.SafeNotFound });
     }
   };
 
@@ -519,9 +559,14 @@ export class SafientCore {
    * @param description Decscription of the evidence and claim being submitted
    * @returns Dispute Number generated for the claim
    */
-  createClaim = async (safeId: string, file: any, evidenceName: string, description: string): Promise<SafientResponse<EventResponse>> => {
+  createClaim = async (
+    safeId: string,
+    file: any,
+    evidenceName: string,
+    description: string
+  ): Promise<SafientResponse<EventResponse>> => {
     try {
-      let evidenceUri: string = '';
+      let evidenceUri: string = "";
       let tx: TransactionResponse;
       let disputeId: number = 0;
       let txReceipt: any;
@@ -529,43 +574,50 @@ export class SafientCore {
       let createSafetxReceipt: any;
       let dispute: any;
       let timeStamp: number = 0;
-      const userBalance: BigNumber = await this.signer.getBalance()
-      let etherBalance = ethers.utils.formatEther(userBalance)
+      const userBalance: BigNumber = await this.signer.getBalance();
+      let etherBalance = ethers.utils.formatEther(userBalance);
 
       let safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       let creatorUser: User[] = await queryUserDid(safe.creator);
-      
-      if(parseFloat(etherBalance) >= 0.1){
-        if (safe.onChain === true ) {
+
+      if (parseFloat(etherBalance) >= 0.1) {
+        if (safe.onChain === true) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+              evidenceUri = await createClaimEvidenceUri(
+                file,
+                evidenceName,
+                description
+              );
               tx = await this.contract.createClaim(safe._id, evidenceUri);
               txReceipt = await tx.wait();
             }
           } else if (safe.claimType === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              tx = await this.contract.createClaim(safe._id, '');
+              tx = await this.contract.createClaim(safe._id, "");
               txReceipt = await tx.wait();
             }
           } else if (safe.claimType === Types.ClaimType.DDayBased) {
-            tx = await this.contract.createClaim(safe._id, '');
+            tx = await this.contract.createClaim(safe._id, "");
             txReceipt = await tx.wait();
           }
         }
-  
+
         if (safe.onChain === false) {
-          
-  
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             const metaDataEvidenceUri: string = await createMetaData(
-              '0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512',
+              "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
               creatorUser[0].userAddress
             );
             if (safe.stage === SafeStages.ACTIVE) {
-              const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
-              const totalFee: string = String(ethers.utils.parseEther(String(arbitrationFee + this.guardianFee)));
+              const arbitrationFee: number =
+                await this.arbitrator.getArbitrationFee();
+              const totalFee: string = String(
+                ethers.utils.parseEther(
+                  String(arbitrationFee + this.guardianFee)
+                )
+              );
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
@@ -579,71 +631,79 @@ export class SafientCore {
             }
           } else if (safe.claimType === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
+              const totalFee: string = String(
+                ethers.utils.parseEther(String(this.guardianFee))
+              );
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
                 safe.claimType,
                 safe.signalingPeriod,
                 safe.dDay,
-                '',
+                "",
                 totalFee
               ); //Note update time here
               createSafetxReceipt = await createSafetx.wait();
             }
           } else if (safe.claimType === Types.ClaimType.DDayBased) {
-            const totalFee: string = String(ethers.utils.parseEther(String(this.guardianFee)));
+            const totalFee: string = String(
+              ethers.utils.parseEther(String(this.guardianFee))
+            );
             createSafetx = await this.contract.syncSafe(
               creatorUser[0].userAddress,
               safeId,
               safe.claimType,
               safe.signalingPeriod,
               safe.dDay,
-              '',
+              "",
               totalFee
             ); //Note update time here
             createSafetxReceipt = await createSafetx.wait();
           }
-  
+
           if (createSafetxReceipt.status === 1) {
             if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-              evidenceUri = await createClaimEvidenceUri(file, evidenceName, description);
+              evidenceUri = await createClaimEvidenceUri(
+                file,
+                evidenceName,
+                description
+              );
               tx = await this.contract.createClaim(safe._id, evidenceUri);
             } else {
-              tx = await this.contract.createClaim(safe._id, '');
+              tx = await this.contract.createClaim(safe._id, "");
             }
             txReceipt = await tx.wait();
           }
         }
-  
+
         if (txReceipt.status === 1) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               dispute = txReceipt.events[2].args[1];
-              timeStamp = parseInt(txReceipt.events[2].args[2]._hex)
+              timeStamp = parseInt(txReceipt.events[2].args[2]._hex);
               disputeId = parseInt(dispute._hex);
             }
           } else if (safe.claimType === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               dispute = txReceipt.events[0].args[1];
-              timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
+              timeStamp = parseInt(txReceipt.events[0].args[2]._hex);
               disputeId = parseInt(dispute._hex);
             }
           } else if (safe.claimType === Types.ClaimType.DDayBased) {
             dispute = txReceipt.events[0].args[1];
-            timeStamp = parseInt(txReceipt.events[0].args[2]._hex)
+            timeStamp = parseInt(txReceipt.events[0].args[2]._hex);
             disputeId = parseInt(dispute._hex);
           }
-  
+
           safe.stage = SafeStages.CLAIMING;
-  
+
           if (safe.claims.length === 0) {
             safe.claims = [
               {
                 createdBy: this.connection.idx?.id,
                 claimStatus: ClaimStages.ACTIVE,
                 disputeId: disputeId,
-                timeStamp: timeStamp
+                timeStamp: timeStamp,
               },
             ];
           } else {
@@ -651,31 +711,28 @@ export class SafientCore {
               createdBy: this.connection.idx?.id,
               claimStatus: ClaimStages.ACTIVE,
               disputeId: disputeId,
-              timeStamp: timeStamp
+              timeStamp: timeStamp,
             });
           }
-          await this.database.save(safe, 'Safes');
+          await this.database.save(safe, "Safes");
         }
 
         const claimResponse: EventResponse = {
-         id: dispute.toString(),
-         recepient: {
-           name: creatorUser[0].name,
-           email: creatorUser[0].email,
-           phone: ''
-         }
-        }
-        return new SafientResponse({data: claimResponse});
-      }else{
-        throw new SafientResponse({error: Errors.WalletBalance})
+          id: dispute.toString(),
+          recepient: {
+            name: creatorUser[0].name,
+            email: creatorUser[0].email,
+            phone: "",
+          },
+        };
+        return new SafientResponse({ data: claimResponse });
+      } else {
+        throw new SafientResponse({ error: Errors.WalletBalance });
       }
-      
     } catch (err) {
-      throw new SafientResponse({error: Errors.ClaimNotCreated})
+      throw new SafientResponse({ error: Errors.ClaimNotCreated });
     }
   };
-
-
 
   /**
    * This API is called by guardians when they have to recover the safe they are part of
@@ -683,41 +740,47 @@ export class SafientCore {
    * @param did DID of the guardian
    * @returns True of False based on the recovery process
    */
-  reconstructSafe = async (safeId: string, did: string): Promise<SafientResponse<boolean>> => {
+  reconstructSafe = async (
+    safeId: string,
+    did: string
+  ): Promise<SafientResponse<boolean>> => {
     try {
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       const indexValue = safe.guardians.indexOf(did);
       let recoveryStatus: boolean = false;
-      // internal function 
-      const res = await this.syncStage(safeId)
+      // internal function
+      const res = await this.syncStage(safeId);
 
       if (res.data === true && safe.stage === SafeStages.RECOVERING) {
-        const decShard: DecShard = await this.connection.idx?.ceramic.did?.decryptDagJWE(
-          safe.encSafeKeyShards[indexValue].data
-        ) as DecShard;
+        const decShard: DecShard =
+          (await this.connection.idx?.ceramic.did?.decryptDagJWE(
+            safe.encSafeKeyShards[indexValue].data
+          )) as DecShard;
 
-        await updateDecShard(did, safeId, decShard)
-        
-        const decShards: DecShard[] = await getDecShards(safe.guardians, safeId)
+        await updateDecShard(did, safeId, decShard);
+
+        const decShards: DecShard[] = await getDecShards(
+          safe.guardians,
+          safeId
+        );
         if (decShards.length >= 2) {
           safe.stage = SafeStages.RECOVERED;
-          safe.decSafeKeyShards = decShards
-          await deleteDecShard(safe.guardians, safeId)
-
+          safe.decSafeKeyShards = decShards;
+          await deleteDecShard(safe.guardians, safeId);
         } else {
           safe.stage = SafeStages.RECOVERING;
         }
         recoveryStatus = true;
-        await this.database.save(safe, 'Safes');
+        await this.database.save(safe, "Safes");
       } else {
         recoveryStatus = false;
       }
 
-      return new SafientResponse({data: recoveryStatus});
+      return new SafientResponse({ data: recoveryStatus });
     } catch (err) {
-      console.log(err)
-      throw new SafientResponse({error: Errors.GuardianRecoveryFailure})
+      console.log(err);
+      throw new SafientResponse({ error: Errors.GuardianRecoveryFailure });
     }
   };
 
@@ -726,7 +789,9 @@ export class SafientCore {
    * @param safeId ID of the safe being recovered
    * @returns Decrypted Safe Data
    */
-  recoverSafeByCreator = async (safeId: string): Promise<SafientResponse<any>> => {
+  recoverSafeByCreator = async (
+    safeId: string
+  ): Promise<SafientResponse<any>> => {
     try {
       let recoveredData: SafeRecovered = {
         status: false,
@@ -734,15 +799,19 @@ export class SafientCore {
       };
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const encSafeData = safeData.data!.encSafeData;
-      const data = await this.crypto.decryptSafeData(safeData.data!.encSafeKey, this.connection, encSafeData);
+      const data = await this.crypto.decryptSafeData(
+        safeData.data!.encSafeKey,
+        this.connection,
+        encSafeData
+      );
       const reconstructedData = JSON.parse(data.toString());
       recoveredData = {
         status: true,
         data: reconstructedData,
       };
-      return new SafientResponse({data: reconstructedData});
+      return new SafientResponse({ data: reconstructedData });
     } catch (err) {
-      throw new SafientResponse({error: Errors.CreatorRecoveryFailure})
+      throw new SafientResponse({ error: Errors.CreatorRecoveryFailure });
     }
   };
 
@@ -754,10 +823,14 @@ export class SafientCore {
    * @param safeStage The stage of the safe
    * @returns True or False based on update process
    */
-  private updateStage = async (safeId: string, claimStage: number, safeStage: number): Promise<SafientResponse<boolean>> => {
+  private updateStage = async (
+    safeId: string,
+    claimStage: number,
+    safeStage: number
+  ): Promise<SafientResponse<boolean>> => {
     try {
       const result: boolean = await updateStage(safeId, claimStage, safeStage);
-      return new SafientResponse({data: result});
+      return new SafientResponse({ data: result });
     } catch (err) {
       throw new Error(`Error while updating a stage ${err}`);
     }
@@ -769,7 +842,10 @@ export class SafientCore {
    * @param did DID of the beneficiary
    * @returns Decrypted Safe Data
    */
-  recoverSafeByBeneficiary = async (safeId: string, did: string): Promise<any> => {
+  recoverSafeByBeneficiary = async (
+    safeId: string,
+    did: string
+  ): Promise<any> => {
     try {
       let recoveredData: SafeRecovered = {
         status: false,
@@ -782,8 +858,11 @@ export class SafientCore {
       const safeResponse: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeResponse.data!;
 
-      if (safe.stage === SafeStages.RECOVERED || safe.stage === SafeStages.CLAIMED) {
-        const decShards: DecShard[] =  safe.decSafeKeyShards
+      if (
+        safe.stage === SafeStages.RECOVERED ||
+        safe.stage === SafeStages.CLAIMED
+      ) {
+        const decShards: DecShard[] = safe.decSafeKeyShards;
         decShards.map((shard) => {
           shards.push(shard.share);
         });
@@ -796,25 +875,32 @@ export class SafientCore {
         );
 
         if (safeData && safe.stage === SafeStages.RECOVERED) {
-          await this.updateStage(safeId, ClaimStages.PASSED, SafeStages.CLAIMED);
+          await this.updateStage(
+            safeId,
+            ClaimStages.PASSED,
+            SafeStages.CLAIMED
+          );
           result = JSON.parse(safeData.toString());
-          return new SafientResponse({data: result.data})
-        }else if(safeData && safe.stage === SafeStages.CLAIMED){
+          return new SafientResponse({ data: result.data });
+        } else if (safeData && safe.stage === SafeStages.CLAIMED) {
           result = JSON.parse(safeData.toString());
-          return new SafientResponse({data: result.data})
-        } 
-        else {
-          throw new SafientResponse({error: Errors.BeneficiaryRecoveryFailure})
+          return new SafientResponse({ data: result.data });
+        } else {
+          throw new SafientResponse({
+            error: Errors.BeneficiaryRecoveryFailure,
+          });
         }
-      }else {
-        throw new SafientResponse({error: Errors.StageNotUpdated})
+      } else {
+        throw new SafientResponse({ error: Errors.StageNotUpdated });
       }
     } catch (err) {
-      if(err instanceof SafientResponse){
-        if(err.error?.code === Errors.StageNotUpdated.code){
-          throw new SafientResponse({error: Errors.StageNotUpdated})
-        }else{
-          throw new SafientResponse({error: Errors.BeneficiaryRecoveryFailure})
+      if (err instanceof SafientResponse) {
+        if (err.error?.code === Errors.StageNotUpdated.code) {
+          throw new SafientResponse({ error: Errors.StageNotUpdated });
+        } else {
+          throw new SafientResponse({
+            error: Errors.BeneficiaryRecoveryFailure,
+          });
         }
       }
     }
@@ -830,7 +916,7 @@ export class SafientCore {
       const data = await this.contract.getSafeBySafeId(safeId);
       return data;
     } catch (err) {
-      throw new SafientResponse({error: Errors.OnChainSafeNotFound})
+      throw new SafientResponse({ error: Errors.OnChainSafeNotFound });
     }
   };
 
@@ -844,7 +930,7 @@ export class SafientCore {
       const data = await this.contract.getClaimByClaimId(claimId);
       return data;
     } catch (err) {
-      throw new SafientResponse({error: Errors.OnChainSafeNotFound})
+      throw new SafientResponse({ error: Errors.OnChainSafeNotFound });
     }
   };
 
@@ -859,7 +945,7 @@ export class SafientCore {
       const claimStage = await this.contract.getClaimStatus(safeId, claimId);
       return claimStage;
     } catch (err) {
-      throw new SafientResponse({error: Errors.OnChainClaimStatus})
+      throw new SafientResponse({ error: Errors.OnChainClaimStatus });
     }
   };
 
@@ -888,15 +974,18 @@ export class SafientCore {
         safe.stage = SafeStages.RECOVERING;
         safe.claims[claimIndex].claimStatus = ClaimStages.PASSED;
       }
-      if (claimStage === ClaimStages.FAILED || claimStage === ClaimStages.REJECTED) {
+      if (
+        claimStage === ClaimStages.FAILED ||
+        claimStage === ClaimStages.REJECTED
+      ) {
         safe.stage = SafeStages.ACTIVE;
         safe.claims[claimIndex].claimStatus = claimStage;
       }
 
-      await this.database.save(safe, 'Safes');
-      return new SafientResponse({data: true});
+      await this.database.save(safe, "Safes");
+      return new SafientResponse({ data: true });
     } catch (err) {
-      throw new SafientResponse({error: Errors.SyncStageFailure})
+      throw new SafientResponse({ error: Errors.SyncStageFailure });
     }
   };
 
@@ -906,12 +995,18 @@ export class SafientCore {
    * Use at your loss
    * If you reading this code and come across this, be warned not to use this at all
    *  */
-  giveRuling = async (disputeId: number, ruling: number): Promise<SafientResponse<boolean>> => {
+  giveRuling = async (
+    disputeId: number,
+    ruling: number
+  ): Promise<SafientResponse<boolean>> => {
     try {
-      const result: boolean = await this.arbitrator.giveRulingCall(disputeId, ruling);
-      return new SafientResponse({data: result});
+      const result: boolean = await this.arbitrator.giveRulingCall(
+        disputeId,
+        ruling
+      );
+      return new SafientResponse({ data: result });
     } catch (err) {
-      throw new SafientResponse({error: Errors.RulingFailure})
+      throw new SafientResponse({ error: Errors.RulingFailure });
     }
   };
 
@@ -920,7 +1015,9 @@ export class SafientCore {
    * @param safeId ID of the safe
    * @returns Transaction details of the signal
    */
-  createSignal = async (safeId: string): Promise<SafientResponse<TransactionReceipt>> => {
+  createSignal = async (
+    safeId: string
+  ): Promise<SafientResponse<TransactionReceipt>> => {
     try {
       const tx: TransactionResponse = await this.contract.sendSignal(safeId);
       const txReceipt: TransactionReceipt = await tx.wait();
@@ -928,9 +1025,9 @@ export class SafientCore {
         await this.updateStage(safeId, ClaimStages.ACTIVE, SafeStages.ACTIVE);
       }
 
-      return new SafientResponse({data: txReceipt});
+      return new SafientResponse({ data: txReceipt });
     } catch (err) {
-      throw new SafientResponse({error: Errors.SignalCreateFailure})
+      throw new SafientResponse({ error: Errors.SignalCreateFailure });
     }
   };
 
@@ -939,28 +1036,31 @@ export class SafientCore {
    * @param safeId ID of the safe
    * @returns True or false based on the incentivisation process
    */
-  incentiviseGuardians = async (safeId: string): Promise<SafientResponse<boolean>> => {
+  incentiviseGuardians = async (
+    safeId: string
+  ): Promise<SafientResponse<boolean>> => {
     try {
       let shards: any = [];
       let guardianArray: any = [];
       let guardianSecret: string[] = [];
-      let txResponse: TransactionResponse
-      let txReceipt: TransactionReceipt | undefined
+      let txResponse: TransactionResponse;
+      let txReceipt: TransactionReceipt | undefined;
 
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
       if (!safe.proofSubmission && safe.decSafeKeyShards.length >= 2) {
-        const decShards: DecShard[] = safe.decSafeKeyShards
+        const decShards: DecShard[] = safe.decSafeKeyShards;
         decShards.map((shard) => {
-            shards.push(shard.share);
-            guardianSecret.push(shard.secret);
+          shards.push(shard.share);
+          guardianSecret.push(shard.secret);
         });
 
         if (shards.length !== 0) {
-          const reconstructedData: Share = await this.crypto.reconstructSafeData([
-            Buffer.from(shards[0]),
-            Buffer.from(shards[1]),
-          ]);
+          const reconstructedData: Share =
+            await this.crypto.reconstructSafeData([
+              Buffer.from(shards[0]),
+              Buffer.from(shards[1]),
+            ]);
           const message = reconstructedData.message;
           message.data.guardians.map((guardian: any) => {
             const guardianTuple = [guardian.secret, guardian.address];
@@ -976,38 +1076,39 @@ export class SafientCore {
           );
           txReceipt = await txResponse.wait();
         }
-        if(txReceipt?.status){
-          safe.proofSubmission = true
-          await this.database.save(safe, "Safes")
-          return new SafientResponse({data: true});
-        }else{
-          throw new SafientResponse({error: Errors.IncentivizationFailure})
+        if (txReceipt?.status) {
+          safe.proofSubmission = true;
+          await this.database.save(safe, "Safes");
+          return new SafientResponse({ data: true });
+        } else {
+          throw new SafientResponse({ error: Errors.IncentivizationFailure });
         }
-      }else{
-        throw new SafientResponse({error: Errors.IncentivizationComplete})
+      } else {
+        throw new SafientResponse({ error: Errors.IncentivizationComplete });
       }
     } catch (err) {
-      if(err instanceof SafientResponse){
-        if(err.error?.code === Errors.IncentivizationComplete.code){
-          throw new SafientResponse({error: Errors.IncentivizationComplete})
+      if (err instanceof SafientResponse) {
+        if (err.error?.code === Errors.IncentivizationComplete.code) {
+          throw new SafientResponse({ error: Errors.IncentivizationComplete });
         }
       }
-      throw new SafientResponse({error: Errors.IncentivizationFailure})
+      throw new SafientResponse({ error: Errors.IncentivizationFailure });
     }
   };
 
- 
   /**
    * This function returns the total guardian reward balance of a guardian
    * @param address The address of the guardian
    * @returns The total guardian reward balance in ETH
    */
-  getRewardBalance = async (address: string): Promise<SafientResponse<Number>> => {
+  getRewardBalance = async (
+    address: string
+  ): Promise<SafientResponse<Number>> => {
     try {
       const result: Number = await this.contract.getGuardianRewards(address);
-      return new SafientResponse({data: result});
+      return new SafientResponse({ data: result });
     } catch (e) {
-      throw new SafientResponse({error: Errors.RewardsAccessFailure})
+      throw new SafientResponse({ error: Errors.RewardsAccessFailure });
     }
   };
 
@@ -1018,10 +1119,12 @@ export class SafientCore {
    */
   claimRewards = async (funds: number): Promise<TransactionResponse> => {
     try {
-      const result: TransactionResponse = await this.contract.claimRewards(funds);
+      const result: TransactionResponse = await this.contract.claimRewards(
+        funds
+      );
       return result;
     } catch (e) {
-      throw new SafientResponse({error: Errors.RewardsClaimFailure})
+      throw new SafientResponse({ error: Errors.RewardsClaimFailure });
     }
   };
 
@@ -1031,12 +1134,18 @@ export class SafientCore {
    * @param dDay The timestamp in unix epoch milliseconds after which the beneficiary can directly claim the safe
    * @returns A transaction response
    */
-  updateDDay = async (safeId: string, dDay: number): Promise<TransactionResponse> => {
+  updateDDay = async (
+    safeId: string,
+    dDay: number
+  ): Promise<TransactionResponse> => {
     try {
-      const result: TransactionResponse = await this.contract.updateDDay(safeId, dDay);
+      const result: TransactionResponse = await this.contract.updateDDay(
+        safeId,
+        dDay
+      );
       return result;
     } catch (e) {
-      throw new SafientResponse({error: Errors.DDayUpdateFailure})
+      throw new SafientResponse({ error: Errors.DDayUpdateFailure });
     }
   };
 }

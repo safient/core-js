@@ -48,7 +48,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
 
-    safient = new SafientCore(Enums.NetworkType.localhost,);
+    safient = new SafientCore(Enums.NetworkType.localhost);
   });
 
   //Step 1: Register all users
@@ -167,14 +167,11 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     await safient.loginUser(creatorSigner);
 
     const safeid = await safient.createSafe(
-      "On Chain",
-      "This creates onChain keystore safe",
-      creator.data.did,
       safeData,
-      ClaimType.ArbitrationBased,
-      0,
-      0,
-      {did:beneficiary.data.did}
+      {did:beneficiary.data.did},
+      {type: ClaimType.ArbitrationBased},
+      { name: "On Chain",
+       description:  "This creates onChain keystore safe"}
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);

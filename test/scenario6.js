@@ -165,15 +165,11 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     await safient.loginUser(creatorSigner);
 
     const safeid = await safient.createSafe(
-      "DDay Safe",
-      "Hardware wallet safe",
-      creator.data.did,
       safeData,
-      ClaimType.DDayBased,
-      0,
-      60, // 1 mins after the safe creation
       {did:beneficiary.data.did},
-      true
+      {type: ClaimType.DDayBased, period: 0},
+      { name: "DDay Safe",
+       description: "Hardware wallet safe"}
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);
@@ -226,14 +222,11 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     
     await safient.loginUser(creatorSigner);
     const safeid = await safient.createSafe(
-      "DDay Safe",
-      "Hardware wallet safe",
-      creator.data.did,
       safeData,
-      ClaimType.DDayBased,
-      0,
-      60, // 1 mins after the safe creation
       {did:beneficiary.data.did},
+      {type: ClaimType.DDayBased, period: 60},
+      { name: "DDay Safe",
+       description: "Hardware wallet safe"},
       true
     );
     safeId = safeid.data.id;

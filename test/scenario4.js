@@ -163,14 +163,11 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     await safient.loginUser(creatorSigner);
 
     const safeid = await safient.createSafe(
-      "On Chain Wallet - signal based",
-      "Hardware wallet instructions",
-      creator.data.did,
       safeData,
-      ClaimType.SignalBased,
-      6,
-      0,
-      {did:beneficiary.data.did}
+      {did:beneficiary.data.did},
+      {type: ClaimType.SignalBased, period: 6},
+      { name: "On Chain Wallet - signal based",
+       description:  "Hardware wallet instructions"}
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);
