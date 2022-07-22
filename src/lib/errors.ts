@@ -1,15 +1,20 @@
 export const Errors = {
     UserNotFound : {
-        code: 10,
+        code: 100,
         message: "User not found"
     },
+    
     UserAlreadyExists: {
-        code: 11,
+        code: 101,
         message: "User already exists"
     },
     GuardianNotFound: {
-        code: 12,
+        code: 102,
         message: "Guardian not Found"
+    },
+    BeneficiaryNotFound : {
+        code: 103,
+        message: "User not found"
     },
     SafeNotCreated: {
         code: 201,
@@ -29,11 +34,11 @@ export const Errors = {
     },
    CreatorRecoveryFailure: {
         code: 205,
-        message: "Guardian Recovery failed"
+        message: "Creator Recovery failed"
     },
     BeneficiaryRecoveryFailure: {
         code: 206,
-        message: "Guardian Recovery failed"
+        message: "Beneficiary Recovery failed"
     },
     StageNotUpdated: {
         code: 207,
@@ -49,7 +54,7 @@ export const Errors = {
     },
     SyncStageFailure: {
         code: 211,
-        message: "Error while syyncing safes stages"
+        message: "Error while syncing safes stages"
     },
     RulingFailure:{
         code: 212,
@@ -84,15 +89,15 @@ export const Errors = {
         message: "Incentivization already submitted."
     },
     TransactionFailure: {
-        code: 31,
+        code: 301,
         message: "Transaction Failed"
     },
     WalletBalance: {
-        code: 32,
+        code: 302,
         message: "Transaction cannot be created due to low Wallet Balance."
     },
     CommonError: {
-        code: 2,
+        code: 1,
         message: "Something went wrong"
     }
 }

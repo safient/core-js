@@ -48,7 +48,7 @@ export type UserMeta = {
 
 
 export type SafeMeta = {
-  safeName: string
+  safeName?: string
   safeId: string;
   type: string;
   decShard: DecShard | null
@@ -56,8 +56,8 @@ export type SafeMeta = {
 
 export interface Safe {
   _id: string;
-  safeName: string,
-  description: string,
+  safeName?: string,
+  description?: string,
   creator: string;
   guardians: string[]; 
   beneficiary: string;
@@ -77,8 +77,8 @@ export interface Safe {
 };
 
 export type SafeCreation = {
-  safeName: string,
-  description: string,
+  safeName?: string,
+  description?: string,
   creator: string | undefined;
   guardians: string[];
   beneficiary: string | undefined;
