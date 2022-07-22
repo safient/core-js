@@ -185,7 +185,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     };
 
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
     disputeId = parseInt(res.data.id)
     expect(disputeId).to.be.a('number');
   });
@@ -198,7 +198,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
 
       await safient.loginUser(beneficiarySigner);
       try{
-        const res = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text')
+        const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text'} )
       }catch(err){
           expect(err.error.code).to.equal(203)
       }
@@ -227,7 +227,7 @@ describe('Scenario 2 - Creating safe onChain and Failing the dispute', async () 
     };
 
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
     disputeId = parseInt(res.data.id)
     expect(disputeId).to.be.a('number');
   });

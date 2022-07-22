@@ -181,7 +181,7 @@ describe('Scenario 1 - Creating safe offChain', async () => {
       name: 'signature.jpg',
     };
     await safient.loginUser(beneficiarySigner);
-    const result = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const result = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text'});
     disputeId = parseInt(result.data.id)
     expect(disputeId).to.be.a('number');
   });

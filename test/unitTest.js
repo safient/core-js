@@ -61,12 +61,12 @@ describe('Unit test', async () => {
       creator = await safient.loginUser(creatorSigner);
     }catch(err){
       if(err.error.code === Errors.UserNotFound.code){
-        creator = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+        creator = await safient.createUser('Creator', 'creator@test.com', userAddress);
       }
     }
     
     try{
-      const result = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+      const result = await safient.createUser('Creator', 'creator@test.com', userAddress);
     }catch(err){
       expect(err.error.code).to.equal(Errors.UserAlreadyExists.code);
     }
@@ -84,7 +84,7 @@ describe('Unit test', async () => {
       beneficiary = await safient.loginUser(beneficiarySigner);
     }catch(err){
       if(err.error.code === Errors.UserNotFound.code){
-        beneficiary = await safient.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
+        beneficiary = await safient.createUser('beneficiary', 'beneficiary@test.com', userAddress);
 
       }
     }
@@ -103,7 +103,7 @@ describe('Unit test', async () => {
       guardianOne = await safient.loginUser(guardianOneSigner);
     }catch(err){
       if(err.error.code === Errors.UserNotFound.code){
-        guardianOne =  await safient.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
+        guardianOne =  await safient.createUser('Guardian 1', 'guardianOne@test.com', userAddress, true);
       }
     }
 
@@ -120,7 +120,7 @@ describe('Unit test', async () => {
       guardianTwo = await safient.loginUser(guardianTwoSigner);
     }catch(err){
       if(err.error.code === Errors.UserNotFound.code){
-        guardianTwo = await safient.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
+        guardianTwo = await safient.createUser('Guardian 2', 'guardianTwo@test.com', userAddress, true);
 
       }
     }
@@ -137,7 +137,7 @@ describe('Unit test', async () => {
       guardianThree = await safient.loginUser(guardianThreeSigner);
     }catch(err){
       if(err.error.code === Errors.UserNotFound.code){
-        guardianThree =  await safient.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
+        guardianThree =  await safient.createUser('Guardian 3', 'guardianThree@test.com', userAddress, true);
       }
     }
 
@@ -180,7 +180,7 @@ describe('Unit test', async () => {
     const file = {
       name: 'signature.jpg',
     };
-    const result = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const result = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
     disputeId = result.data.id
     expect(disputeId).to.be.a('string');
   });

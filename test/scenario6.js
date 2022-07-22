@@ -179,7 +179,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
   it('Should create a claim - Before D-Day (claim should FAIL)', async () => {
       try{
         await safient.loginUser(beneficiarySigner);
-        const res = await safient.createClaim(safeId, {}, '', '');
+        const res = await safient.createClaim(safeId);
         disputeId = parseInt(res.data.id)
       }catch(err){
         expect(err.error.code).to.eql(Errors.ClaimNotCreated.code)
@@ -197,7 +197,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     const result = await mineNewBlock;
 
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, {}, '', '');
+    const res = await safient.createClaim(safeId);
     disputeId = parseInt(res.data.id)
 
     // check claim status
@@ -236,7 +236,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     // create a claim - before D-Day (1 min) (claim should fail)
     try{
       await safient.loginUser(beneficiarySigner);
-      const res = await safient.createClaim(safeId, {}, '', '');
+      const res = await safient.createClaim(safeId);
       disputeId = parseInt(res.data.id)
     }catch(err){
       expect(err.error.code).to.eql(Errors.ClaimNotCreated.code)
@@ -260,7 +260,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     // create a claim - before D-Day (after 10 secs but before 60 secs) (claim should fail)
     try{
       await safient.loginUser(beneficiarySigner);
-      const res = await safient.createClaim(safeId, {}, '', '');
+      const res = await safient.createClaim(safeId);
       disputeId = parseInt(res.data.id)
     }catch(err){
       expect(err.error.code).to.eql(Errors.ClaimNotCreated.code)
@@ -275,7 +275,7 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     const result2 = await mineNewBlock;
 
     // create a claim - after D-Day (after 60 secs) (claim should pass)
-    const result = await safient.createClaim(safeId, {}, '', '');
+    const result = await safient.createClaim(safeId);
     disputeId = parseInt(result.data.id);
     // check claim status
     claimResult = await safient.getClaimStatus(safeId, disputeId);

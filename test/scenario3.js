@@ -179,7 +179,7 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
           name: 'signature.jpg',
         };
         await safient.loginUser(beneficiarySigner);
-        const res = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+        const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
         disputeId = parseInt(res.data.id)
         expect(disputeId).to.be.a('number');
       });

@@ -181,7 +181,7 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
     };
 
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, {}, '', '');
+    const res = await safient.createClaim(safeId);
     disputeId = parseInt(res.data.id)
     expect(disputeId).to.be.a('number');
   });
@@ -198,7 +198,7 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
       name: 'signature.jpg',
     };
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, file, 'Testing Evidence', 'Lorsem Text');
+    const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
     disputeId = parseInt(res.data.id)
     const mineNewBlock = new Promise((resolve, reject) => {
       setTimeout(() => {

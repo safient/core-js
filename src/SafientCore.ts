@@ -101,15 +101,15 @@ export class SafientCore {
 
   /**
    * Constructor to initilize the Core SDK
-   * @param signer Signer object of the wallet
+   * @param signer Signer object of the provider for user authentication
    * @param network The type of network from NetworkType Enum
    * @param databaseType Type of database to use
    * @param databaseAPIKey Database API key
    * @param databaseAPISecret Database API secret
-   * @param threadId ThreadDB ID if its available (optional)
+   * @param threadId ThreadDB ID if its available
    */
   constructor(
-    network: NetworkType,
+    network: NetworkType = NetworkType.testnet,
     databaseType: DatabaseType = DatabaseType.threadDB,
     databaseAPIKey?: any,
     databaseAPISecret?: any,
@@ -162,7 +162,7 @@ export class SafientCore {
         did: idx?.id,
       });
       if (userData.data) {
-        this.userData = userData.data
+        this.userData = userData.data;
         return userData;
       } else {
         throw new SafientResponse({ error: Errors.BeneficiaryNotFound });
@@ -183,14 +183,15 @@ export class SafientCore {
    * @param email Email of the user
    * @param signUpMode Signup mode (0 - Metamask, 1 - Social Login)
    * @param userAddress Metamask address of the user
+   * @param guardian If the user is a guardian
    * @returns User registration ID
    */
   createUser = async (
     name: string,
     email: string,
-    signUpMode: number,
     userAddress: string,
-    guardian: boolean
+    guardian: boolean = false,
+    signUpMode: number = 0
   ): Promise<SafientResponse<User>> => {
     try {
       let idx: IDX | null = this.connection.idx;
@@ -301,13 +302,13 @@ export class SafientCore {
 
   /**
    * This API is used to create a safe either onChain or offChain
-   * @param creatorDID DID of the user who creates the safe
-   * @param beneficiaryDID DID of the user who inherits the safe
+   * @param beneficiary.did DID of the user who inherits/ claims the safe
+   * @param beneficiary.email Email of the user who inherits/ claims the safe
    * @param safeData Data being stored in the safe
-   * @param onChain The data to be stored onChain or offChain
-   * @param claimType The safe is claimed through either "Arbitration" or "Signal" (Arbitration - 0, Signal - 1, )
-   * @param signalingPeriod signalingPeriod The time window in seconds within which the creator wants to signal the safe in response to a claim on the safe
-   * @param dDay The timestamp in unix epoch milliseconds after which the beneficiary can directly claim the safe
+   * @param onChain The data to be stored onChain or offChain while creating the safe
+   * @param persist Flag to replicate the safe metadata to IPFS 
+   * @param claimDetails.type The claim type to recover the safe of type ClaimType
+   * @param claimDetails.period signaling period or dDay timestamp for the claim 
    * @returns ID generated for the Safe
    */
   createSafe = async (
@@ -332,7 +333,10 @@ export class SafientCore {
       const signalPeriod = claimDetails.type == 0 ? claimDetails.period : 0;
       const dDay = claimDetails.type == 2 ? claimDetails.period : 0;
 
-      guardians = await this.randomGuardians(this.userData.did, beneficiaryUser.did);
+      guardians = await this.randomGuardians(
+        this.userData.did,
+        beneficiaryUser.did
+      );
       if (this.userData.did == beneficiaryUser._id) {
         throw new SafientResponse({ error: Errors.SelfSafeCreation });
       }
@@ -402,7 +406,8 @@ export class SafientCore {
         let totalFee: number = this.guardianFee;
         let metaDataEvidenceUri: string = "";
         if (claimDetails.type === Types.ClaimType.ArbitrationBased) {
-          const arbitrationFee: number = await this.arbitrator.getArbitrationFee();
+          const arbitrationFee: number =
+            await this.arbitrator.getArbitrationFee();
           totalFee = totalFee + arbitrationFee;
 
           metaDataEvidenceUri = await createMetaData(
@@ -411,18 +416,16 @@ export class SafientCore {
           );
         }
 
-          const tx: TransactionResponse = await this.contract.createSafe(
-            beneficiaryUser!.userAddress,
-            safe[0],
-            claimDetails.type,
-            signalPeriod,
-            dDay,
-            metaDataEvidenceUri,
-            String(
-              ethers.utils.parseEther(String(totalFee)))
-          ); //NOTE: Change the time from 1 to required period here
-          txReceipt = await tx.wait();
-        
+        const tx: TransactionResponse = await this.contract.createSafe(
+          beneficiaryUser!.userAddress,
+          safe[0],
+          claimDetails.type,
+          signalPeriod,
+          dDay,
+          metaDataEvidenceUri,
+          String(ethers.utils.parseEther(String(totalFee)))
+        ); //NOTE: Change the time from 1 to required period here
+        txReceipt = await tx.wait();
       }
 
       if (txReceipt?.status === 1 || onChain === false) {
@@ -554,16 +557,14 @@ export class SafientCore {
   /**
    * This API allows for safe claiming for the beneficiary
    * @param safeId ID of the safe being claimed
-   * @param file Evidence submitted with the claim
-   * @param evidenceName Name of the evidence
-   * @param description Decscription of the evidence and claim being submitted
+   * @param details.file Evidence submitted with the claim (Application only for Arbitration based claims)
+   * @param details.evidenceName Name of the evidence (Application only for Arbitration based claims)
+   * @param details.description Decscription of the evidence and claim being submitted (Application only for Arbitration based claims)
    * @returns Dispute Number generated for the claim
    */
   createClaim = async (
     safeId: string,
-    file: any,
-    evidenceName: string,
-    description: string
+    details?: { file: any; evidenceName: string; description: string }
   ): Promise<SafientResponse<EventResponse>> => {
     try {
       let evidenceUri: string = "";
@@ -576,6 +577,9 @@ export class SafientCore {
       let timeStamp: number = 0;
       const userBalance: BigNumber = await this.signer.getBalance();
       let etherBalance = ethers.utils.formatEther(userBalance);
+      const file = details?.file
+      const evidenceName = details?.evidenceName? details?.evidenceName : '';
+      const description = details?.description? details?.description : '';
 
       let safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeData.data!;
@@ -607,7 +611,7 @@ export class SafientCore {
         if (safe.onChain === false) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             const metaDataEvidenceUri: string = await createMetaData(
-              "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+              "",
               creatorUser[0].userAddress
             );
             if (safe.stage === SafeStages.ACTIVE) {

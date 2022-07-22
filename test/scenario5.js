@@ -184,7 +184,7 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
       name: 'signature.jpg',
     };
     await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, {}, '', '');
+    const res = await safient.createClaim(safeId);
     disputeId = parseInt(res.data.id)
     expect(disputeId).to.be.a('number');
   });
