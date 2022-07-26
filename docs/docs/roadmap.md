@@ -26,7 +26,7 @@ We built a confidential portfolio sharing application ([Portex](https://portex.x
 
 ### Safient design and prototype ✨
 
-Taking all the feedback from our hackathon project, we started to design and prototype the solution for Safient. We planned all the features, integrations and laid out our architecture for the initial implementation, and conducted a detailed user research survey to verify our solution approach.
+Taking all the feedback from our hackathon project, we started to design and prototype the solution for Safient. We planned all the features and integrations, laid out our architecture for the initial implementation, and conducted a detailed user research survey to verify our solution approach.
 
 Safient was one of the top 3 projects in the [DoraHack's Filecoin Grant](https://filecoin.io/blog/posts/249k-for-17-projects-from-dorahacks-filecoin-grant-hackathon/) program.
 
