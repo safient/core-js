@@ -47,24 +47,25 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
 
+    guardianOneAddress = await guardianOneSigner.getAddress();
+
     safient = new SafientCore(Enums.NetworkType.localhost);
   });
 
-  //Step 1: Register all users
   
+  //Step 1: Register all users
   it('Should register a Creator', async () => {
-
-    const userAddress = await creatorSigner.getAddress();
+    
     try{
-      creator = await safient.loginUser(creatorSigner);
+      creator = await safient.createUser(creatorSigner, {name: 'Creator', email: 'creator@test.com'});
     }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        creator = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+      if(err.error.code === Errors.UserAlreadyExists.code){
+        creator = await safient.loginUser(creatorSigner);
       }
     }
     
     try{
-      const result = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
+      const result = await safient.createUser(creatorSigner, {name: 'Creator', email: 'creator@test.com'});
     }catch(err){
       expect(err.error.code).to.equal(Errors.UserAlreadyExists.code);
     }
@@ -76,18 +77,16 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
 
   it('Should register a beneficiary', async () => {
 
-    const userAddress = await beneficiarySigner.getAddress();
-
     try{
-      beneficiary = await safient.loginUser(beneficiarySigner);
+      beneficiary = await safient.createUser(beneficiarySigner, { name: 'beneficiary', email: 'beneficiary@test.com'});
     }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        beneficiary = await safient.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
+      
+      if(err.error.code === Errors.UserAlreadyExists.code){
+        beneficiary = await safient.loginUser(beneficiarySigner);
 
       }
     }
 
-    // SUCCESS : get all users (check if the user was created)
     const loginUser = await safient.getUser({ did: beneficiary.data.did });
     expect(loginUser.data.name).to.equal('beneficiary');
     expect(loginUser.data.email).to.equal('beneficiary@test.com');
@@ -95,18 +94,15 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
 
   it('Should register a Guardian 1', async () => {
 
-    const userAddress = await guardianOneSigner.getAddress();
-    guardianOneAddress = userAddress;
-
     try{
-      guardianOne = await safient.loginUser(guardianOneSigner);
+      guardianOne =  await safient.createUser(guardianOneSigner, {name: 'Guardian 1', email: 'guardianOne@test.com'}, true);
+      
     }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianOne =  await safient.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
+      if(err.error.code === Errors.UserAlreadyExists.code){
+        guardianOne = await safient.loginUser(guardianOneSigner);
       }
     }
 
-    // SUCCESS : get all users (check if the user was created)
     const loginUser = await safient.getUser({ email: `guardianOne@test.com` });
     expect(loginUser.data.name).to.equal('Guardian 1');
     expect(loginUser.data.email).to.equal('guardianOne@test.com');
@@ -114,35 +110,33 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
 
   it('Should register a Guardian 2', async () => {
 
-    const userAddress = await guardianTwoSigner.getAddress();
-
     try{
-      guardianTwo = await safient.loginUser(guardianTwoSigner);
+      guardianTwo = await safient.createUser(guardianTwoSigner, {name: 'Guardian 2', email: 'guardianTwo@test.com'}, true);
     }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianTwo = await safient.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
+      if(err.error.code === Errors.UserAlreadyExists.code){
+        guardianTwo = await safient.loginUser(guardianTwoSigner);
 
       }
     }
 
-    // SUCCESS : get all users (check if the user was created)
     const loginUser = await safient.getUser({ email: `guardianTwo@test.com` });
     expect(loginUser.data.name).to.equal('Guardian 2');
     expect(loginUser.data.email).to.equal('guardianTwo@test.com');
   });
 
   it('Should register a Guardian 3', async () => {
-
-    const userAddress = await guardianThreeSigner.getAddress();
+    
     try{
-      guardianThree = await safient.loginUser(guardianThreeSigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianThree =  await safient.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
-      }
+      
+      guardianThree =  await safient.createUser(guardianThreeSigner, {name: 'Guardian 3', email: 'guardianThree@test.com'}, true);
     }
+    catch(err){
+      if(err.error.code === Errors.UserAlreadyExists.code){
+        guardianThree = await safient.loginUser(guardianThreeSigner);
+       
+    }
+  }
 
-    // SUCCESS : get all users (check if the user was created)
     const loginUser = await safient.getUser({ did: guardianThree.data.did });
     expect(loginUser.data.name).to.equal('Guardian 3');
     expect(loginUser.data.email).to.equal('guardianThree@test.com');

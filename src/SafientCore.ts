@@ -13,10 +13,8 @@ import {
   User,
   UserMeta,
   Safe,
-  SafeCreation,
   Share,
   SafeEncrypted,
-  UserSchema,
   Utils,
   Signer,
   UserResponse,
@@ -103,10 +101,10 @@ export class SafientCore {
    * Constructor to initilize the Core SDK
    * @param signer Signer object of the provider for user authentication
    * @param network The type of network from NetworkType Enum
-   * @param databaseType Type of database to use
-   * @param databaseAPIKey Database API key
-   * @param databaseAPISecret Database API secret
-   * @param threadId ThreadDB ID if its available
+   * @param databaseType Type of database to use (Optional)
+   * @param databaseAPIKey Database API key (Optional)
+   * @param databaseAPISecret Database API secret (Optional)
+   * @param threadId ThreadDB ID if its available (Optional)
    */
   constructor(
     network: NetworkType = NetworkType.testnet,
@@ -131,7 +129,7 @@ export class SafientCore {
   }
 
   /**
-   * This API generates user ceramic and database connection object
+   * @param signer Signer object of the provider for user authentication
    * @returns Connection datatype
    */
   loginUser = async (signer: Signer): Promise<SafientResponse<User>> => {
@@ -165,7 +163,7 @@ export class SafientCore {
         this.userData = userData.data;
         return userData;
       } else {
-        throw new SafientResponse({ error: Errors.BeneficiaryNotFound });
+        throw new SafientResponse({ error: Errors.UserNotFound });
       }
     } catch (err) {
       if (err instanceof SafientResponse) {
@@ -179,30 +177,49 @@ export class SafientCore {
 
   /**
    * This API registers users onto the platform
-   * @param name  Name of the user
-   * @param email Email of the user
-   * @param signUpMode Signup mode (0 - Metamask, 1 - Social Login)
-   * @param userAddress Metamask address of the user
+   * @param signer Signer object of the provider for user authentication
+   * @param details.name  Name of the user (Optional)
+   * @param details.email Email of the user (Optional)
    * @param guardian If the user is a guardian
    * @returns User registration ID
    */
   createUser = async (
-    name: string,
-    email: string,
-    userAddress: string,
+    signer: Signer,
+    details?: {name: string, email: string},
     guardian: boolean = false,
-    signUpMode: number = 0
   ): Promise<SafientResponse<User>> => {
+
+    this.signer = signer;
+    this.signature = new Signature(signer);
+    const userAddress = await signer.getAddress();
+
+    const seed = await this.signature.sign();
+    const { idx } = await this.auth.generateIdentity(
+      Uint8Array.from(seed),
+      this.CERAMIC_URL,
+      this.ceramicDefintions
+    );
+    const { client, threadId } = await this.auth.generateThread(
+      seed,
+      this.apiKey,
+      this.apiSecret,
+      this.threadId
+    );
+    const connectionData = { client, threadId, idx };
+    this.connection = connectionData;
+    this.Utils = init(this.databaseType, this.connection);
+    this.crypto = this.Utils.crypto;
+    this.database = this.Utils.database;
     try {
       let idx: IDX | null = this.connection.idx;
       let did: string = idx?.id || "";
 
-      const data: UserSchema = {
+      const data: User = {
+        _id: '',
         did,
-        name,
-        email,
+        name: details?.name,
+        email: details?.email,
         safes: [],
-        signUpMode,
         userAddress,
         guardian,
       };
@@ -215,8 +232,8 @@ export class SafientCore {
         const ceramicResult = await idx?.set(
           this.ceramicDefintions.definitions.profile,
           {
-            name: name,
-            email: email,
+            name: details?.name,
+            email: details?.email,
           }
         );
         return new SafientResponse({ data: result.data! });
@@ -228,7 +245,7 @@ export class SafientCore {
         throw new SafientResponse({ error: err.error });
       } else {
         const { message } = err as Error;
-        throw new SafientResponse({ error: { code: 0, message: message } });
+        throw new SafientResponse({ error: { code: Errors.CommonError.code, message: message } });
       }
     }
   };
@@ -380,16 +397,18 @@ export class SafientCore {
 
       const safeLink = persist ? await createIpfsSafeLink(safeLinkData) : null;
 
-      const data: SafeCreation = {
+      const data: Safe = {
+        _id: '',
         safeName: safeDetails?.name,
         description: safeDetails?.description,
-        creator: this.connection.idx?.id,
+        creator: this.connection.idx!.id,
         guardians: guardiansDid,
         beneficiary: beneficiaryUser?.did,
         encSafeKey: encryptedSafeData.creatorEncKey,
         encSafeData: encryptedSafeData.encryptedData,
         stage: SafeStages.ACTIVE,
         encSafeKeyShards: encryptedSafeData.shardData,
+        decSafeKeyShards: [],
         claims: [],
         onChain: onChain,
         claimType: claimDetails.type,
@@ -508,8 +527,8 @@ export class SafientCore {
       const result: EventResponse = {
         id: safe[0],
         recepient: {
-          name: beneficiaryUser!.name,
-          email: beneficiaryUser!.email,
+          name: beneficiaryUser?.name,
+          email: beneficiaryUser?.email,
           phone: "",
         },
       };
@@ -589,11 +608,13 @@ export class SafientCore {
         if (safe.onChain === true) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
-              evidenceUri = await createClaimEvidenceUri(
-                file,
-                evidenceName,
-                description
-              );
+              // Fix the metadata and IPFS stores
+              // evidenceUri = await createClaimEvidenceUri(
+              //   file,
+              //   evidenceName,
+              //   description
+              // );
+              evidenceUri = '';
               tx = await this.contract.createClaim(safe._id, evidenceUri);
               txReceipt = await tx.wait();
             }
@@ -610,10 +631,12 @@ export class SafientCore {
 
         if (safe.onChain === false) {
           if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-            const metaDataEvidenceUri: string = await createMetaData(
-              "",
-              creatorUser[0].userAddress
-            );
+            // Fix the metadata and IPFS stores
+            // const metaDataEvidenceUri: string = await createMetaData(
+            //   "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+            //   creatorUser[0].userAddress
+            // );
+            const metaDataEvidenceUri = '';
             if (safe.stage === SafeStages.ACTIVE) {
               const arbitrationFee: number =
                 await this.arbitrator.getArbitrationFee();
@@ -667,11 +690,13 @@ export class SafientCore {
 
           if (createSafetxReceipt.status === 1) {
             if (safe.claimType === Types.ClaimType.ArbitrationBased) {
-              evidenceUri = await createClaimEvidenceUri(
-                file,
-                evidenceName,
-                description
-              );
+              // Fix the metadata and IPFS stores
+              // evidenceUri = await createClaimEvidenceUri(
+              //   file,
+              //   evidenceName,
+              //   description
+              // );
+              evidenceUri = '';
               tx = await this.contract.createClaim(safe._id, evidenceUri);
             } else {
               tx = await this.contract.createClaim(safe._id, "");
@@ -783,7 +808,6 @@ export class SafientCore {
 
       return new SafientResponse({ data: recoveryStatus });
     } catch (err) {
-      console.log(err);
       throw new SafientResponse({ error: Errors.GuardianRecoveryFailure });
     }
   };

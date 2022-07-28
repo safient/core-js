@@ -17,32 +17,20 @@ export type Connection = {
   idx: IDX | null;
 };
 
-export type UserSchema = {
-  did: string;
-  email: string;
-  name: string;
-  safes: SafeMeta[];
-  signUpMode: number;
-  userAddress: string;
-  guardian: boolean
-};
-
 export interface User {
   _id: string;
-  _mod: number;
   did: string;
-  email: string;
-  name: string;
+  email?: string;
+  name?: string;
   safes: SafeMeta[];
-  signUpMode: number;
   userAddress: string;
   guardian: boolean
 };
 
 
 export type UserMeta = {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   did: string;
 };
 
@@ -73,28 +61,9 @@ export interface Safe {
   dDay: number,
   timeStamp: number,
   proofSubmission: boolean,
-  cid: string
-};
-
-export type SafeCreation = {
-  safeName?: string,
-  description?: string,
-  creator: string | undefined;
-  guardians: string[];
-  beneficiary: string | undefined;
-  encSafeKey: JWE;
-  encSafeData: Buffer;
-  stage: number;
-  encSafeKeyShards: Shard[];
-  claims: Claim[];
-  onChain: boolean;
-  claimType: Types.ClaimType;
-  signalingPeriod: number,
-  dDay: number,
-  timeStamp: number,
-  proofSubmission: boolean,
   cid: string | null
 };
+
 
 
 export type Claim = {
@@ -188,9 +157,9 @@ export type EventResponse = {
 }
 
 export type Recepient = {
-  name: string,
-  email: string,
-  phone: string,
+  name?: string,
+  email?: string,
+  phone?: string,
 }
 
 export type SecretSafe = {

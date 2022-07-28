@@ -47,106 +47,99 @@ describe('Scenario 6 - Creating DDay based Safe', async () => {
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
 
+    guardianOneAddress = await guardianOneSigner.getAddress();
+
     safient = new SafientCore(Enums.NetworkType.localhost);
   });
 
-  //Step 1: Register all users
- 
-  it('Should register a Creator', async () => {
-
-    const userAddress = await creatorSigner.getAddress();
-    try{
-      creator = await safient.loginUser(creatorSigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        creator = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
-      }
-    }
+ //Step 1: Register all users
+ it('Should register a Creator', async () => {
     
-    try{
-      const result = await safient.createUser('Creator', 'creator@test.com', 0, userAddress, false);
-    }catch(err){
-      expect(err.error.code).to.equal(Errors.UserAlreadyExists.code);
+  try{
+    creator = await safient.createUser(creatorSigner, {name: 'Creator', email: 'creator@test.com'});
+  }catch(err){
+    if(err.error.code === Errors.UserAlreadyExists.code){
+      creator = await safient.loginUser(creatorSigner);
     }
+  }
+  
+  try{
+    const result = await safient.createUser(creatorSigner, {name: 'Creator', email: 'creator@test.com'});
+  }catch(err){
+    expect(err.error.code).to.equal(Errors.UserAlreadyExists.code);
+  }
 
-    const loginUser = await safient.getUser({ did: creator.data.did });
-    expect(loginUser.data.name).to.equal('Creator');
-    expect(loginUser.data.email).to.equal('creator@test.com');
-  });
+  const loginUser = await safient.getUser({ did: creator.data.did });
+  expect(loginUser.data.name).to.equal('Creator');
+  expect(loginUser.data.email).to.equal('creator@test.com');
+});
 
-  it('Should register a beneficiary', async () => {
+it('Should register a beneficiary', async () => {
 
-    const userAddress = await beneficiarySigner.getAddress();
-
-    try{
+  try{
+    beneficiary = await safient.createUser(beneficiarySigner, { name: 'beneficiary', email: 'beneficiary@test.com'});
+  }catch(err){
+    
+    if(err.error.code === Errors.UserAlreadyExists.code){
       beneficiary = await safient.loginUser(beneficiarySigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        beneficiary = await safient.createUser('beneficiary', 'beneficiary@test.com', 0, userAddress, false);
 
-      }
     }
+  }
 
-    // SUCCESS : get all users (check if the user was created)
-    const loginUser = await safient.getUser({ did: beneficiary.data.did });
-    expect(loginUser.data.name).to.equal('beneficiary');
-    expect(loginUser.data.email).to.equal('beneficiary@test.com');
-  });
+  const loginUser = await safient.getUser({ did: beneficiary.data.did });
+  expect(loginUser.data.name).to.equal('beneficiary');
+  expect(loginUser.data.email).to.equal('beneficiary@test.com');
+});
 
-  it('Should register a Guardian 1', async () => {
+it('Should register a Guardian 1', async () => {
 
-    const userAddress = await guardianOneSigner.getAddress();
-    guardianOneAddress = userAddress;
-
-    try{
+  try{
+    guardianOne =  await safient.createUser(guardianOneSigner, {name: 'Guardian 1', email: 'guardianOne@test.com'}, true);
+    
+  }catch(err){
+    if(err.error.code === Errors.UserAlreadyExists.code){
       guardianOne = await safient.loginUser(guardianOneSigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianOne =  await safient.createUser('Guardian 1', 'guardianOne@test.com', 0, userAddress, true);
-      }
     }
+  }
 
+  const loginUser = await safient.getUser({ email: `guardianOne@test.com` });
+  expect(loginUser.data.name).to.equal('Guardian 1');
+  expect(loginUser.data.email).to.equal('guardianOne@test.com');
+});
 
-    // SUCCESS : get all users (check if the user was created)
-    const loginUser = await safient.getUser({ email: `guardianOne@test.com` });
-    expect(loginUser.data.name).to.equal('Guardian 1');
-    expect(loginUser.data.email).to.equal('guardianOne@test.com');
-  });
+it('Should register a Guardian 2', async () => {
 
-  it('Should register a Guardian 2', async () => {
- 
-    const userAddress = await guardianTwoSigner.getAddress();
-
-    try{
+  try{
+    guardianTwo = await safient.createUser(guardianTwoSigner, {name: 'Guardian 2', email: 'guardianTwo@test.com'}, true);
+  }catch(err){
+    if(err.error.code === Errors.UserAlreadyExists.code){
       guardianTwo = await safient.loginUser(guardianTwoSigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianTwo = await safient.createUser('Guardian 2', 'guardianTwo@test.com', 0, userAddress, true);
-      }
+
     }
+  }
 
-    // SUCCESS : get all users (check if the user was created)
-    const loginUser = await safient.getUser({ email: `guardianTwo@test.com` });
-    expect(loginUser.data.name).to.equal('Guardian 2');
-    expect(loginUser.data.email).to.equal('guardianTwo@test.com');
-  });
+  const loginUser = await safient.getUser({ email: `guardianTwo@test.com` });
+  expect(loginUser.data.name).to.equal('Guardian 2');
+  expect(loginUser.data.email).to.equal('guardianTwo@test.com');
+});
 
-  it('Should register a Guardian 3', async () => {
-
-    const userAddress = await guardianThreeSigner.getAddress();
-    try{
+it('Should register a Guardian 3', async () => {
+  
+  try{
+    
+    guardianThree =  await safient.createUser(guardianThreeSigner, {name: 'Guardian 3', email: 'guardianThree@test.com'}, true);
+  }
+  catch(err){
+    if(err.error.code === Errors.UserAlreadyExists.code){
       guardianThree = await safient.loginUser(guardianThreeSigner);
-    }catch(err){
-      if(err.error.code === Errors.UserNotFound.code){
-        guardianThree =  await safient.createUser('Guardian 3', 'guardianThree@test.com', 0, userAddress, true);
-      }
-    }
+     
+  }
+}
 
-    // SUCCESS : get all users (check if the user was created)
-    const loginUser = await safient.getUser({ did: guardianThree.data.did });
-    expect(loginUser.data.name).to.equal('Guardian 3');
-    expect(loginUser.data.email).to.equal('guardianThree@test.com');
-  });
+  const loginUser = await safient.getUser({ did: guardianThree.data.did });
+  expect(loginUser.data.name).to.equal('Guardian 3');
+  expect(loginUser.data.email).to.equal('guardianThree@test.com');
+});
 
   //should create a safe onChain and offChain
   it('Should create crypto safe with hardware wallet with DDay Based Claim', async () => {
