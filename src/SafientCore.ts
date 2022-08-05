@@ -330,8 +330,8 @@ export class SafientCore {
    */
   createSafe = async (
     safeData: SafeStore,
-    beneficiary: { email?: string; did?: string },
-    claimDetails: { type: number; period: number },
+    beneficiary?: { email?: string; did?: string },
+    claimDetails?: { type: number; period: number },
     safeDetails?: { name?: string; description?: string },
     onChain: boolean = false,
     persist: boolean = false
@@ -343,12 +343,16 @@ export class SafientCore {
       const guardiansDid: string[] = [];
       //userQueryDid function
       // const creatorUser: User[] = await queryUserDid(creatorDID);
+      const signalPeriod = claimDetails? (claimDetails.type == 0 ? claimDetails.period : 0) : 0;
+      const dDay = claimDetails? (claimDetails.type == 2 ? claimDetails.period : 0) : 0;
+      const isBeneficiary = typeof beneficiary == 'object' ? Object.keys(beneficiary).length : false
+
+      if (isBeneficiary && beneficiary) {
       const beneficiaryResult: SafientResponse<User> = await this.getUser(
         beneficiary
       );
       beneficiaryUser = beneficiaryResult.data!;
-      const signalPeriod = claimDetails.type == 0 ? claimDetails.period : 0;
-      const dDay = claimDetails.type == 2 ? claimDetails.period : 0;
+      
 
       guardians = await this.randomGuardians(
         this.userData.did,
@@ -361,6 +365,7 @@ export class SafientCore {
       if (guardians.length !== 3) {
         throw new SafientResponse({ error: Errors.SafeNotCreated });
       }
+    }
 
       const secretsData = this.crypto.generateSecrets(guardians);
       guardians.map((guardian) => guardiansDid.push(guardian.did));
@@ -372,24 +377,24 @@ export class SafientCore {
       const encryptedSafeData: SafeEncrypted =
         await this.crypto.encryptSafeData(
           safeData,
-          beneficiaryUser!.did,
           this.connection.idx?.id,
           this.connection,
           guardiansDid,
           signature,
           secretsData.recoveryMessage,
-          secretsData.secrets
+          secretsData.secrets,
+          beneficiaryUser?.did,
         );
 
       const safeLinkData: SafeLink = {
         creator: this.connection.idx?.id!,
         guardians: guardiansDid,
-        beneficiary: beneficiaryUser.did,
+        beneficiary: beneficiaryUser ? beneficiaryUser.did : null,
         encSafeKey: encryptedSafeData.creatorEncKey,
         encSafeData: encryptedSafeData.encryptedData,
         encSafeKeyShards: encryptedSafeData.shardData,
         onChain: onChain,
-        claimType: claimDetails.type,
+        claimType: claimDetails ? claimDetails?.type : null,
         signalingPeriod: signalPeriod,
         dDay: dDay,
         timeStamp: Date.now(),
@@ -403,7 +408,7 @@ export class SafientCore {
         description: safeDetails?.description,
         creator: this.connection.idx!.id,
         guardians: guardiansDid,
-        beneficiary: beneficiaryUser?.did,
+        beneficiary: beneficiaryUser? beneficiaryUser?.did : null,
         encSafeKey: encryptedSafeData.creatorEncKey,
         encSafeData: encryptedSafeData.encryptedData,
         stage: SafeStages.ACTIVE,
@@ -411,7 +416,7 @@ export class SafientCore {
         decSafeKeyShards: [],
         claims: [],
         onChain: onChain,
-        claimType: claimDetails.type,
+        claimType: claimDetails ? claimDetails?.type : null,
         signalingPeriod: signalPeriod,
         dDay: dDay,
         timeStamp: Date.now(),
@@ -421,10 +426,10 @@ export class SafientCore {
 
       const safe: string[] = await createSafe(data);
 
-      if (onChain === true) {
+      if (onChain === true && claimDetails && beneficiaryUser) {
         let totalFee: number = this.guardianFee;
         let metaDataEvidenceUri: string = "";
-        if (claimDetails.type === Types.ClaimType.ArbitrationBased) {
+        if (claimDetails?.type === Types.ClaimType.ArbitrationBased) {
           const arbitrationFee: number =
             await this.arbitrator.getArbitrationFee();
           totalFee = totalFee + arbitrationFee;
@@ -436,7 +441,7 @@ export class SafientCore {
         }
 
         const tx: TransactionResponse = await this.contract.createSafe(
-          beneficiaryUser!.userAddress,
+          beneficiaryUser.userAddress,
           safe[0],
           claimDetails.type,
           signalPeriod,
@@ -465,6 +470,12 @@ export class SafientCore {
             decShard: null,
           });
         }
+
+        await this.database.save(this.userData, "Users");
+
+        // only for beneficiary
+        
+        if (isBeneficiary && beneficiary) {
 
         if (beneficiaryUser!.safes.length === 0) {
           beneficiaryUser!.safes = [
@@ -506,9 +517,7 @@ export class SafientCore {
               decShard: null,
             });
           }
-        }
-
-        await this.database.save(this.userData, "Users");
+        } 
         await this.database.save(beneficiaryUser, "Users");
 
         for (
@@ -519,11 +528,15 @@ export class SafientCore {
           await this.database.save(guardians[guardianIndex], "Users");
         }
       }
+    }
 
       if (txReceipt?.status === 0) {
+
+        // Delete the safe if onchain safe creation fails
         await this.database.delete(safe[0], "Users");
         throw new SafientResponse({ error: Errors.TransactionFailure });
       }
+
       const result: EventResponse = {
         id: safe[0],
         recepient: {
@@ -765,6 +778,7 @@ export class SafientCore {
 
   /**
    * This API is called by guardians when they have to recover the safe they are part of
+   * @ignore
    * @param safeId ID of the safe being recovered
    * @param did DID of the guardian
    * @returns True of False based on the recovery process
@@ -1061,6 +1075,7 @@ export class SafientCore {
 
   /**
    * This API is used by guardians to claim the incentivisation
+   * @ignore
    * @param safeId ID of the safe
    * @returns True or false based on the incentivisation process
    */
@@ -1141,6 +1156,7 @@ export class SafientCore {
   };
 
   /**
+   * @ignore
    * This function allows the guardians to claim their rewards
    * @param funds Total funds need to be claimed in ETH
    * @returns A transaction response

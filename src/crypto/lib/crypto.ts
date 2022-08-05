@@ -20,16 +20,17 @@ export class Crypto {
      */
     encryptSafeData = async (
     safeData: SafeStore, 
-    beneficiaryDid: string,
     creatorDid: any,
     creator: Connection,
     guardians: string [],
     signature: string,
     recoveryMessage: string,
-    secrets: string []
+    secrets: string [],
+    beneficiaryDid?: string
     ): Promise<SafeEncrypted> => {
 
         let shardData: Shard[] = [];
+        let beneficiaryEncKey: JWE | null = null;
 
         try{
 
@@ -46,8 +47,9 @@ export class Crypto {
             //Encrypt AES for creator
             const creatorEncKey: JWE = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [creatorDid])!;
 
+            if (beneficiaryDid) {
             //Encrypt AES for beneficiary
-            const beneficiaryEncKey: JWE = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [beneficiaryDid])!;
+             beneficiaryEncKey = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [beneficiaryDid])!;
 
             const ShareData: Share = {
                 beneficiaryEncKey : beneficiaryEncKey,
@@ -64,6 +66,7 @@ export class Crypto {
                         secret: secrets[shardIndex]
                     }, [guardians[shardIndex]]),
                 })
+            }
             }
 
             let result: SafeEncrypted = {

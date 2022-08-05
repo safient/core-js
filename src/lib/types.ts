@@ -48,7 +48,7 @@ export interface Safe {
   description?: string,
   creator: string;
   guardians: string[]; 
-  beneficiary: string;
+  beneficiary: string | null;
   encSafeKey: JWE;
   encSafeData: Buffer;
   stage: number;
@@ -56,7 +56,7 @@ export interface Safe {
   decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
-  claimType: Types.ClaimType;
+  claimType: Types.ClaimType | null;
   signalingPeriod: number,
   dDay: number,
   timeStamp: number,
@@ -105,7 +105,7 @@ export type Share = {
 
 export type SafeEncrypted = {
   creatorEncKey: JWE,
-  beneficiaryEncKey: JWE,
+  beneficiaryEncKey: JWE | null,
   encryptedData: Buffer,
   shardData: Shard[],
 }
@@ -192,12 +192,12 @@ export type GenericError = {
 export type SafeLink = {
   creator: string;
   guardians: string[];
-  beneficiary: string;
+  beneficiary: string | null;
   encSafeKey: JWE;
   encSafeData: Buffer;
   encSafeKeyShards: Shard[];
   onChain: boolean;
-  claimType: Types.ClaimType;
+  claimType: Types.ClaimType | null;
   signalingPeriod: number,
   dDay: number,
   timeStamp: number

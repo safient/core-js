@@ -209,7 +209,6 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
 
         await safient.loginUser(beneficiarySigner);
         const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
-        console.log(data)
     }catch(err){
         expect(err.error.code).to.eql(Errors.StageNotUpdated.code)
     }
