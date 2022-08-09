@@ -3,16 +3,19 @@ const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
 const chai = require('chai');
 const { writeFile } = require('fs').promises;
+
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
 // Import package
 const { SafientCore } = require('../dist/index');
+const { Enums } = require('../dist/index');
+const { Errors } = require('../dist/index')
 const { JsonRpcProvider } = require('@ethersproject/providers');
-const { Enums, Errors } = require('../dist/index');
+const { SignatureKind } = require('typescript');
 
-
-describe('Scenario 1 - Creating safe offChain', async () => {
+describe('No claim method', async () => {
+  let admin;
   let creator;
   let beneficiary;
   let guardianOne;
@@ -20,13 +23,11 @@ describe('Scenario 1 - Creating safe offChain', async () => {
   let guardianThree;
   let safeId;
   let provider, chainId;
-  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner, randomUserSigner;
   let disputeId;
-  let admin;
   let safient;
-
-  const apiKey = process.env.USER_API_KEY;
-  const secret = process.env.USER_API_SECRET;
+  let guardianOneAddress;
+  let guardianOneRewardBalance;
 
   const ClaimType = {
     SignalBased: 0,
@@ -41,11 +42,13 @@ describe('Scenario 1 - Creating safe offChain', async () => {
 
     admin = await provider.getSigner(0);
     creatorSigner = await provider.getSigner(1);
+
     beneficiarySigner = await provider.getSigner(2);
     guardianOneSigner = await provider.getSigner(3);
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
+    randomUserSigner = await provider.getSigner(7)
 
     guardianOneAddress = await guardianOneSigner.getAddress();
 
@@ -141,11 +144,12 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     expect(loginUser.data.email).to.equal('guardianThree@test.com');
   });
 
-  //should create a safe onChain and offChain
-  it('Should create Crypto safe with private key as data offchain', async () => {
+  it('Should create a new Crypto Safe with Seed phrase', async () => {
+
+    creator = await safient.loginUser(creatorSigner);
     const secretSafe = {
-      seedPhrase: null,
-      privateKey: '0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea',
+      seedPhrase: 'index negative film salon crumble wish rebuild seed betray meadow next ability',
+      privateKey: null,
       keyStore: null,
     };
     const cryptoSafe = {
@@ -154,90 +158,28 @@ describe('Scenario 1 - Creating safe offChain', async () => {
     const safeData = {
       data: cryptoSafe,
     };
-    creator = await safient.loginUser(creatorSigner);
-
     const safeid = await safient.createSafe(
       safeData,
-      {did:beneficiary.data.did},
-      {type: ClaimType.ArbitrationBased},
-      { name: "Off Chain",
-       description:  "this safe creates offchain private key safe"}
+      {email: 'beneficiary@test.com'},
+      null,
+      { name: "On Chain Unit test",
+       description: "Crytpo safe with seed phrase"},
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
+    expect(safe.data.safeName).to.equal("On Chain Unit test")
   });
 
-  //Step 3: Create a claim
-  it('Should create a claim', async () => {
-    const file = {
-      name: 'signature.jpg',
-    };
-    await safient.loginUser(beneficiarySigner);
-    const result = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text'});
-    disputeId = parseInt(result.data.id)
-    expect(disputeId).to.be.a('number');
-  });
-
-  it('Should PASS the dispute', async () => {
-
-    try {
-      await safient.loginUser(admin)
-    }
-    catch {
-      // Exception for admin user
-      
-    }
-    const result = await safient.giveRuling(disputeId, 1); //Passing a claim
-    expect(result.data).to.equal(true);
-  });
-
-  // it('Should update the stage on threadDB', async () => {
-  //   const result = await beneficiarySc.syncStage(safeId);
-  //   expect(result.data).to.equal(true);
-  // });
-
-  it('Should initiate recovery by guardian 1', async () => {
-
-    await safient.loginUser(guardianOneSigner);
-    const data = await safient.reconstructSafe(safeId, guardianOne.data.did);
-    expect(data.data).to.equal(true);
-  });
-
-  it('Should initiate recovery by guardian 2', async () => {
-
-    await safient.loginUser(guardianTwoSigner);
-    const data = await safient.reconstructSafe(safeId, guardianTwo.data.did);
-    expect(data.data).to.equal(true);
-  });
 
   it('Should recover data for the beneficiary', async () => {
 
     await safient.loginUser(beneficiarySigner);
     const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
-    expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
-  });
-
-  it('Should recover data for the creator', async () => {
-
-    await safient.loginUser(creatorSigner);
-    const data = await safient.recoverSafeByCreator(safeId);
-    expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
+    expect(data.data.data.data.seedPhrase).to.equal(
+      'index negative film salon crumble wish rebuild seed betray meadow next ability'
+    );
   });
 
 
-  it('Should submit proofs for the guardians', async () => {
-
-    await safient.loginUser(guardianTwoSigner);
-    const result = await safient.incentiviseGuardians(safeId);
-    expect(result.data).to.not.equal(false);
-  });
-
-  it('Should get the guardians reward balance', async () => {
-
-    await safient.loginUser(guardianTwoSigner);
-    guardianOneRewardBalance = await safient.getRewardBalance(guardianOneAddress);
-    // const newBalance = await guardianOneSigner.getBalance();
-    // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-  });
 });

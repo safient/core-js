@@ -345,7 +345,7 @@ export class SafientCore {
       // const creatorUser: User[] = await queryUserDid(creatorDID);
       const signalPeriod = claimDetails? (claimDetails.type == 0 ? claimDetails.period : 0) : 0;
       const dDay = claimDetails? (claimDetails.type == 2 ? claimDetails.period : 0) : 0;
-      const isBeneficiary = typeof beneficiary == 'object' ? Object.keys(beneficiary).length : false
+      const isBeneficiary = typeof beneficiary == 'object' && beneficiary ? Object.keys(beneficiary).length : false
 
       if (isBeneficiary && beneficiary) {
       const beneficiaryResult: SafientResponse<User> = await this.getUser(
@@ -410,6 +410,7 @@ export class SafientCore {
         guardians: guardiansDid,
         beneficiary: beneficiaryUser? beneficiaryUser?.did : null,
         encSafeKey: encryptedSafeData.creatorEncKey,
+        beneficiaryEncSafeKey: claimDetails ?  null : encryptedSafeData.beneficiaryEncKey,
         encSafeData: encryptedSafeData.encryptedData,
         stage: SafeStages.ACTIVE,
         encSafeKeyShards: encryptedSafeData.shardData,
@@ -423,6 +424,7 @@ export class SafientCore {
         proofSubmission: false,
         cid: safeLink,
       };
+
 
       const safe: string[] = await createSafe(data);
 
@@ -443,7 +445,7 @@ export class SafientCore {
         const tx: TransactionResponse = await this.contract.createSafe(
           beneficiaryUser.userAddress,
           safe[0],
-          claimDetails.type,
+          claimDetails?.type,
           signalPeriod,
           dDay,
           metaDataEvidenceUri,
@@ -835,10 +837,7 @@ export class SafientCore {
     safeId: string
   ): Promise<SafientResponse<any>> => {
     try {
-      let recoveredData: SafeRecovered = {
-        status: false,
-        data: null,
-      };
+
       const safeData: SafientResponse<Safe> = await this.getSafe(safeId);
       const encSafeData = safeData.data!.encSafeData;
       const data = await this.crypto.decryptSafeData(
@@ -847,11 +846,8 @@ export class SafientCore {
         encSafeData
       );
       const reconstructedData = JSON.parse(data.toString());
-      recoveredData = {
-        status: true,
-        data: reconstructedData,
-      };
-      return new SafientResponse({ data: reconstructedData });
+
+      return new SafientResponse({ data: reconstructedData.data });
     } catch (err) {
       throw new SafientResponse({ error: Errors.CreatorRecoveryFailure });
     }
@@ -889,34 +885,49 @@ export class SafientCore {
     did: string
   ): Promise<any> => {
     try {
-      let recoveredData: SafeRecovered = {
-        status: false,
-        data: null,
-      };
+
       let shards: Object[] = [];
       let reconstructedSafeData: any;
       let safeData: any;
       let result: any;
+      let beneficiaryEncKey: any;
       const safeResponse: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeResponse.data!;
 
       if (
-        safe.stage === SafeStages.RECOVERED ||
-        safe.stage === SafeStages.CLAIMED
+        safe.stage !== SafeStages.RECOVERED &&
+        safe.stage !== SafeStages.CLAIMED &&
+        safe.claimType !== null
       ) {
+
+        throw new SafientResponse({ error: Errors.StageNotUpdated });
+      }
+      
+      if(safe.claimType !== null) {
         const decShards: DecShard[] = safe.decSafeKeyShards;
         decShards.map((shard) => {
           shards.push(shard.share);
         });
 
         reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
+        beneficiaryEncKey = reconstructedSafeData.beneficiaryEncKey
+
+      }
+      else {
+
+        beneficiaryEncKey = safe.beneficiaryEncSafeKey;
+      }
         safeData = await this.crypto.decryptSafeData(
-          reconstructedSafeData.beneficiaryEncKey,
+          beneficiaryEncKey,
           this.connection,
           Buffer.from(safe.encSafeData)
         );
 
-        if (safeData && safe.stage === SafeStages.RECOVERED) {
+        if (!safe.claimType) {
+          result = JSON.parse(safeData.toString());
+          return new SafientResponse({ data: result.data });
+        }
+        else if (safeData && safe.stage === SafeStages.RECOVERED) {
           await this.updateStage(
             safeId,
             ClaimStages.PASSED,
@@ -932,9 +943,7 @@ export class SafientCore {
             error: Errors.BeneficiaryRecoveryFailure,
           });
         }
-      } else {
-        throw new SafientResponse({ error: Errors.StageNotUpdated });
-      }
+
     } catch (err) {
       if (err instanceof SafientResponse) {
         if (err.error?.code === Errors.StageNotUpdated.code) {

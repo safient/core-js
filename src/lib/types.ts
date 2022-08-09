@@ -50,6 +50,7 @@ export interface Safe {
   guardians: string[]; 
   beneficiary: string | null;
   encSafeKey: JWE;
+  beneficiaryEncSafeKey: JWE | null;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
@@ -108,6 +109,7 @@ export type SafeEncrypted = {
   beneficiaryEncKey: JWE | null,
   encryptedData: Buffer,
   shardData: Shard[],
+  decSardData: DecShard[],
 }
 
 

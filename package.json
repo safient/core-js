@@ -1,6 +1,6 @@
 {
   "name": "@safient/core",
-  "version": "0.1.19-alpha.1",
+  "version": "0.1.20-alpha",
   "description": "JavaScript SDK to manage safes and interact with Safient protocol.",
   "keywords": [
     "Web3",
