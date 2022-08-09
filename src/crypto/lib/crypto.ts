@@ -1,4 +1,4 @@
-import { Connection, SafeEncrypted, GuardianSecrets, RecoveryMessage, Shard, Share, User, SafeStore } from "../../lib/types"
+import { Connection, SafeEncrypted, GuardianSecrets, RecoveryMessage, Shard, Share, User, SafeStore, DecShard } from "../../lib/types"
 import {_decryptData, _encryptData, _generateCipherKey, _shamirCombine, _shamirSplit} from "../utils/encryption"
 import {randomBytes, JWE, utils} from "../utils/helpers"
 
@@ -20,16 +20,18 @@ export class Crypto {
      */
     encryptSafeData = async (
     safeData: SafeStore, 
-    beneficiaryDid: string,
     creatorDid: any,
     creator: Connection,
     guardians: string [],
     signature: string,
     recoveryMessage: string,
-    secrets: string []
+    secrets: string [],
+    beneficiaryDid?: string
     ): Promise<SafeEncrypted> => {
 
         let shardData: Shard[] = [];
+        let decSardData: DecShard[] = [];
+        let beneficiaryEncKey: JWE | null = null;
 
         try{
 
@@ -46,8 +48,9 @@ export class Crypto {
             //Encrypt AES for creator
             const creatorEncKey: JWE = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [creatorDid])!;
 
+            if (beneficiaryDid) {
             //Encrypt AES for beneficiary
-            const beneficiaryEncKey: JWE = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [beneficiaryDid])!;
+             beneficiaryEncKey = await creator.idx?.ceramic.did?.createDagJWE(aesKey, [beneficiaryDid])!;
 
             const ShareData: Share = {
                 beneficiaryEncKey : beneficiaryEncKey,
@@ -64,6 +67,10 @@ export class Crypto {
                         secret: secrets[shardIndex]
                     }, [guardians[shardIndex]]),
                 })
+                decSardData.push({
+                    share: shards[shardIndex],
+                    secret: secrets[shardIndex]})
+            }
             }
 
             let result: SafeEncrypted = {
@@ -71,6 +78,7 @@ export class Crypto {
                 beneficiaryEncKey: beneficiaryEncKey,
                 encryptedData: encryptedData,
                 shardData: shardData,
+                decSardData: decSardData,
             }
 
             return result;

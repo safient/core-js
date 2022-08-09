@@ -18,6 +18,7 @@ export class Storage {
                 return result;
             }
         }catch(err){
+            console.log(err)
             throw new Error("Error while publishing data")
         } 
     }
@@ -40,7 +41,7 @@ export class Storage {
                 return result;
             }
         }catch(err){
-            throw new Error("Error while publishing data")
+            throw new Error("Error while getting data")
         } 
     }
 }

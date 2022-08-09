@@ -17,38 +17,26 @@ export type Connection = {
   idx: IDX | null;
 };
 
-export type UserSchema = {
-  did: string;
-  email: string;
-  name: string;
-  safes: SafeMeta[];
-  signUpMode: number;
-  userAddress: string;
-  guardian: boolean
-};
-
 export interface User {
   _id: string;
-  _mod: number;
   did: string;
-  email: string;
-  name: string;
+  email?: string;
+  name?: string;
   safes: SafeMeta[];
-  signUpMode: number;
   userAddress: string;
   guardian: boolean
 };
 
 
 export type UserMeta = {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   did: string;
 };
 
 
 export type SafeMeta = {
-  safeName: string
+  safeName?: string
   safeId: string;
   type: string;
   decShard: DecShard | null
@@ -56,45 +44,27 @@ export type SafeMeta = {
 
 export interface Safe {
   _id: string;
-  safeName: string,
-  description: string,
+  safeName?: string,
+  description?: string,
   creator: string;
   guardians: string[]; 
-  beneficiary: string;
+  beneficiary: string | null;
   encSafeKey: JWE;
+  beneficiaryEncSafeKey: JWE | null;
   encSafeData: Buffer;
   stage: number;
   encSafeKeyShards: Shard[];
   decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
-  claimType: Types.ClaimType;
-  signalingPeriod: number,
-  dDay: number,
-  timeStamp: number,
-  proofSubmission: boolean,
-  cid: string
-};
-
-export type SafeCreation = {
-  safeName: string,
-  description: string,
-  creator: string | undefined;
-  guardians: string[];
-  beneficiary: string | undefined;
-  encSafeKey: JWE;
-  encSafeData: Buffer;
-  stage: number;
-  encSafeKeyShards: Shard[];
-  claims: Claim[];
-  onChain: boolean;
-  claimType: Types.ClaimType;
+  claimType: Types.ClaimType | null;
   signalingPeriod: number,
   dDay: number,
   timeStamp: number,
   proofSubmission: boolean,
   cid: string | null
 };
+
 
 
 export type Claim = {
@@ -136,9 +106,10 @@ export type Share = {
 
 export type SafeEncrypted = {
   creatorEncKey: JWE,
-  beneficiaryEncKey: JWE,
+  beneficiaryEncKey: JWE | null,
   encryptedData: Buffer,
   shardData: Shard[],
+  decSardData: DecShard[],
 }
 
 
@@ -188,9 +159,9 @@ export type EventResponse = {
 }
 
 export type Recepient = {
-  name: string,
-  email: string,
-  phone: string,
+  name?: string,
+  email?: string,
+  phone?: string,
 }
 
 export type SecretSafe = {
@@ -223,12 +194,12 @@ export type GenericError = {
 export type SafeLink = {
   creator: string;
   guardians: string[];
-  beneficiary: string;
+  beneficiary: string | null;
   encSafeKey: JWE;
   encSafeData: Buffer;
   encSafeKeyShards: Shard[];
   onChain: boolean;
-  claimType: Types.ClaimType;
+  claimType: Types.ClaimType | null;
   signalingPeriod: number,
   dDay: number,
   timeStamp: number

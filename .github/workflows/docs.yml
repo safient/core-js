@@ -4,6 +4,9 @@ on:
   # Trigger only on release
   release:
     types: [created]
+  push:
+    branches:
+      - 'feature/**'
 
 jobs:
   checks:

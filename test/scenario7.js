@@ -1,17 +1,20 @@
-const { ThreadID } = require('@textile/hub');
-const { utils } = require('ethers');
+const { Client, PrivateKey, ThreadID, Where } = require('@textile/hub');
+const { randomBytes } = require('crypto');
 const { getThreadId } = require('../dist/utils/threadDb');
-const fs = require('fs');
 const chai = require('chai');
+const { writeFile } = require('fs').promises;
 
 const expect = chai.expect;
 chai.use(require('chai-as-promised'));
 
+// Import package
 const { SafientCore } = require('../dist/index');
+const { Enums } = require('../dist/index');
+const { Errors } = require('../dist/index')
 const { JsonRpcProvider } = require('@ethersproject/providers');
-const { Enums, Errors } = require('../dist/index');
+const { SignatureKind } = require('typescript');
 
-describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () => {
+describe('No claim method', async () => {
   let admin;
   let creator;
   let beneficiary;
@@ -20,10 +23,11 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
   let guardianThree;
   let safeId;
   let provider, chainId;
-  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner;
+  let creatorSigner, beneficiarySigner, guardianOneSigner, guardianTwoSigner, guardianThreeSigner, randomUserSigner;
   let disputeId;
   let safient;
-
+  let guardianOneAddress;
+  let guardianOneRewardBalance;
 
   const ClaimType = {
     SignalBased: 0,
@@ -44,13 +48,13 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     guardianTwoSigner = await provider.getSigner(4);
     guardianThreeSigner = await provider.getSigner(5);
     pseudoAccount = await provider.getSigner(6);
+    randomUserSigner = await provider.getSigner(7)
 
     guardianOneAddress = await guardianOneSigner.getAddress();
 
     safient = new SafientCore(Enums.NetworkType.localhost);
   });
 
-  
   //Step 1: Register all users
   it('Should register a Creator', async () => {
     
@@ -140,101 +144,42 @@ describe('Scenario 3 - Creating safe onChain and Passed the dispute', async () =
     expect(loginUser.data.email).to.equal('guardianThree@test.com');
   });
 
-  describe('Safe creation and claim creation', async () => {
-    describe('Onchain', async () => {
-      it('Should Create Crypto Safe with software wallet instructions', async () => {
-        const instructionSafe = {
-          softwareWallet: 'Instruction for software wallet',
-          hardwareWallet: null,
-        };
-        const cryptoSafe = {
-          data: instructionSafe,
-        };
-        const safeData = {
-          data: cryptoSafe,
-        };
+  it('Should create a new Crypto Safe with Seed phrase', async () => {
 
-        await safient.loginUser(creatorSigner);
-
-        const safeid = await safient.createSafe(
-          safeData,
-          {did:beneficiary.data.did},
-          {type: ClaimType.ArbitrationBased},
-          { name: "On chain safe",
-           description:  "Software Wallet"}
-        );
-        safeId = safeid.data.id;
-        const safe = await safient.getSafe(safeId);
-        expect(safe.data.creator).to.equal(creator.data.did);
-      });
-
-      it('Should claim safe', async () => {
-        const file = {
-          name: 'signature.jpg',
-        };
-        await safient.loginUser(beneficiarySigner);
-        const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
-        disputeId = parseInt(res.data.id)
-        expect(disputeId).to.be.a('number');
-      });
-    });
+    creator = await safient.loginUser(creatorSigner);
+    const secretSafe = {
+      seedPhrase: 'index negative film salon crumble wish rebuild seed betray meadow next ability',
+      privateKey: null,
+      keyStore: null,
+    };
+    const cryptoSafe = {
+      data: secretSafe,
+    };
+    const safeData = {
+      data: cryptoSafe,
+    };
+    const safeid = await safient.createSafe(
+      safeData,
+      {email: 'beneficiary@test.com'},
+      null,
+      { name: "On Chain Unit test",
+       description: "Crytpo safe with seed phrase"},
+    );
+    safeId = safeid.data.id;
+    const safe = await safient.getSafe(safeId);
+    expect(safe.data.creator).to.equal(creator.data.did);
+    expect(safe.data.safeName).to.equal("On Chain Unit test")
   });
 
-  describe('Ruling...', async () => {
-    it('Should PASS ruling on the dispute', async () => {
 
-      try {
-        await safient.loginUser(admin)
-      }
-      catch {
-        // Exception for admin user
-        
-      }
+  it('Should recover data for the beneficiary', async () => {
 
-      const result = await safient.giveRuling(disputeId, 1); //Passing a claim
-      expect(result.data).to.equal(true);
-    });
+    await safient.loginUser(beneficiarySigner);
+    const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
+    expect(data.data.data.data.seedPhrase).to.equal(
+      'index negative film salon crumble wish rebuild seed betray meadow next ability'
+    );
   });
 
-  describe('Guardian recovery', async () => {
-    it('Recovery done by guardian 1', async () => {
 
-      await safient.loginUser(guardianOneSigner)
-      const data = await safient.reconstructSafe(safeId, guardianOne.data.did);
-      expect(data.data).to.equal(true);
-    });
-
-    it('Recovery done by guardian 2', async () => {
-
-      await safient.loginUser(guardianTwoSigner)
-      const data = await safient.reconstructSafe(safeId, guardianTwo.data.did);
-      expect(data.data).to.equal(true);
-    });
-  });
-
-  describe('Beneficiary data recovery', async () => {
-    it('Data is recovered by the beneficiary', async () => {
-
-      await safient.loginUser(beneficiarySigner)
-      const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
-      expect(data.data.data.data.softwareWallet).to.equal('Instruction for software wallet');
-    });
-  });
-
-  describe('Guardian incentivisation', async () => {
-    it('Should submit proofs for the guardians', async () => {
-
-      await safient.loginUser(guardianOneSigner)
-      const result = await safient.incentiviseGuardians(safeId);
-      expect(result.data).to.not.equal(false);
-    });
-
-    it('Should get the guardians reward balance', async () => {
-
-      await safient.loginUser(guardianOneSigner)
-      guardianOneRewardBalance = await safient.getRewardBalance(guardianOneAddress);
-      // const newBalance = await guardianOneSigner.getBalance();
-      // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-    });
-  });
 });

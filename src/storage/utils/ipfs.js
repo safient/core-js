@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const encoder = new TextEncoder();
 const {create} = require('ipfs-http-client')
 
-const client = create(`https://ipfs.safient.io/api/v0`)
+const client = create(`https://ipfs.kleros.io/api/v0`)
 
 export const ipfsPublish = async (fileName, data) => {
     const encodedData = encoder.encode(data)

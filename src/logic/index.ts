@@ -3,7 +3,7 @@ import {Database} from "../database"
 import {Storage} from "../storage/index"
 import {DatabaseType} from "../lib/enums"
  
-import { Connection, Evidence, RegisterStatus, SafeCreation, Safe, User, UserMeta, UserResponse, UserSchema, Utils, SafeLink, DecShard } from "../lib/types";
+import { Connection, Evidence, RegisterStatus, Safe, User, UserMeta, UserResponse, Utils, SafeLink, DecShard } from "../lib/types";
 
 var environment = require("browser-or-node");
 
@@ -34,11 +34,11 @@ export const init = (databaseType: DatabaseType, connectionObject: Connection): 
  * @param email - Email of the user
  * @returns - The status of the user if he exists or not
  */
-export const checkUser = async(email: string): Promise<RegisterStatus> =>{
+export const checkUser = async(did: string): Promise<RegisterStatus> =>{
 
     try{
         let registerStatus: RegisterStatus
-        const result: User[] = await database.read<User>('email', email, 'Users')
+        const result: User[] = await database.read<User>('did', did, 'Users')
         if(result.length === 1){
             registerStatus = {
                 status: true,
@@ -65,7 +65,7 @@ export const checkUser = async(email: string): Promise<RegisterStatus> =>{
  * @returns - Database ID of the created data
  */
 
-export const createUser = async(userData: UserSchema, did: string): Promise<UserResponse> => {
+export const createUser = async(userData: User, did: string): Promise<UserResponse> => {
 
     try {
 
@@ -74,7 +74,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
         data: null,
         idx: null,
       }
-      const userStatus: RegisterStatus = await checkUser(userData.email);
+      const userStatus: RegisterStatus = await checkUser(userData.did);
 
       if (userStatus.status === true) {
 
@@ -259,7 +259,7 @@ export const createUser = async(userData: UserSchema, did: string): Promise<User
    * @param safeData - Safe data
    * @returns - Database Id of the safe data
    */
-  export const createSafe = async(safeData: SafeCreation): Promise<string[]> => {
+  export const createSafe = async(safeData: Safe): Promise<string[]> => {
       try{
         const safe: string[] =  await database.create(safeData, 'Safes')
         return safe
