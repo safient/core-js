@@ -57,7 +57,6 @@ import {
 import { Networks } from "./utils/networks";
 import { SafientResponse } from "./lib/services";
 import { Errors } from "./lib/errors";
-require("dotenv").config();
 
 export class SafientCore {
   /** @ignore */

@@ -37,7 +37,7 @@
     "@ceramicstudio/idx": "^0.12.0",
     "@ceramicstudio/idx-tools": "^0.10.0",
     "@ethersproject/providers": "^5.4.4",
-    "@safient/contracts": "^0.1.17-alpha",
+    "@safient/contracts": "^0.1.18-alpha",
     "@stablelib/random": "^1.0.1",
     "@textile/hub": "^6.3.1",
     "bcryptjs": "^2.4.3",
