@@ -1,21 +1,25 @@
 import Ceramic from "@ceramicnetwork/http-client";
 import {IDX} from '@ceramicstudio/idx'
 import {Ed25519Provider} from 'key-did-provider-ed25519'
-import KeyDidResolver from 'key-did-resolver'
+import KeyResolver from 'key-did-resolver'
 import { DID } from 'dids'
 import { CeramicDefintions } from "../../lib/types";
 
 
-const CERAMIC_URL: string = 'https://ceramic-clay.safient.io/'
-
     export const generateIDX = async(seed: any, ceramicURL: string, ceramicDefintions: CeramicDefintions) => {
         try{
             if(seed){
+                const provider = new Ed25519Provider(seed)
+                console.log(provider)
+                console.log(KeyResolver.getResolver())
+                const resolver = {...KeyResolver.getResolver()};
+                const did = new DID({ provider, resolver })
+                await did.authenticate()
+
                 const ceramic: Ceramic = new Ceramic(ceramicURL);
-                const resolver = {...KeyDidResolver.getResolver()};
-                const did: DID = new DID({resolver})
+                
                 ceramic.setDID(did);
-                await ceramic.did?.setProvider(new Ed25519Provider(seed));
+                await ceramic.did?.setProvider(provider);
                 await ceramic.did?.authenticate()
                 const idx: IDX = new IDX({ceramic, aliases: ceramicDefintions.definitions})
                 return {idx:idx, ceramic: ceramic}
