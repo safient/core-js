@@ -158,7 +158,6 @@ it('Should register a Guardian 3', async () => {
 
     await safient.loginUser(creatorSigner);
 
-    console.log(beneficiary)
     const safeid = await safient.createSafe(
       safeData,
       {did:beneficiary.data.did},

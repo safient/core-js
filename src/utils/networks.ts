@@ -75,7 +75,7 @@ export const Networks = [
   },
   {
       "name":"testnet",
-      "chainId": 42,
+      "chainId": 80001,
       "addresses": {
         "safientMain": "0x8C2FA3dE952f5A1c463af0Fb42a9A812D3Ffe9e3",
         "arbitrator": "0x823E2b7623aD287819674548f43F8965F38B2626"
