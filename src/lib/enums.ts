@@ -33,5 +33,6 @@ export const ClaimStages = {
    export enum ClaimType {
     SignalBased = 0,
     ArbitrationBased = 1,
-    DDayBased = 2
+    DDayBased = 2,
+    ExpirationBased = 3
    }

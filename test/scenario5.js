@@ -158,7 +158,8 @@ describe('Scenario 5 - Creating signal based Safe', async () => {
       {did:beneficiary.data.did},
       {type: ClaimType.SignalBased, period: 10},
       { name: "Signal based",
-       description: "generic safe i.e Signal based"}
+       description: "generic safe i.e Signal based"},
+       true,
     );
 
 

@@ -228,13 +228,13 @@ export class SafientCore {
         this.connection.idx?.id!
       );
       if (result.status === false) {
-        const ceramicResult = await idx?.set(
-          this.ceramicDefintions.definitions.profile,
-          {
-            name: details?.name,
-            email: details?.email,
-          }
-        );
+        // const ceramicResult = await idx?.set(
+        //   this.ceramicDefintions.definitions.profile,
+        //   {
+        //     name: details?.name,
+        //     email: details?.email,
+        //   }
+        // );
         return new SafientResponse({ data: result.data! });
       } else {
         throw new SafientResponse({ error: Errors.UserAlreadyExists });
@@ -342,8 +342,6 @@ export class SafientCore {
       const guardiansDid: string[] = [];
       //userQueryDid function
       // const creatorUser: User[] = await queryUserDid(creatorDID);
-      const signalPeriod = claimDetails? (claimDetails.type == 0 ? claimDetails.period : 0) : 0;
-      const dDay = claimDetails? (claimDetails.type == 2 ? claimDetails.period : 0) : 0;
       const isBeneficiary = typeof beneficiary == 'object' && beneficiary ? Object.keys(beneficiary).length : false
 
       if (isBeneficiary && beneficiary) {
@@ -393,9 +391,7 @@ export class SafientCore {
         encSafeData: encryptedSafeData.encryptedData,
         encSafeKeyShards: encryptedSafeData.shardData,
         onChain: onChain,
-        claimType: claimDetails ? claimDetails?.type : null,
-        signalingPeriod: signalPeriod,
-        dDay: dDay,
+        claim: {type: claimDetails ? claimDetails?.type : null, period: claimDetails?.period ? claimDetails.period : 0},
         timeStamp: Date.now(),
       };
 
@@ -409,16 +405,14 @@ export class SafientCore {
         guardians: guardiansDid,
         beneficiary: beneficiaryUser? beneficiaryUser?.did : null,
         encSafeKey: encryptedSafeData.creatorEncKey,
-        beneficiaryEncSafeKey: claimDetails ?  null : encryptedSafeData.beneficiaryEncKey,
+        beneficiaryEncSafeKey: claimDetails ? (claimDetails.type !== Types.ClaimType.Expirion ?  null : encryptedSafeData.beneficiaryEncKey) : encryptedSafeData.beneficiaryEncKey,
         encSafeData: encryptedSafeData.encryptedData,
         stage: SafeStages.ACTIVE,
         encSafeKeyShards: encryptedSafeData.shardData,
         decSafeKeyShards: [],
         claims: [],
         onChain: onChain,
-        claimType: claimDetails ? claimDetails?.type : null,
-        signalingPeriod: signalPeriod,
-        dDay: dDay,
+        claim: {type: claimDetails ? claimDetails?.type : null, period: claimDetails?.period ? claimDetails.period : 0},
         timeStamp: Date.now(),
         proofSubmission: false,
         cid: safeLink,
@@ -445,8 +439,7 @@ export class SafientCore {
           beneficiaryUser.userAddress,
           safe[0],
           claimDetails?.type,
-          signalPeriod,
-          dDay,
+          claimDetails ? claimDetails.period : 0,
           metaDataEvidenceUri,
           String(ethers.utils.parseEther(String(totalFee)))
         ); //NOTE: Change the time from 1 to required period here
@@ -620,7 +613,7 @@ export class SafientCore {
 
       if (parseFloat(etherBalance) >= 0.1) {
         if (safe.onChain === true) {
-          if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+          if (safe.claim.type === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               // Fix the metadata and IPFS stores
               // evidenceUri = await createClaimEvidenceUri(
@@ -632,19 +625,19 @@ export class SafientCore {
               tx = await this.contract.createClaim(safe._id, evidenceUri);
               txReceipt = await tx.wait();
             }
-          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          } else if (safe.claim.type === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               tx = await this.contract.createClaim(safe._id, "");
               txReceipt = await tx.wait();
             }
-          } else if (safe.claimType === Types.ClaimType.DDayBased) {
+          } else if (safe.claim.type === Types.ClaimType.DDayBased) {
             tx = await this.contract.createClaim(safe._id, "");
             txReceipt = await tx.wait();
           }
         }
 
         if (safe.onChain === false) {
-          if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+          if (safe.claim.type === Types.ClaimType.ArbitrationBased) {
             // Fix the metadata and IPFS stores
             // const metaDataEvidenceUri: string = await createMetaData(
             //   "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
@@ -662,15 +655,14 @@ export class SafientCore {
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
-                safe.claimType,
-                safe.signalingPeriod,
-                safe.dDay,
+                safe.claim.type,
+                safe.claim.period,
                 metaDataEvidenceUri,
                 totalFee
               );
               createSafetxReceipt = await createSafetx.wait();
             }
-          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          } else if (safe.claim.type === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               const totalFee: string = String(
                 ethers.utils.parseEther(String(this.guardianFee))
@@ -678,24 +670,22 @@ export class SafientCore {
               createSafetx = await this.contract.syncSafe(
                 creatorUser[0].userAddress,
                 safeId,
-                safe.claimType,
-                safe.signalingPeriod,
-                safe.dDay,
+                safe.claim.type,
+                safe.claim.period,
                 "",
                 totalFee
               ); //Note update time here
               createSafetxReceipt = await createSafetx.wait();
             }
-          } else if (safe.claimType === Types.ClaimType.DDayBased) {
+          } else if (safe.claim.type === Types.ClaimType.DDayBased) {
             const totalFee: string = String(
               ethers.utils.parseEther(String(this.guardianFee))
             );
             createSafetx = await this.contract.syncSafe(
               creatorUser[0].userAddress,
               safeId,
-              safe.claimType,
-              safe.signalingPeriod,
-              safe.dDay,
+              safe.claim.type,
+              safe.claim.period,
               "",
               totalFee
             ); //Note update time here
@@ -703,7 +693,7 @@ export class SafientCore {
           }
 
           if (createSafetxReceipt.status === 1) {
-            if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+            if (safe.claim.type === Types.ClaimType.ArbitrationBased) {
               // Fix the metadata and IPFS stores
               // evidenceUri = await createClaimEvidenceUri(
               //   file,
@@ -720,19 +710,19 @@ export class SafientCore {
         }
 
         if (txReceipt.status === 1) {
-          if (safe.claimType === Types.ClaimType.ArbitrationBased) {
+          if (safe.claim.type === Types.ClaimType.ArbitrationBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               dispute = txReceipt.events[2].args[1];
               timeStamp = parseInt(txReceipt.events[2].args[2]._hex);
               disputeId = parseInt(dispute._hex);
             }
-          } else if (safe.claimType === Types.ClaimType.SignalBased) {
+          } else if (safe.claim.type === Types.ClaimType.SignalBased) {
             if (safe.stage === SafeStages.ACTIVE) {
               dispute = txReceipt.events[0].args[1];
               timeStamp = parseInt(txReceipt.events[0].args[2]._hex);
               disputeId = parseInt(dispute._hex);
             }
-          } else if (safe.claimType === Types.ClaimType.DDayBased) {
+          } else if (safe.claim.type === Types.ClaimType.DDayBased) {
             dispute = txReceipt.events[0].args[1];
             timeStamp = parseInt(txReceipt.events[0].args[2]._hex);
             disputeId = parseInt(dispute._hex);
@@ -893,16 +883,23 @@ export class SafientCore {
       const safeResponse: SafientResponse<Safe> = await this.getSafe(safeId);
       const safe = safeResponse.data!;
 
+      // TODO: expiration check is temporary until the recovery happens through claim flow
       if (
         safe.stage !== SafeStages.RECOVERED &&
         safe.stage !== SafeStages.CLAIMED &&
-        safe.claimType !== null
+        safe.claim.type !== null &&
+        safe.claim.type !== Types.ClaimType.Expirion
       ) {
 
         throw new SafientResponse({ error: Errors.StageNotUpdated });
       }
-      
-      if(safe.claimType !== null) {
+
+      if(safe.claim.type == null || safe.claim.type === Types.ClaimType.Expirion) {
+
+        beneficiaryEncKey = safe.beneficiaryEncSafeKey;
+
+      }
+      else {
         const decShards: DecShard[] = safe.decSafeKeyShards;
         decShards.map((shard) => {
           shards.push(shard.share);
@@ -910,19 +907,15 @@ export class SafientCore {
 
         reconstructedSafeData = await this.crypto.reconstructSafeData(shards);
         beneficiaryEncKey = reconstructedSafeData.beneficiaryEncKey
-
-      }
-      else {
-
-        beneficiaryEncKey = safe.beneficiaryEncSafeKey;
       }
         safeData = await this.crypto.decryptSafeData(
           beneficiaryEncKey,
           this.connection,
           Buffer.from(safe.encSafeData)
         );
+        
 
-        if (!safe.claimType) {
+        if (!safe.claim.type || safe.claim.type == Types.ClaimType.Expirion) {
           result = JSON.parse(safeData.toString());
           return new SafientResponse({ data: result.data });
         }

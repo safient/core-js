@@ -12,7 +12,7 @@ const { SafientCore } = require('../dist/index');
 const { JsonRpcProvider } = require('@ethersproject/providers');
 const { Enums, Errors } = require('../dist/index');
 
-describe('Scenario 4 - Creating signal based Safe', async () => {
+describe('Scenario 8 - Creating expiration based safe', async () => {
   let creator;
   let beneficiary;
   let guardianOne;
@@ -31,7 +31,8 @@ describe('Scenario 4 - Creating signal based Safe', async () => {
   const ClaimType = {
     SignalBased: 0,
     ArbitrationBased: 1,
-    DDayBased: 2
+    DDayBased: 2,
+    Expiration: 3,
   };
 
   before(async () => {
@@ -142,13 +143,14 @@ it('Should register a Guardian 3', async () => {
 });
 
   //should create a safe onChain and offChain
-  it('Should create crypto safe with hardware wallet with Signal Based Claim', async () => {
-    const instructionSafe = {
-      softwareWallet: null,
-      hardwareWallet: 'Instruction for hardware wallet',
+  it('Should create Crypto safe with private key as data offchain using expiration claim', async () => {
+    const secretSafe = {
+      seedPhrase: null,
+      privateKey: '0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea',
+      keyStore: null,
     };
     const cryptoSafe = {
-      data: instructionSafe,
+      data: secretSafe,
     };
     const safeData = {
       data: cryptoSafe,
@@ -159,86 +161,20 @@ it('Should register a Guardian 3', async () => {
     const safeid = await safient.createSafe(
       safeData,
       {did:beneficiary.data.did},
-      {type: ClaimType.SignalBased, period: 6},
-      { name: "On Chain Wallet - signal based",
-       description:  "Hardware wallet instructions"},
-       true
+      {type: ClaimType.Expiration, period: 6},
+      { name: "Offchain Safient voucher - expiration based",
+       description:  "Safient voucher key"}
     );
     safeId = safeid.data.id;
     const safe = await safient.getSafe(safeId);
     expect(safe.data.creator).to.equal(creator.data.did);
   });
 
-  //Step 3: Create a claim
-  it('Should create a claim', async () => {
-    const file = {
-      name: 'signature.jpg',
-    };
-
-    await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId);
-    disputeId = parseInt(res.data.id)
-    expect(disputeId).to.be.a('number');
-  });
-
-  it('Should send signal after claim', async () => {
-
-    await safient.loginUser(creatorSigner);
-    const result = await safient.createSignal(safeId);
-    expect(result.data.status).to.equal(1);
-  });
-
-  it('Should create a claim', async () => {
-    const file = {
-      name: 'signature.jpg',
-    };
-    await safient.loginUser(beneficiarySigner);
-    const res = await safient.createClaim(safeId, { file: file, evidenceName: 'Testing Evidence', description: 'Lorsem Text' });
-    disputeId = parseInt(res.data.id)
-    const mineNewBlock = new Promise((resolve, reject) => {
-      setTimeout(() => {
-        resolve(provider.send('evm_mine'));
-      }, 7000);
-    });
-    const result = await mineNewBlock;
-    expect(disputeId).to.be.a('number');
-  });
-
-
-  it('Should initiate recovery by guardian 1', async () => {
-
-    await safient.loginUser(guardianOneSigner);
-    const data = await safient.reconstructSafe(safeId, guardianOne.data.did);
-    expect(data.data).to.equal(true);
-  });
-
-  it('Should initiate recovery by guardian 2', async () => {
-
-    await safient.loginUser(guardianTwoSigner);
-    const data = await safient.reconstructSafe(safeId, guardianTwo.data.did);
-    expect(data.data).to.equal(true);
-  });
-
   it('Should recover data for the beneficiary', async () => {
 
     await safient.loginUser(beneficiarySigner);
     const data = await safient.recoverSafeByBeneficiary(safeId, beneficiary.data.did);
-    console.log(data)
-    expect(data.data.data.data.hardwareWallet).to.equal('Instruction for hardware wallet');
+    expect(data.data.data.data.privateKey).to.equal('0x81993E3b09f9ee1a5a8e5c59c9CF1411E5Bd28ea');
   });
 
-  it('Should submit proofs for the guardians', async () => {
-
-    await safient.loginUser(guardianOneSigner);
-    const result = await safient.incentiviseGuardians(safeId);
-    expect(result.data).to.not.equal(false);
-  });
-
-  it('Should get the guardians reward balance', async () => {
-
-    await safient.loginUser(guardianOneSigner);
-    guardianOneRewardBalance = await safient.getRewardBalance(guardianOneAddress);
-    // const newBalance = await guardianOneSigner.getBalance();
-    // expect((parseInt(newBalance) > parseInt(prevBalance))).to.equal(true);
-  });
 });

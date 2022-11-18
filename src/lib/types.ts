@@ -57,9 +57,7 @@ export interface Safe {
   decSafeKeyShards: DecShard[];
   claims: Claim[];
   onChain: boolean;
-  claimType: Types.ClaimType | null;
-  signalingPeriod: number,
-  dDay: number,
+  claim: { type: Types.ClaimType | null, period: number };
   timeStamp: number,
   proofSubmission: boolean,
   cid: string | null
@@ -199,9 +197,7 @@ export type SafeLink = {
   encSafeData: Buffer;
   encSafeKeyShards: Shard[];
   onChain: boolean;
-  claimType: Types.ClaimType | null;
-  signalingPeriod: number,
-  dDay: number,
+  claim: { type: Types.ClaimType | null, period: number };
   timeStamp: number
 }
 export type DecShard = {
