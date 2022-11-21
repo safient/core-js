@@ -223,6 +223,8 @@ export class SafientCore {
         guardian,
       };
 
+      this.userData = data;
+
       const result: UserResponse = await createUser(
         data,
         this.connection.idx?.id!
